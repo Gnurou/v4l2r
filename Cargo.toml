@@ -1,0 +1,13 @@
+[package]
+name = "v4l2"
+version = "0.0.1"
+authors = ["Alexandre Courbot <gnurou@gmail.com>"]
+edition = "2018"
+license = "LGPL-2.1"
+
+[dependencies]
+nix = "0.17.0"
+bitflags = "1.2.1"
+fd = "0.2.3"
+# For test program
+ctrlc = "3.1.4"
