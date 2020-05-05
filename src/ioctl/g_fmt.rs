@@ -175,7 +175,7 @@ pub fn s_fmt<T: Fmt, F: AsRawFd>(fd: &mut F, queue: QueueType, fmt: Format) -> R
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
-pub fn try_fmt<T: Fmt, F: AsRawFd>(fd: &mut F, queue: QueueType, fmt: Format) -> Result<T> {
+pub fn try_fmt<T: Fmt, F: AsRawFd>(fd: &F, queue: QueueType, fmt: Format) -> Result<T> {
     let mut fmt: bindings::v4l2_format = (fmt, queue).try_into()?;
 
     unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) }?;
