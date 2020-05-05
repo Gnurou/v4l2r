@@ -6,6 +6,17 @@ use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 
+/// A memory area we can pass to ioctls in order to get/set plane information
+/// with the multi-planar API.
+type PlaneData = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
+
+/// For simple initialization of `PlaneData`.
+impl Default for bindings::v4l2_plane {
+    fn default() -> Self {
+        unsafe { mem::zeroed() }
+    }
+}
+
 bitflags! {
     /// Flags corresponding to the `flags` field of `struct v4l2_buffer`.
     /// TODO split into two types, one for the user -> kernel and another for
@@ -32,7 +43,7 @@ pub trait QBuf {
     fn fill_mplane_v4l2_buffer(
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
-        v4l2_planes: &mut [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize],
+        v4l2_planes: &mut PlaneData,
     ) -> Result<()>;
 }
 
@@ -76,7 +87,7 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
     fn fill_mplane_v4l2_buffer(
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
-        v4l2_planes: &mut [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize],
+        v4l2_planes: &mut PlaneData,
     ) -> Result<()> {
         if self.planes.len() == 0 {
             return Err(Error::NotEnoughPlanes);
@@ -108,7 +119,7 @@ pub trait DQBuf: Sized {
     /// retrieve the plane data.
     fn from_v4l2_buffer(
         v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&[bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize]>,
+        v4l2_planes: Option<&PlaneData>,
     ) -> Result<Self>;
 }
 
@@ -116,7 +127,7 @@ pub trait DQBuf: Sized {
 impl DQBuf for () {
     fn from_v4l2_buffer(
         _v4l2_buf: &bindings::v4l2_buffer,
-        _v4l2_planes: Option<&[bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize]>,
+        _v4l2_planes: Option<&PlaneData>,
     ) -> Result<Self> {
         Ok(())
     }
@@ -127,7 +138,7 @@ impl DQBuf for () {
 impl DQBuf for u32 {
     fn from_v4l2_buffer(
         v4l2_buf: &bindings::v4l2_buffer,
-        _v4l2_planes: Option<&[bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize]>,
+        _v4l2_planes: Option<&PlaneData>,
     ) -> Result<Self> {
         Ok(v4l2_buf.index)
     }
@@ -148,7 +159,7 @@ pub struct QueryBuffer<H: PlaneHandle> {
 impl<H: PlaneHandle> DQBuf for QueryBuffer<H> {
     fn from_v4l2_buffer(
         v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&[bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize]>,
+        v4l2_planes: Option<&PlaneData>,
     ) -> Result<Self> {
         let planes = match v4l2_planes {
             None => vec![QueryBufPlane {
@@ -195,16 +206,10 @@ pub struct DQBuffer<H: PlaneHandle> {
     pub planes: Vec<DQBufPlane<H>>,
 }
 
-impl Default for bindings::v4l2_plane {
-    fn default() -> Self {
-        unsafe { mem::zeroed() }
-    }
-}
-
 impl<H: PlaneHandle> DQBuf for DQBuffer<H> {
     fn from_v4l2_buffer(
         v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&[bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize]>,
+        v4l2_planes: Option<&PlaneData>,
     ) -> Result<Self> {
         let planes = match v4l2_planes {
             None => vec![DQBufPlane {
@@ -254,21 +259,6 @@ fn is_multi_planar(queue: QueueType) -> bool {
     }
 }
 
-fn qbuf_mp<T: QBuf, F: AsRawFd>(
-    fd: &F,
-    v4l2_buf: &mut bindings::v4l2_buffer,
-    buf_data: T,
-) -> Result<()> {
-    let mut plane_data: [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize] =
-        Default::default();
-    v4l2_buf.m.planes = plane_data.as_mut_ptr();
-    buf_data.fill_mplane_v4l2_buffer(v4l2_buf, &mut plane_data)?;
-
-    unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), v4l2_buf) }?;
-
-    Ok(())
-}
-
 /// Safe wrapper around the `VIDIOC_QBUF` ioctl.
 pub fn qbuf<T: QBuf, F: AsRawFd>(
     fd: &F,
@@ -283,23 +273,17 @@ pub fn qbuf<T: QBuf, F: AsRawFd>(
     };
 
     if is_multi_planar(queue) {
-        return qbuf_mp(fd, &mut v4l2_buf, buf_data);
+        let mut plane_data: PlaneData = Default::default();
+        v4l2_buf.m.planes = plane_data.as_mut_ptr();
+
+        buf_data.fill_mplane_v4l2_buffer(&mut v4l2_buf, &mut plane_data)?;
+        unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(())
+    } else {
+        buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
+        unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(())
     }
-
-    buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
-    unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-    Ok(())
-}
-
-fn dqbuf_mp<T: DQBuf, F: AsRawFd>(fd: &F, v4l2_buf: &mut bindings::v4l2_buffer) -> Result<T> {
-    let mut plane_data: [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize] =
-        Default::default();
-    v4l2_buf.m.planes = plane_data.as_mut_ptr();
-    v4l2_buf.length = plane_data.len() as u32;
-
-    unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), v4l2_buf) }?;
-
-    Ok(T::from_v4l2_buffer(v4l2_buf, Some(&plane_data))?)
 }
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
@@ -308,24 +292,18 @@ pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T> {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };
+
     if is_multi_planar(queue) {
-        return dqbuf_mp(fd, &mut v4l2_buf);
+        let mut plane_data: PlaneData = Default::default();
+        v4l2_buf.m.planes = plane_data.as_mut_ptr();
+        v4l2_buf.length = plane_data.len() as u32;
+
+        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))?)
+    } else {
+        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
     }
-
-    unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-
-    Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
-}
-
-fn querybuf_mp<T: DQBuf, F: AsRawFd>(fd: &F, v4l2_buf: &mut bindings::v4l2_buffer) -> Result<T> {
-    let mut plane_data: [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize] =
-        Default::default();
-    v4l2_buf.m.planes = plane_data.as_mut_ptr();
-    v4l2_buf.length = plane_data.len() as u32;
-
-    unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), v4l2_buf) }?;
-
-    Ok(T::from_v4l2_buffer(v4l2_buf, Some(&plane_data))?)
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.
@@ -335,11 +313,16 @@ pub fn querybuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType, index: usize) ->
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };
+
     if is_multi_planar(queue) {
-        return querybuf_mp(fd, &mut v4l2_buf);
+        let mut plane_data: PlaneData = Default::default();
+        v4l2_buf.m.planes = plane_data.as_mut_ptr();
+        v4l2_buf.length = plane_data.len() as u32;
+
+        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))?)
+    } else {
+        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
     }
-
-    unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-
-    Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
 }
