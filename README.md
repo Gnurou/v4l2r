@@ -23,12 +23,12 @@ library.
 
 How to use
 ----------
-Check `src/bin/vicodec_test/ioctl_test.rs` for a short example of how to use
+Check `examples/vicodec_test/ioctl_test.rs` for a short example of how to use
 the low-level ioctl interface. This example program requires the `vicodec`
 virtual device, either in single or multi-planar mode.
 
 You can try it with
 
-    cargo run -- /dev/video0
+    cargo run --example vicodec_test -- /dev/video0
 
 assuming `/dev/video0` is the path to the `vicodec` encoder.
