@@ -12,14 +12,17 @@ The goal is to make V4L2 accessible to Rust on two level of abstractions:
   them while adding extra safety and removing some of the historical baggage
   like the difference in format for single-planar and multi-planar queues.
 
-* A higher-level abstraction (still in the design phase) that exposes devices,
-  queues, and other V4L2 concepts as strongly typed objects. The goal here is to
-  provide an enjoyable interface that remains generic enough to be used for any
-  kind of V4L2 device.
+* A higher-level abstraction (still in the design phase) which relies on the
+  first one and exposes devices, queues, and other V4L2 concepts as strongly
+  typed objects. The goal here is to provide an nice-to-use interface that
+  remains generic enough to be used for any kind of V4L2 device.
 
 Other libraries are expected to build upon these abstractions in order to
 provide more specialized libraries, e.g. a simple camera or decoder/encoder
 library.
+
+Dependencies shall be kept to a minimum: this library talks directly to the
+kernel using ioctls, and only depends on a few small, well-established crates.
 
 How to use
 ----------
