@@ -122,16 +122,22 @@ pub trait PlaneHandle: Sized + Debug {
     const MEMORY_TYPE: MemoryType;
 
     /// Construct the handle from a single-planar V4L2 buffer. This method is
-    /// unsafe because it shall not check whether the memory type of the buffer
-    /// matches that of the handle we request. Therefore we may end up building
-    /// an invalid handle if the types mismatch.
+    /// unsafe because it needs not check whether the memory type of the buffer
+    /// matches that of the handle we request. Therefore the caller is
+    /// responsible for making this check beforehand.
     unsafe fn from_v4l2_buffer(buffer: &bindings::v4l2_buffer) -> Self;
 
     /// Construct the handle from a V4L2 plane. This method is
-    /// unsafe because it shall not check whether the memory type of the buffer
-    /// matches that of the handle we request. Therefore we may end up building
-    /// an invalid handle if the types mismatch.
+    /// unsafe because it needs not check whether the memory type of the buffer
+    /// matches that of the handle we request. Therefore the caller is
+    /// responsible for making this check beforehand.
     unsafe fn from_v4l2_plane(plane: &bindings::v4l2_plane) -> Self;
+
+    /// Fill a single-planar V4L2 buffer with the handle's information.
+    fn fill_v4l2_buffer(&self, buffer: &mut bindings::v4l2_buffer);
+
+    // Fill a plane of a multi-planar V4L2 buffer with the handle's information.
+    fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane);
 
     /// Safe variant of `from_v4l2_buffer` that checks that `buffer`'s memory
     /// type matches the one of the handle we are trying to build.
@@ -164,12 +170,6 @@ pub trait PlaneHandle: Sized + Debug {
 
         Ok(handles)
     }
-
-    /// Fill a single-planar V4L2 buffer with the handle information.
-    fn fill_v4l2_buffer(&self, buffer: &mut bindings::v4l2_buffer);
-
-    // Fill a plane of a multi-planar V4L2 buffer with the handle information.
-    fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane);
 }
 
 /// Types of queues currently supported by this library.
