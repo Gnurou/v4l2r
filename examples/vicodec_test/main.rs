@@ -4,9 +4,9 @@
 //! There are two variants doing the same thing: one using the higher-level
 //! `device` abstraction (used by default), the other using the low-level
 //! `ioctl` abstraction (used if `--use_ioctl` is specified).
-mod device_test;
+mod device_api;
 mod framegen;
-mod ioctl_test;
+mod ioctl_api;
 
 use ctrlc;
 use std::path::Path;
@@ -45,9 +45,9 @@ fn main() {
 
     if use_ioctl {
         println!("Using ioctl interface");
-        return ioctl_test::run(&Path::new(&device_path), lets_quit);
+        return ioctl_api::run(&Path::new(&device_path), lets_quit);
     } else {
         println!("Using device interface");
-        return device_test::run(&Path::new(&device_path), lets_quit);
+        return device_api::run(&Path::new(&device_path), lets_quit);
     }
 }
