@@ -1,6 +1,6 @@
 //! Operations specific to MMAP-type buffers.
+use super::*;
 use crate::bindings;
-use crate::{MemoryType, PlaneHandle};
 use std::fmt::{self, Debug};
 
 /// Handle for a MMAP buffer. These buffers are backed by V4L2 itself, and
@@ -21,16 +21,7 @@ impl Debug for MMAPHandle {
 impl PlaneHandle for MMAPHandle {
     const MEMORY_TYPE: MemoryType = MemoryType::MMAP;
 
-    unsafe fn from_v4l2_buffer(buffer: &bindings::v4l2_buffer) -> Self {
-        MMAPHandle(buffer.m.offset)
-    }
-
-    unsafe fn from_v4l2_plane(plane: &bindings::v4l2_plane) -> Self {
-        MMAPHandle(plane.m.mem_offset)
-    }
-
     // There is no information to fill with MMAP buffers ; the index is enough.
     fn fill_v4l2_buffer(&self, _buffer: &mut bindings::v4l2_buffer) {}
-
     fn fill_v4l2_plane(&self, _plane: &mut bindings::v4l2_plane) {}
 }

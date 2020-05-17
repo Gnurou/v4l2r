@@ -1,14 +1,13 @@
 //! Safe wrapper for the VIDIOC_(D)QBUF and VIDIOC_QUERYBUF ioctls.
-use crate::{bindings, Error, PlaneHandle, QueueType, Result};
+use super::{is_multi_planar, PlaneData};
+use crate::memory::PlaneHandle;
+use crate::{bindings, Error, QueueType, Result};
+
 use bitflags::bitflags;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
-
-/// A memory area we can pass to ioctls in order to get/set plane information
-/// with the multi-planar API.
-type PlaneData = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
 
 /// For simple initialization of `PlaneData`.
 impl Default for bindings::v4l2_plane {
@@ -56,13 +55,34 @@ pub struct QBufPlane<H: PlaneHandle> {
     pub handle: H,
 }
 
+impl<H: PlaneHandle> QBufPlane<H> {
+    pub fn new(handle: H, bytes_used: usize) -> Self {
+        QBufPlane {
+            bytesused: bytes_used as u32,
+            data_offset: 0,
+            handle,
+        }
+    }
+}
+
 /// Contains all the information that can be passed to the `qbuf` ioctl.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct QBuffer<H: PlaneHandle> {
     pub flags: BufferFlags,
     pub field: u32,
     pub sequence: u32,
     pub planes: Vec<QBufPlane<H>>,
+}
+
+impl<H: PlaneHandle> Default for QBuffer<H> {
+    fn default() -> Self {
+        QBuffer {
+            flags: Default::default(),
+            field: Default::default(),
+            sequence: Default::default(),
+            planes: Vec::new(),
+        }
+    }
 }
 
 impl<H: PlaneHandle> QBuf for QBuffer<H> {
@@ -79,7 +99,7 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         }
         v4l2_buf.memory = H::MEMORY_TYPE as u32;
         v4l2_buf.bytesused = plane.bytesused;
-        plane.handle.fill_v4l2_buffer(v4l2_buf);
+        H::fill_v4l2_buffer(&plane.handle, v4l2_buf);
 
         Ok(())
     }
@@ -104,143 +124,10 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
             .for_each(|(v4l2_plane, plane)| {
                 v4l2_plane.bytesused = plane.bytesused;
                 v4l2_plane.data_offset = plane.data_offset;
-                plane.handle.fill_v4l2_plane(v4l2_plane);
+                H::fill_v4l2_plane(&plane.handle, v4l2_plane);
             });
 
         Ok(())
-    }
-}
-
-/// Implementors can receive the result from the `querybuf` or `dqbuf` ioctls.
-pub trait DQBuf: Sized {
-    /// Try to retrieve the data from `v4l2_buf`. If `v4l2_planes` is `None`,
-    /// then the buffer is single-planar. If it has data, the buffer is
-    /// multi-planar and the array of `struct v4l2_plane` shall be used to
-    /// retrieve the plane data.
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self>;
-}
-
-/// Simply dequeue a buffer without caring for any of its data.
-impl DQBuf for () {
-    fn from_v4l2_buffer(
-        _v4l2_buf: &bindings::v4l2_buffer,
-        _v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        Ok(())
-    }
-}
-
-/// Useful for the case where we are only interested in index of a dequeued
-/// buffer
-impl DQBuf for u32 {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        _v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        Ok(v4l2_buf.index)
-    }
-}
-
-#[derive(Debug)]
-pub struct QueryBufPlane<H: PlaneHandle> {
-    pub length: u32,
-    pub handle: H,
-}
-/// Contains all the information that makes sense when using `querybuf`.
-#[derive(Debug)]
-pub struct QueryBuffer<H: PlaneHandle> {
-    pub flags: BufferFlags,
-    pub planes: Vec<QueryBufPlane<H>>,
-}
-
-impl<H: PlaneHandle> DQBuf for QueryBuffer<H> {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        let planes = match v4l2_planes {
-            None => vec![QueryBufPlane {
-                length: v4l2_buf.length,
-                handle: H::try_from_splane_v4l2_buffer(v4l2_buf)?,
-            }],
-            Some(v4l2_planes) => {
-                let handles = H::try_from_mplane_v4l2_buffer(v4l2_buf, v4l2_planes)?;
-
-                v4l2_planes
-                    .iter()
-                    .zip(handles)
-                    .map(|(v4l2_plane, handle)| QueryBufPlane {
-                        length: v4l2_plane.length,
-                        handle,
-                    })
-                    .collect()
-            }
-        };
-
-        Ok(QueryBuffer {
-            flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
-            planes,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct DQBufPlane<H: PlaneHandle> {
-    pub length: u32,
-    pub bytesused: u32,
-    pub data_offset: u32,
-    pub handle: H,
-}
-
-/// Contains all the information from a dequeued buffer. Safe variant of
-/// `struct v4l2_buffer`.
-#[derive(Debug, Default)]
-pub struct DQBuffer<H: PlaneHandle> {
-    pub index: u32,
-    pub flags: BufferFlags,
-    pub field: u32,
-    pub sequence: u32,
-    pub planes: Vec<DQBufPlane<H>>,
-}
-
-impl<H: PlaneHandle> DQBuf for DQBuffer<H> {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        let planes = match v4l2_planes {
-            None => vec![DQBufPlane {
-                length: v4l2_buf.length,
-                bytesused: v4l2_buf.bytesused,
-                data_offset: 0,
-                handle: H::try_from_splane_v4l2_buffer(v4l2_buf)?,
-            }],
-            Some(v4l2_planes) => {
-                let handles = H::try_from_mplane_v4l2_buffer(v4l2_buf, v4l2_planes)?;
-
-                v4l2_planes
-                    .iter()
-                    .zip(handles)
-                    .map(|(v4l2_plane, handle)| DQBufPlane {
-                        length: v4l2_plane.length,
-                        bytesused: v4l2_plane.bytesused,
-                        data_offset: v4l2_plane.data_offset,
-                        handle,
-                    })
-                    .collect()
-            }
-        };
-
-        Ok(DQBuffer {
-            index: v4l2_buf.index as u32,
-            flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
-            field: v4l2_buf.field,
-            sequence: v4l2_buf.sequence,
-            planes,
-        })
     }
 }
 
@@ -252,14 +139,20 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_dqbuf, b'V', 17, v4l2_buffer);
 }
 
-fn is_multi_planar(queue: QueueType) -> bool {
-    match queue {
-        QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane => true,
-        _ => false,
-    }
-}
-
 /// Safe wrapper around the `VIDIOC_QBUF` ioctl.
+/// TODO: `qbuf` should be unsafe! The following invariants need to be guaranteed
+/// by the caller:
+///
+/// For MMAP buffers, any mapping must not be accessed by the caller (or any
+/// mapping must be unmapped before queueing?). Also if the buffer has been
+/// DMABUF-exported, its consumers must likewise not access it.
+///
+/// For DMABUF buffers, the FD must not be duplicated and accessed anywhere else.
+///
+/// For USERPTR buffers, things are most tricky. Not only must the data not be
+/// accessed by anyone else, the caller also needs to guarantee that the backing
+/// memory won't be freed until the corresponding buffer is returned by either
+/// `dqbuf` or `streamoff`.
 pub fn qbuf<T: QBuf, F: AsRawFd>(
     fd: &F,
     queue: QueueType,
@@ -283,46 +176,5 @@ pub fn qbuf<T: QBuf, F: AsRawFd>(
         buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
         unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
         Ok(())
-    }
-}
-
-/// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T> {
-    let mut v4l2_buf = bindings::v4l2_buffer {
-        type_: queue as u32,
-        ..unsafe { mem::zeroed() }
-    };
-
-    if is_multi_planar(queue) {
-        let mut plane_data: PlaneData = Default::default();
-        v4l2_buf.m.planes = plane_data.as_mut_ptr();
-        v4l2_buf.length = plane_data.len() as u32;
-
-        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))?)
-    } else {
-        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
-    }
-}
-
-/// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.
-pub fn querybuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType, index: usize) -> Result<T> {
-    let mut v4l2_buf = bindings::v4l2_buffer {
-        index: index as u32,
-        type_: queue as u32,
-        ..unsafe { mem::zeroed() }
-    };
-
-    if is_multi_planar(queue) {
-        let mut plane_data: PlaneData = Default::default();
-        v4l2_buf.m.planes = plane_data.as_mut_ptr();
-        v4l2_buf.length = plane_data.len() as u32;
-
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))?)
-    } else {
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
     }
 }

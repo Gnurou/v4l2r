@@ -21,7 +21,6 @@ mod bindings;
 pub mod ioctl;
 pub mod memory;
 
-use std::convert::TryFrom;
 use std::ffi;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -95,82 +94,6 @@ impl From<ffi::FromBytesWithNulError> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Debug, Clone, Copy)]
-pub enum MemoryType {
-    MMAP = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
-    UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR as isize,
-    DMABuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF as isize,
-}
-
-impl TryFrom<u32> for MemoryType {
-    type Error = Error;
-
-    fn try_from(m: u32) -> Result<Self> {
-        match m {
-            bindings::v4l2_memory_V4L2_MEMORY_MMAP => Ok(MemoryType::MMAP),
-            bindings::v4l2_memory_V4L2_MEMORY_USERPTR => Ok(MemoryType::UserPtr),
-            bindings::v4l2_memory_V4L2_MEMORY_DMABUF => Ok(MemoryType::DMABuf),
-            _ => Err(Error::WrongMemoryType),
-        }
-    }
-}
-
-/// Trait for handles that can hold buffer data or provide an access to it.
-pub trait PlaneHandle: Sized + Debug {
-    /// The memory type that this handle backs.
-    const MEMORY_TYPE: MemoryType;
-
-    /// Construct the handle from a single-planar V4L2 buffer. This method is
-    /// unsafe because it needs not check whether the memory type of the buffer
-    /// matches that of the handle we request. Therefore the caller is
-    /// responsible for making this check beforehand.
-    unsafe fn from_v4l2_buffer(buffer: &bindings::v4l2_buffer) -> Self;
-
-    /// Construct the handle from a V4L2 plane. This method is
-    /// unsafe because it needs not check whether the memory type of the buffer
-    /// matches that of the handle we request. Therefore the caller is
-    /// responsible for making this check beforehand.
-    unsafe fn from_v4l2_plane(plane: &bindings::v4l2_plane) -> Self;
-
-    /// Fill a single-planar V4L2 buffer with the handle's information.
-    fn fill_v4l2_buffer(&self, buffer: &mut bindings::v4l2_buffer);
-
-    // Fill a plane of a multi-planar V4L2 buffer with the handle's information.
-    fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane);
-
-    /// Safe variant of `from_v4l2_buffer` that checks that `buffer`'s memory
-    /// type matches the one of the handle we are trying to build.
-    fn try_from_splane_v4l2_buffer(buffer: &bindings::v4l2_buffer) -> Result<Self> {
-        if buffer.memory != Self::MEMORY_TYPE as u32 {
-            return Err(Error::WrongMemoryType);
-        }
-
-        Ok(unsafe { Self::from_v4l2_buffer(buffer) })
-    }
-
-    /// Retrieve all the handles of a multi-planar buffer. Will fail with
-    /// WrongMemoryType if the memory type of the buffer does not match ours.
-    fn try_from_mplane_v4l2_buffer(
-        buffer: &bindings::v4l2_buffer,
-        planes: &[bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize],
-    ) -> Result<Vec<Self>> {
-        if buffer.memory != Self::MEMORY_TYPE as u32 {
-            return Err(Error::WrongMemoryType);
-        }
-        if buffer.length as usize > planes.len() {
-            return Err(Error::TooManyPlanes);
-        }
-
-        let v4l2_planes = &planes[0..buffer.length as usize];
-        let mut handles = Vec::new();
-        for plane in v4l2_planes {
-            handles.push(unsafe { Self::from_v4l2_plane(plane) });
-        }
-
-        Ok(handles)
-    }
-}
 
 /// Types of queues currently supported by this library.
 #[allow(unused)]

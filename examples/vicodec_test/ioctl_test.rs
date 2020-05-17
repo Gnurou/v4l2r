@@ -8,8 +8,8 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use v4l2::ioctl::*;
-use v4l2::memory::{MMAPHandle, UserPtrHandle};
-use v4l2::{Format, MemoryType, QueueType::*};
+use v4l2::memory::{MMAPHandle, MemoryType, UserPtrHandle};
+use v4l2::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
@@ -118,12 +118,9 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
-    // Create backing memory for the OUTPUT buffers.
-    let mut output_buffers = Vec::with_capacity(num_output_buffers);
-    for _ in 0..num_output_buffers {
-        let buffer = vec![0u8; output_image_size];
-        output_buffers.push(buffer);
-    }
+    let mut output_buffers: Vec<Vec<u8>> = std::iter::repeat(vec![0u8; output_image_size])
+        .take(num_output_buffers)
+        .collect();
 
     // Start streaming.
     streamon(&mut fd, output_queue).expect("Failed to start output queue");
@@ -146,11 +143,11 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
 
         // Queue the work to be encoded.
         let out_qbuf = QBuffer::<UserPtrHandle> {
-            planes: vec![QBufPlane {
-                bytesused: output_image_size as u32,
-                handle: output_buffer[..].into(),
-                ..Default::default()
-            }],
+            planes: vec![QBufPlane::new(
+                // Safe because we are keeping output_buffer until we dequeue.
+                unsafe { UserPtrHandle::new(&output_buffer) },
+                output_buffer.len(),
+            )],
             ..Default::default()
         };
         qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
@@ -172,17 +169,17 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
         dqbuf::<(), _>(&fd, output_queue).expect("Failed to dequeue output buffer");
 
         // The CAPTURE buffer, on the other hand, we want to examine more closely.
-        let cap_dqbuf: DQBuffer<MMAPHandle> =
+        let cap_dqbuf: DQBuffer =
             dqbuf(&fd, capture_queue).expect("Failed to dequeue capture buffer");
 
-        total_size += cap_dqbuf.planes[0].bytesused as usize;
+        total_size = total_size.wrapping_add(cap_dqbuf.planes[0].bytesused as usize);
         print!(
             "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8}",
             cap_dqbuf.sequence, cap_dqbuf.index, cap_dqbuf.planes[0].bytesused, total_size
         );
         io::stdout().flush().unwrap();
 
-        cpt += 1;
+        cpt = cpt.wrapping_add(1);
     }
 
     // Stop streaming.

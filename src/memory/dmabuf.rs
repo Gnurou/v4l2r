@@ -1,6 +1,6 @@
 //! Operations specific to DMABuf-type buffers.
+use super::*;
 use crate::bindings;
-use crate::{MemoryType, PlaneHandle};
 use std::default::Default;
 use std::os::unix::io::RawFd;
 
@@ -10,21 +10,17 @@ use std::os::unix::io::RawFd;
 pub struct DMABufHandle(RawFd);
 
 impl DMABufHandle {
-    pub fn new(fd: RawFd) -> Self {
+    /// Create a new DMABUF handle.
+    ///
+    /// This method is unsafe. The caller must ensure that `fd` will not be closed
+    /// at least until the buffer using this handle is queued.
+    pub unsafe fn new(fd: RawFd) -> Self {
         DMABufHandle(fd)
     }
 }
 
 impl PlaneHandle for DMABufHandle {
     const MEMORY_TYPE: MemoryType = MemoryType::DMABuf;
-
-    unsafe fn from_v4l2_buffer(buffer: &bindings::v4l2_buffer) -> Self {
-        DMABufHandle(buffer.m.fd)
-    }
-
-    unsafe fn from_v4l2_plane(plane: &bindings::v4l2_plane) -> Self {
-        DMABufHandle(plane.m.fd)
-    }
 
     fn fill_v4l2_buffer(&self, buffer: &mut bindings::v4l2_buffer) {
         buffer.m.fd = self.0;

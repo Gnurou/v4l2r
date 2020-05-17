@@ -6,21 +6,27 @@
 //! argument, and only return the values written by the kernel. Therefore,
 //! although the return types look similar to the kernel structures, they are
 //! not strictly identical.
+mod dqbuf;
 mod enum_fmt;
 mod g_fmt;
 mod qbuf;
+mod querybuf;
 mod querycap;
 mod reqbufs;
 mod streamon;
 
+pub use dqbuf::*;
 pub use enum_fmt::*;
 pub use g_fmt::*;
 pub use qbuf::*;
+pub use querybuf::*;
 pub use querycap::*;
 pub use reqbufs::*;
 pub use streamon::*;
 
-use super::Result;
+use crate::bindings;
+use crate::QueueType;
+use crate::Result;
 use std::ffi::CStr;
 
 /// Utility function for sub-modules.
@@ -71,5 +77,16 @@ mod tests {
             FfiInvalidString(_) => {}
             _ => panic!(),
         };
+    }
+}
+
+/// A memory area we can pass to ioctls in order to get/set plane information
+/// with the multi-planar API.
+type PlaneData = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
+
+fn is_multi_planar(queue: QueueType) -> bool {
+    match queue {
+        QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane => true,
+        _ => false,
     }
 }

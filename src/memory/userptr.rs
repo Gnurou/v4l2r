@@ -1,6 +1,6 @@
 //! Operations specific to UserPtr-type buffers.
+use super::*;
 use crate::bindings;
-use crate::{MemoryType, PlaneHandle};
 
 /// Handle for a USERPTR buffer. These buffers are backed by userspace-allocated
 /// memory, which translates well into Rust's slice of `u8`s. Since slice also
@@ -12,21 +12,20 @@ use crate::{MemoryType, PlaneHandle};
 /// also takes care of that.
 #[derive(Debug)]
 pub struct UserPtrHandle {
-    pub ptr: *const u8,
-    pub length: u32,
+    ptr: *const u8,
+    length: u32,
 }
 
-impl Default for UserPtrHandle {
-    fn default() -> Self {
-        UserPtrHandle {
-            ptr: 0 as *const u8,
-            length: 0,
-        }
-    }
-}
+impl UserPtrHandle {
+    /// Create a new handle from anything that references bytes.
+    ///
+    /// This method is unsafe. The caller must guarantee that the owner of the
+    /// buffer memory will outlive the created handle: this means keeping the
+    /// owning object alive until the queued buffer using the handle has been
+    /// dequeued or the queue streamed off.
+    pub unsafe fn new<T: AsRef<[u8]>>(b: &T) -> Self {
+        let slice = AsRef::<[u8]>::as_ref(b);
 
-impl From<&[u8]> for UserPtrHandle {
-    fn from(slice: &[u8]) -> Self {
         UserPtrHandle {
             ptr: slice.as_ptr(),
             length: slice.len() as u32,
@@ -37,27 +36,13 @@ impl From<&[u8]> for UserPtrHandle {
 impl PlaneHandle for UserPtrHandle {
     const MEMORY_TYPE: MemoryType = MemoryType::UserPtr;
 
-    unsafe fn from_v4l2_buffer(buffer: &bindings::v4l2_buffer) -> Self {
-        UserPtrHandle {
-            ptr: buffer.m.userptr as *const u8,
-            length: buffer.length,
-        }
-    }
-
-    unsafe fn from_v4l2_plane(plane: &bindings::v4l2_plane) -> Self {
-        UserPtrHandle {
-            ptr: plane.m.userptr as *const u8,
-            length: plane.length,
-        }
-    }
-
     fn fill_v4l2_buffer(&self, buffer: &mut bindings::v4l2_buffer) {
         buffer.m.userptr = self.ptr as std::os::raw::c_ulong;
-        buffer.length = self.length;
+        buffer.length = self.length as u32;
     }
 
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane) {
         plane.m.userptr = self.ptr as std::os::raw::c_ulong;
-        plane.length = self.length;
+        plane.length = self.length as u32;
     }
 }

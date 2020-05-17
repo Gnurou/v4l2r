@@ -1,7 +1,8 @@
 //! Safe wrapper for the `VIDIOC_REQBUFS` ioctl.
 use crate::bindings;
+use crate::memory::MemoryType;
+use crate::QueueType;
 use crate::Result;
-use crate::{MemoryType, QueueType};
 use bitflags::bitflags;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -35,6 +36,13 @@ impl ReqBufs for () {
 impl ReqBufs for usize {
     fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
         reqbufs.count as usize
+    }
+}
+
+/// If we just want to query the buffer capabilities.
+impl ReqBufs for BufferCapabilities {
+    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
+        BufferCapabilities::from_bits_truncate(reqbufs.capabilities)
     }
 }
 
