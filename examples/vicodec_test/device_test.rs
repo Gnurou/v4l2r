@@ -162,8 +162,13 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
             .dequeue()
             .expect("Failed to dequeue output buffer");
 
-        // Make the buffer data available again.
-        output_buffers[out_dqbuf.data.index as usize] = Some(out_dqbuf.plane_handles.remove(0));
+        // Make the buffer data available again. It should have been empty since
+        // the buffer was owned by the queue.
+        assert_eq!(
+            output_buffers[out_dqbuf.data.index as usize]
+                .replace(out_dqbuf.plane_handles.remove(0)),
+            None
+        );
 
         let cap_dqbuf = capture_queue
             .dequeue()
