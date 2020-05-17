@@ -18,6 +18,7 @@
 //! (camera, decoder/encoder, etc).
 //!
 mod bindings;
+pub mod device;
 pub mod ioctl;
 pub mod memory;
 

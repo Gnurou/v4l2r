@@ -1,8 +1,9 @@
 //! Operations specific to DMABuf-type buffers.
 use super::*;
 use crate::bindings;
+use fd::FileDesc;
 use std::default::Default;
-use std::os::unix::io::RawFd;
+use std::os::unix::io::{AsRawFd, RawFd};
 
 /// Handle for a DMABUF buffer. These buffers are backed by DMABuf-shared
 /// memory.
@@ -14,7 +15,7 @@ impl DMABufHandle {
     ///
     /// This method is unsafe. The caller must ensure that `fd` will not be closed
     /// at least until the buffer using this handle is queued.
-    pub unsafe fn new(fd: RawFd) -> Self {
+    unsafe fn new(fd: RawFd) -> Self {
         DMABufHandle(fd)
     }
 }
@@ -28,5 +29,27 @@ impl PlaneHandle for DMABufHandle {
 
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane) {
         plane.m.fd = self.0;
+    }
+}
+
+pub struct DMABuf;
+
+/// DMABUF buffers support for queues. This takes a `FileDesc` containing the
+/// DMABUF file description as `qbuf` input, and gives it back as output so it
+/// can be reused.
+///
+/// TODO Reusing the same DMABUF on the save V4L2 buffer saves some processing
+/// in the kernel, so maybe some binding or other affinity should be done?
+impl Memory for DMABuf {
+    type QBufType = FileDesc;
+    type DQBufType = Self::QBufType;
+    type HandleType = DMABufHandle;
+
+    unsafe fn build_handle(qb: &Self::QBufType) -> Self::HandleType {
+        DMABufHandle::new(qb.as_raw_fd())
+    }
+
+    fn build_dqbuftype(qb: Self::QBufType) -> Self::DQBufType {
+        qb
     }
 }

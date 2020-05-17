@@ -25,3 +25,23 @@ impl PlaneHandle for MMAPHandle {
     fn fill_v4l2_buffer(&self, _buffer: &mut bindings::v4l2_buffer) {}
     fn fill_v4l2_plane(&self, _plane: &mut bindings::v4l2_plane) {}
 }
+
+pub struct MMAP;
+
+/// MMAP buffers support for queues. These buffers are the easiest to support
+/// since V4L2 is the owner of the backing memory. Therefore we just need to
+/// make sure that userspace does not have access to any mapping while the
+/// buffer is being processed by the kernel.
+impl Memory for MMAP {
+    type QBufType = ();
+    type DQBufType = ();
+    type HandleType = MMAPHandle;
+
+    unsafe fn build_handle(_qb: &Self::QBufType) -> Self::HandleType {
+        MMAPHandle(0)
+    }
+
+    fn build_dqbuftype(qb: Self::QBufType) -> Self::DQBufType {
+        qb
+    }
+}
