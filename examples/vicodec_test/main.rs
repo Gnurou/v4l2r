@@ -1,22 +1,40 @@
+//! This example program demonstrates how to use the API using the `vicodec`
+//! virtual codec driver.
+//!
+//! There are two variants doing the same thing: one using the higher-level
+//! `device` abstraction (used by default), the other using the low-level
+//! `ioctl` abstraction (used if `--use_ioctl` is specified).
+mod device_test;
 mod framegen;
 mod ioctl_test;
 
 use ctrlc;
-use std::env;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
+use clap::{App, Arg};
 
-    if args.len() != 2 {
-        println!("Usage: {} /path/to/vicodec/device", args[0]);
-        return;
-    }
+fn main() {
+    let matches = App::new("vicodec example")
+        .arg(
+            Arg::with_name("use_ioctl")
+                .long("use_ioctl")
+                .help("Use the lower-level ioctl interface"),
+        )
+        .arg(
+            Arg::with_name("device")
+                .required(true)
+                .help("Path to the vicodec device file"),
+        )
+        .get_matches();
+
+    let device_path = matches.value_of("device").unwrap_or("/dev/video0");
+    let use_ioctl = matches.is_present("use_ioctl");
 
     let lets_quit = Arc::new(AtomicBool::new(false));
 
+    // Setup the Ctrl+c handler.
     {
         let lets_quit_handler = lets_quit.clone();
         ctrlc::set_handler(move || {
@@ -25,5 +43,11 @@ fn main() {
         .expect("Failed to set Ctrl-C handler.");
     }
 
-    return ioctl_test::run(&Path::new(&args[1]), lets_quit);
+    if use_ioctl {
+        println!("Using ioctl interface");
+        return ioctl_test::run(&Path::new(&device_path), lets_quit);
+    } else {
+        println!("Using device interface");
+        return device_test::run(&Path::new(&device_path), lets_quit);
+    }
 }
