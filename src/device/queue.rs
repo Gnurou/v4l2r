@@ -36,12 +36,19 @@ impl<'a> Drop for QueueBase {
     }
 }
 
+/// Represents the direction of a `Queue` (`Capture` or `Output`). The direction
+/// of a queue limits the operations that are possible on it.
 pub trait Direction {}
+/// Type for `OUTPUT` queues.
 pub struct Output;
 impl Direction for Output {}
+/// Type for `CAPTURE` queues.
 pub struct Capture;
 impl Direction for Capture {}
 
+/// Trait for the different states a queue can be in. This allows us to limit
+/// the available queue methods to the one that make sense at a given point of
+/// the queue's lifecycle.
 pub trait QueueState {}
 
 /// V4L2 queue object. Specialized according to its configuration state so that
@@ -105,12 +112,13 @@ where
     }
 }
 
+/// Builder for a V4L2 format. This takes a mutable reference on the queue, so
+/// it is supposed to be short-lived: get one, adjust the format, and apply.
 pub struct FormatBuilder<'a> {
     queue: &'a mut QueueBase,
     format: Format,
 }
 
-/// Builder for a V4L2 format.
 impl<'a> FormatBuilder<'a> {
     fn new(queue: &'a mut QueueBase) -> Result<Self> {
         let format = ioctl::g_fmt(&*queue.device.fd.borrow(), queue.type_)?;

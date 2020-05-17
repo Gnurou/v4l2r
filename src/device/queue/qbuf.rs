@@ -1,3 +1,4 @@
+//! Provides types related to queuing buffers on a `Queue` object.
 use super::{BufferState, BufferStateFuse, BuffersAllocated, PlaneHandles, Queue};
 use super::{Capture, Direction, Output};
 use crate::ioctl;
