@@ -27,8 +27,7 @@ use std::collections::BTreeSet;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::path::Path;
 
-mod queue;
-pub use queue::*;
+pub mod queue;
 
 /// Options that can be specified when creating a `Device`.
 #[derive(Default)]

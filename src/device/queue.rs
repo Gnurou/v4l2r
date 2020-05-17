@@ -1,3 +1,5 @@
+pub mod direction;
+pub mod states;
 pub mod dqbuf;
 pub mod qbuf;
 
@@ -7,6 +9,8 @@ use crate::memory::*;
 use crate::*;
 use dqbuf::*;
 use qbuf::*;
+use direction::*;
+use states::*;
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -16,6 +20,19 @@ use std::rc::{Rc, Weak};
 /// `dequeue()` or `streamoff()`.
 #[allow(type_alias_bounds)]
 pub type PlaneHandles<M: Memory> = Vec<M::DQBufType>;
+
+/// Represents the current state of an allocated buffer.
+enum BufferState<M: Memory> {
+    /// The buffer can be obtained via `get_buffer()` and be queued.
+    Free,
+    /// The buffer has been requested via `get_buffer()` but is not queued yet.
+    PreQueue,
+    /// The buffer is queued and waiting to be dequeued.
+    Queued(PlaneHandles<M>),
+    /// The buffer has been dequeued and the client is still using it. The buffer
+    /// will go back to the `Free` state once the reference is dropped.
+    Dequeued,
+}
 
 /// Base values of a queue, that are always value no matter the state the queue
 /// is in. This base object remains alive as long as the queue is borrowed from
@@ -35,21 +52,6 @@ impl<'a> Drop for QueueBase {
         );
     }
 }
-
-/// Represents the direction of a `Queue` (`Capture` or `Output`). The direction
-/// of a queue limits the operations that are possible on it.
-pub trait Direction {}
-/// Type for `OUTPUT` queues.
-pub struct Output;
-impl Direction for Output {}
-/// Type for `CAPTURE` queues.
-pub struct Capture;
-impl Direction for Capture {}
-
-/// Trait for the different states a queue can be in. This allows us to limit
-/// the available queue methods to the one that make sense at a given point of
-/// the queue's lifecycle.
-pub trait QueueState {}
 
 /// V4L2 queue object. Specialized according to its configuration state so that
 /// only valid methods can be called from a given point.
@@ -169,12 +171,6 @@ impl<'a> FormatBuilder<'a> {
     }
 }
 
-/// Initial state of the queue when created. Streaming and queuing are not
-/// supported since buffers have not been allocated yet.
-/// Allocating buffers makes the queue switch to the `BuffersAllocated` state.
-pub struct QueueInit;
-impl QueueState for QueueInit {}
-
 impl<D: Direction> Queue<D, QueueInit> {
     /// Create a queue for type `queue_type` on `device`. A queue of a specific type
     /// can be requested only once.
@@ -272,27 +268,6 @@ impl Queue<Capture, QueueInit> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCaptureMplane)
     }
 }
-
-/// Represents the current state of an allocated buffer.
-enum BufferState<M: Memory> {
-    /// The buffer can be obtained via `get_buffer()` and be queued.
-    Free,
-    /// The buffer has been requested via `get_buffer()` but is not queued yet.
-    PreQueue,
-    /// The buffer is queued and waiting to be dequeued.
-    Queued(PlaneHandles<M>),
-    /// The buffer has been dequeued and the client is still using it. The buffer
-    /// will go back to the `Free` state once the reference is dropped.
-    Dequeued,
-}
-
-/// Allocated state for a queue. A queue with its buffers allocated can be
-/// streamed on and off, and buffers can be queued and dequeued.
-pub struct BuffersAllocated<M: Memory> {
-    buffers_state: Vec<Rc<RefCell<BufferState<M>>>>,
-    buffer_features: ioctl::QueryBuffer,
-}
-impl<M: Memory> QueueState for BuffersAllocated<M> {}
 
 /// Represents a queued buffer which has not been processed due to `streamoff` being
 /// called on the queue.

@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use v4l2::device::*;
+use v4l2::device::queue::*;
 use v4l2::memory::{UserPtr, MMAP};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
