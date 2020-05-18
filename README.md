@@ -26,12 +26,17 @@ kernel using ioctls, and only depends on a few small, well-established crates.
 
 How to use
 ----------
-Check `examples/vicodec_test/ioctl_test.rs` for a short example of how to use
-the low-level ioctl interface. This example program requires the `vicodec`
-virtual device, either in single or multi-planar mode.
+Check `examples/vicodec_test/ioctl_api.rs` for a short example of how to use
+the low-level ioctl interface, and `examples/vicodec_test/device_api.rs` for the
+same example using the device interface. This example program requires the
+`vicodec` virtual device, either in single or multi-planar mode.
 
 You can try it with
 
     cargo run --example vicodec_test -- /dev/video0
+
+or
+
+    cargo run --example vicodec_test -- /dev/video0 --use_ioctl
 
 assuming `/dev/video0` is the path to the `vicodec` encoder.
