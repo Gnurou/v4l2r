@@ -99,7 +99,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
 
     // Move the queues into their "allocated" state.
     let mut output_queue = output_queue
-        .request_buffers::<UserPtr<Vec<u8>>>(2)
+        .request_buffers::<UserPtr<_>>(2)
         .expect("Failed to allocate output buffers");
     let mut capture_queue = capture_queue
         .request_buffers::<MMAP>(2)
