@@ -233,6 +233,23 @@ impl<D: Direction> Queue<D, QueueInit> {
     }
 }
 
+impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
+    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>> {
+        ioctl::reqbufs(
+            &mut *self.inner.device.fd.borrow_mut(),
+            self.inner.type_,
+            M::HandleType::MEMORY_TYPE,
+            0,
+        )?;
+
+        Ok(Queue {
+            inner: self.inner,
+            _d: std::marker::PhantomData,
+            state: QueueInit {},
+        })
+    }
+}
+
 impl Queue<Output, QueueInit> {
     /// Acquires the OUTPUT queue from `device`.
     ///
