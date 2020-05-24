@@ -40,7 +40,7 @@ enum BufferState<M: Memory> {
 struct QueueBase {
     device: Rc<Device>,
     type_: QueueType,
-    pub capabilities: ioctl::BufferCapabilities,
+    capabilities: ioctl::BufferCapabilities,
 }
 
 impl<'a> Drop for QueueBase {
