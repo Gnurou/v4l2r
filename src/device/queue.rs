@@ -11,6 +11,7 @@ use direction::*;
 use dqbuf::*;
 use qbuf::*;
 use states::*;
+use std::os::unix::io::{AsRawFd, RawFd};
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
@@ -37,7 +38,7 @@ enum BufferState<M: Memory> {
 /// Base values of a queue, that are always value no matter the state the queue
 /// is in. This base object remains alive as long as the queue is borrowed from
 /// the `Device`.
-struct QueueBase {
+pub struct QueueBase {
     device: Rc<Device>,
     type_: QueueType,
     capabilities: ioctl::BufferCapabilities,
@@ -63,6 +64,12 @@ where
     inner: QueueBase,
     _d: std::marker::PhantomData<D>,
     state: S,
+}
+
+impl AsRawFd for QueueBase {
+    fn as_raw_fd(&self) -> RawFd {
+        self.device.fd.borrow().as_raw_fd()
+    }
 }
 
 /// Methods of `Queue` that are available no matter the state.
@@ -109,8 +116,8 @@ where
     }
 
     /// Returns an iterator over all the formats currently supported by this queue.
-    pub fn format_iter(&self) -> ioctl::FormatIterator<Device> {
-        ioctl::FormatIterator::new(&self.inner.device, self.inner.type_)
+    pub fn format_iter(&self) -> ioctl::FormatIterator<QueueBase> {
+        ioctl::FormatIterator::new(&self.inner, self.inner.type_)
     }
 }
 

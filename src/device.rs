@@ -24,7 +24,7 @@ use super::Result;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fs::File;
-use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use std::os::unix::io::FromRawFd;
 use std::path::Path;
 
 pub mod queue;
@@ -79,11 +79,5 @@ impl Device {
 
         // Safe because we are constructing a file from Fd we just opened.
         Device::new(unsafe { File::from_raw_fd(fd) })
-    }
-}
-
-impl AsRawFd for Device {
-    fn as_raw_fd(&self) -> RawFd {
-        self.fd.borrow().as_raw_fd()
     }
 }
