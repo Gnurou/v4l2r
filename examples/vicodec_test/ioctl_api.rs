@@ -1,9 +1,10 @@
 use super::framegen;
-use fd::FileDesc;
 use nix::fcntl::{open, OFlag};
 use nix::sys::stat::Mode;
 use std::collections::BTreeMap;
+use std::fs::File;
 use std::io::{self, Write};
+use std::os::unix::io::FromRawFd;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -14,11 +15,12 @@ use v4l2::{Format, QueueType::*};
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
 pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
-    let mut fd = FileDesc::new(
-        open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
-            .expect(&format!("Cannot open {}", device_path.display())),
-        true,
-    );
+    let mut fd = unsafe {
+        File::from_raw_fd(
+            open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
+                .expect(&format!("Cannot open {}", device_path.display())),
+        )
+    };
 
     // Check that we are dealing with vicodec.
     let caps: Capability = querycap(&fd).expect("Failed to get device capacities");
@@ -192,5 +194,5 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     reqbufs::<(), _>(&mut fd, output_queue, MemoryType::UserPtr, 0)
         .expect("Failed to release output buffers");
 
-    // The fd will be closed as the FileDesc instance gets out of scope.
+    // The fd will be closed as the File instance gets out of scope.
 }

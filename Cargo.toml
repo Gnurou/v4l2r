@@ -8,7 +8,6 @@ license = "LGPL-2.1"
 [dependencies]
 nix = "0.17.0"
 bitflags = "1.2.1"
-fd = "0.2.3"
 
 # For example programs
 [dev-dependencies]

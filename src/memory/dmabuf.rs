@@ -1,8 +1,8 @@
 //! Operations specific to DMABuf-type buffers.
 use super::*;
 use crate::bindings;
-use fd::FileDesc;
 use std::default::Default;
+use std::fs::File;
 use std::os::unix::io::{AsRawFd, RawFd};
 
 /// Handle for a DMABUF buffer. These buffers are backed by DMABuf-shared
@@ -34,14 +34,14 @@ impl PlaneHandle for DMABufHandle {
 
 pub struct DMABuf;
 
-/// DMABUF buffers support for queues. This takes a `FileDesc` containing the
+/// DMABUF buffers support for queues. This takes a `File` containing the
 /// DMABUF file description as `qbuf` input, and gives it back as output so it
 /// can be reused.
 ///
 /// TODO Reusing the same DMABUF on the save V4L2 buffer saves some processing
 /// in the kernel, so maybe some binding or other affinity should be done?
 impl Memory for DMABuf {
-    type QBufType = FileDesc;
+    type QBufType = File;
     type DQBufType = Self::QBufType;
     type HandleType = DMABufHandle;
 

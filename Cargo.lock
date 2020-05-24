@@ -64,15 +64,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fd"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "275ab28c5c4076abec490e95cd4d69eaad40b6c16a2e692debd0e53453d006d0"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -128,7 +119,6 @@ dependencies = [
  "bitflags",
  "clap",
  "ctrlc",
- "fd",
  "nix",
 ]
 
