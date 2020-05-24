@@ -9,4 +9,3 @@ impl Direction for Output {}
 /// Type for `CAPTURE` queues.
 pub struct Capture;
 impl Direction for Capture {}
-

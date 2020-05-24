@@ -1,15 +1,15 @@
 pub mod direction;
-pub mod states;
 pub mod dqbuf;
 pub mod qbuf;
+pub mod states;
 
 use super::Device;
 use crate::ioctl;
 use crate::memory::*;
 use crate::*;
+use direction::*;
 use dqbuf::*;
 use qbuf::*;
-use direction::*;
 use states::*;
 
 use std::cell::RefCell;

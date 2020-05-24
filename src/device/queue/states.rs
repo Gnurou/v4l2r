@@ -1,6 +1,6 @@
-use crate::memory::Memory;
-use crate::ioctl;
 use super::BufferState;
+use crate::ioctl;
+use crate::memory::Memory;
 
 use std::cell::RefCell;
 use std::rc::Rc;
