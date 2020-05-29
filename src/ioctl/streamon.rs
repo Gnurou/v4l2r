@@ -10,14 +10,14 @@ mod ioctl {
 }
 
 /// Safe wrapper around the `VIDIOC_STREAMON` ioctl.
-pub fn streamon(fd: &mut impl AsRawFd, queue: QueueType) -> Result<()> {
+pub fn streamon(fd: &impl AsRawFd, queue: QueueType) -> Result<()> {
     unsafe { ioctl::vidioc_streamon(fd.as_raw_fd(), &(queue as u32)) }?;
 
     Ok(())
 }
 
 /// Safe wrapper around the `VIDIOC_STREAMOFF` ioctl.
-pub fn streamoff(fd: &mut impl AsRawFd, queue: QueueType) -> Result<()> {
+pub fn streamoff(fd: &impl AsRawFd, queue: QueueType) -> Result<()> {
     unsafe { ioctl::vidioc_streamoff(fd.as_raw_fd(), &(queue as u32)) }?;
 
     Ok(())

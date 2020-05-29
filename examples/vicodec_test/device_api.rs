@@ -98,10 +98,10 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
 
     // Move the queues into their "allocated" state.
-    let mut output_queue = output_queue
+    let output_queue = output_queue
         .request_buffers::<UserPtr<_>>(2)
         .expect("Failed to allocate output buffers");
-    let mut capture_queue = capture_queue
+    let capture_queue = capture_queue
         .request_buffers::<MMAP>(2)
         .expect("Failed to allocate output buffers");
     println!(

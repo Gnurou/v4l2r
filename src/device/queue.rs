@@ -280,9 +280,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.buffers_state.lock().unwrap().num_queued_buffers
     }
 
-    pub fn streamon(&mut self) -> Result<()> {
+    pub fn streamon(&self) -> Result<()> {
         let type_ = self.inner.type_;
-        ioctl::streamon(&mut self.inner, type_)
+        ioctl::streamon(&self.inner, type_)
     }
 
     /// Stop streaming on this queue.
@@ -290,9 +290,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// If successful, then all the buffers that are queued but have not been
     /// dequeued yet return to the `Free` state. Buffer references obtained via
     /// `dequeue()` remain valid.
-    pub fn streamoff(&mut self) -> Result<Vec<CanceledBuffer<M>>> {
+    pub fn streamoff(&self) -> Result<Vec<CanceledBuffer<M>>> {
         let type_ = self.inner.type_;
-        ioctl::streamoff(&mut self.inner, type_)?;
+        ioctl::streamoff(&self.inner, type_)?;
 
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
 
