@@ -350,7 +350,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         // The buffer will remain in PreQueue state until it is queued
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
-        drop(buffer_state);
 
         buffers_state.allocator.take_buffer(index);
         drop(buffers_state);
@@ -378,7 +377,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         // The buffer remains will remain in PreQueue state until it is queued
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
-        drop(buffer_state);
         drop(buffers_state);
 
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
