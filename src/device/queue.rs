@@ -226,6 +226,7 @@ impl<D: Direction> Queue<D, QueueInit> {
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
                 num_buffers,
+                num_queued_buffers: 0,
                 buffers_state: Arc::new(Mutex::new(std::iter::repeat_with(|| BufferState::Free)
                     .take(num_buffers)
                     .collect())),
@@ -296,8 +297,15 @@ pub struct CanceledBuffer<M: Memory> {
 }
 
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
+    /// Returns the total number of buffers allocated for this queue.
     pub fn num_buffers(&self) -> usize {
         self.state.num_buffers
+    }
+
+    /// Returns the number of buffers currently queued (i.e. being processed
+    /// by the device).
+    pub fn num_queued_buffers(&self) -> usize {
+        self.state.num_queued_buffers
     }
 
     pub fn streamon(&mut self) -> Result<()> {
@@ -316,7 +324,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
 
-        let canceled_buffers = buffers_state
+        let canceled_buffers: Vec<_> = buffers_state
             .iter_mut()
             .enumerate()
             .filter_map(|(i, state)| {
@@ -339,6 +347,8 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
                 })
             })
             .collect();
+
+        self.state.num_queued_buffers -= canceled_buffers.len();
 
         Ok(canceled_buffers)
     }
@@ -364,6 +374,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         // The buffer remains will remain in PreQueue state until it is queued
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
+        drop(buffer_state);
+        drop(buffers_state);
+
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
 
         Ok(QBuffer::new(self, id, num_planes, fuse))
@@ -376,7 +389,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// be moved into a `Rc` or `Arc` if you need to pass it to several clients.
     ///
     /// The data in the `DQBuffer` is read-only.
-    pub fn dequeue(&self) -> Result<DQBuffer<M>> {
+    pub fn dequeue(&mut self) -> Result<DQBuffer<M>> {
         let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 
@@ -390,6 +403,8 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             _ => unreachable!("Inconsistent buffer state"),
         };
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
+
+        self.state.num_queued_buffers -= 1;
 
         Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
     }

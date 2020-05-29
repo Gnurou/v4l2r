@@ -60,7 +60,7 @@ pub type QueueResult<M: Memory, R> = std::result::Result<R, QueueError<M>>;
 /// DQBuffer which can be freely duplicated and passed around, instances of this
 /// struct are supposed to be short-lived.
 pub struct QBuffer<'a, D: Direction, M: Memory> {
-    queue: &'a Queue<D, BuffersAllocated<M>>,
+    queue: &'a mut Queue<D, BuffersAllocated<M>>,
     index: usize,
     num_planes: usize,
     qbuffer: ioctl::QBuffer<M::HandleType>,
@@ -70,7 +70,7 @@ pub struct QBuffer<'a, D: Direction, M: Memory> {
 
 impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     pub(super) fn new(
-        queue: &'a Queue<D, BuffersAllocated<M>>,
+        queue: &'a mut Queue<D, BuffersAllocated<M>>,
         index: usize,
         num_planes: usize,
         fuse: BufferStateFuse<M>,
@@ -151,6 +151,12 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
 
         let mut buffers_state = self.queue.state.buffers_state.lock().unwrap();
         std::mem::replace(&mut buffers_state[self.index], BufferState::Queued(plane_handles));
+        drop(buffers_state);
+
+        // TODO this indicates that we should probably use treemaps for each buffer state
+        // (or bitmaps for simple state and a treemap for the queued one) instead of a global
+        // array?
+        self.queue.state.num_queued_buffers += 1;
 
         Ok(())
     }

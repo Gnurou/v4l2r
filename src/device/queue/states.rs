@@ -19,6 +19,7 @@ impl QueueState for QueueInit {}
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<M: Memory> {
     pub(super) num_buffers: usize,
+    pub(super) num_queued_buffers: usize,
     pub(super) buffers_state: Arc<Mutex<Vec<BufferState<M>>>>,
     pub(super) buffer_features: ioctl::QueryBuffer,
 }
