@@ -49,6 +49,8 @@ pub trait Memory {
 
     /// Builds a handle to give to `qbuf` from the `QBufType` we have been given.
     ///
+    /// # Safety
+    ///
     /// This method is unsafe because the caller must guarantee that the owned
     /// data passed as `qb` will outlive the returned handle type and will also
     /// not move.
