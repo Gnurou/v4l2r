@@ -42,7 +42,6 @@ impl DeviceConfig {
     pub fn non_blocking_dqbuf(self) -> Self {
         DeviceConfig {
             non_blocking_dqbuf: true,
-            ..self
         }
     }
 }
