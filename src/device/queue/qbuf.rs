@@ -132,7 +132,7 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         };
 
         match ioctl::qbuf(
-            &*self.queue.inner.device.fd.borrow(),
+            &self.queue.inner,
             self.queue.inner.type_,
             self.index,
             self.qbuffer,

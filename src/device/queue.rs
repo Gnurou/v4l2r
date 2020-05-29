@@ -40,8 +40,18 @@ enum BufferState<M: Memory> {
 /// the `Device`.
 pub struct QueueBase {
     device: Rc<Device>,
+    /// Fd of the device, for faster access since it can be shared. This is
+    /// guaranteed to remain valid as long as the device is alive, and we are
+    /// keeping a refcounted reference to it.
+    fd: RawFd,
     type_: QueueType,
     capabilities: ioctl::BufferCapabilities,
+}
+
+impl AsRawFd for QueueBase {
+    fn as_raw_fd(&self) -> RawFd {
+        self.fd
+    }
 }
 
 impl<'a> Drop for QueueBase {
@@ -66,12 +76,6 @@ where
     state: S,
 }
 
-impl AsRawFd for QueueBase {
-    fn as_raw_fd(&self) -> RawFd {
-        self.device.fd.borrow().as_raw_fd()
-    }
-}
-
 /// Methods of `Queue` that are available no matter the state.
 impl<D, S> Queue<D, S>
 where
@@ -87,16 +91,17 @@ where
     }
 
     pub fn get_format(&self) -> Result<Format> {
-        ioctl::g_fmt(&*self.inner.device.fd.borrow(), self.inner.type_)
+        ioctl::g_fmt(&self.inner, self.inner.type_)
     }
 
     /// This method can invalidate any current format iterator, hence it requires
     /// the queue to be mutable. This way of doing is not perfect though, as setting
     /// the format on one queue can change the options available on another.
     pub fn set_format(&mut self, format: Format) -> Result<Format> {
+        let type_ = self.inner.type_;
         ioctl::s_fmt(
-            &mut *self.inner.device.fd.borrow_mut(),
-            self.inner.type_,
+            &mut self.inner,
+            type_,
             format,
         )
     }
@@ -105,7 +110,7 @@ where
     /// Useful to check what modifications need to be done to a format before it
     /// can be used.
     pub fn try_format(&self, format: Format) -> Result<Format> {
-        ioctl::try_fmt(&*self.inner.device.fd.borrow(), self.inner.type_, format)
+        ioctl::try_fmt(&self.inner, self.inner.type_, format)
     }
 
     /// Returns a `FormatBuilder` which is set to the currently active format
@@ -130,7 +135,7 @@ pub struct FormatBuilder<'a> {
 
 impl<'a> FormatBuilder<'a> {
     fn new(queue: &'a mut QueueBase) -> Result<Self> {
-        let format = ioctl::g_fmt(&*queue.device.fd.borrow(), queue.type_)?;
+        let format = ioctl::g_fmt(queue, queue.type_)?;
         Ok(Self { queue, format })
     }
 
@@ -157,7 +162,7 @@ impl<'a> FormatBuilder<'a> {
     /// be returned.
     pub fn apply(self) -> Result<Format> {
         ioctl::s_fmt(
-            &mut *self.queue.device.fd.borrow_mut(),
+            self.queue,
             self.queue.type_,
             self.format,
         )
@@ -168,7 +173,7 @@ impl<'a> FormatBuilder<'a> {
     /// parameters after this call.
     pub fn try_apply(&mut self) -> Result<()> {
         let new_format = ioctl::try_fmt(
-            &mut *self.queue.device.fd.borrow_mut(),
+            self.queue,
             self.queue.type_,
             self.format.clone(),
         )?;
@@ -201,9 +206,12 @@ impl<D: Direction> Queue<D, QueueInit> {
         assert_eq!(used_queues.insert(queue_type), true);
         drop(used_queues);
 
+        let fd = device.as_raw_fd();
+
         Ok(Queue::<D, QueueInit> {
             inner: QueueBase {
                 device,
+                fd,
                 type_: queue_type,
                 capabilities,
             },
@@ -214,18 +222,18 @@ impl<D: Direction> Queue<D, QueueInit> {
 
     /// Allocate `count` buffers for this queue and make it transition to the
     /// `BuffersAllocated` state.
-    pub fn request_buffers<M: Memory>(self, count: u32) -> Result<Queue<D, BuffersAllocated<M>>> {
-        // TODO use try_borrow_mut() and return an error if borrow is impossible.
+    pub fn request_buffers<M: Memory>(mut self, count: u32) -> Result<Queue<D, BuffersAllocated<M>>> {
+        let type_ = self.inner.type_;
         let num_buffers: usize = ioctl::reqbufs(
-            &mut *self.inner.device.fd.borrow_mut(),
-            self.inner.type_,
+            &mut self.inner,
+            type_,
             M::HandleType::MEMORY_TYPE,
             count,
         )?;
 
         // The buffers have been allocated, now let's get their features.
         let querybuf: ioctl::QueryBuffer =
-            ioctl::querybuf(&*self.inner.device.fd.borrow(), self.inner.type_, 0)?;
+            ioctl::querybuf(&self.inner, self.inner.type_, 0)?;
 
         Ok(Queue {
             inner: self.inner,
@@ -241,10 +249,11 @@ impl<D: Direction> Queue<D, QueueInit> {
 }
 
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
-    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>> {
+    pub fn free_buffers(mut self) -> Result<Queue<D, QueueInit>> {
+        let type_ = self.inner.type_;
         ioctl::reqbufs(
-            &mut *self.inner.device.fd.borrow_mut(),
-            self.inner.type_,
+            &mut self.inner,
+            type_,
             M::HandleType::MEMORY_TYPE,
             0,
         )?;
@@ -307,9 +316,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.buffers_state.len()
     }
 
-    pub fn streamon(&self) -> Result<()> {
-        // TODO use try_borrow_mut() and return an error if borrow is impossible.
-        ioctl::streamon(&mut *self.inner.device.fd.borrow_mut(), self.inner.type_)
+    pub fn streamon(&mut self) -> Result<()> {
+        let type_ = self.inner.type_;
+        ioctl::streamon(&mut self.inner, type_)
     }
 
     /// Stop streaming on this queue.
@@ -318,7 +327,8 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// dequeued yet return to the `Free` state. Buffer references obtained via
     /// `dequeue()` remain valid.
     pub fn streamoff(&mut self) -> Result<Vec<CanceledBuffer<M>>> {
-        ioctl::streamoff(&mut *self.inner.device.fd.borrow_mut(), self.inner.type_)?;
+        let type_ = self.inner.type_;
+        ioctl::streamoff(&mut self.inner, type_)?;
 
         let canceled_buffers = self
             .state
@@ -350,7 +360,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     }
 
     pub fn query_buffer(&self, id: usize) -> Result<ioctl::QueryBuffer> {
-        ioctl::querybuf(&*self.inner.device.fd.borrow(), self.inner.type_, id)
+        ioctl::querybuf(&self.inner, self.inner.type_, id)
     }
 
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
@@ -381,7 +391,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// The data in the `DQBuffer` is read-only.
     pub fn dequeue(&self) -> Result<DQBuffer<M>> {
         let dqbuf: ioctl::DQBuffer =
-            ioctl::dqbuf(&*self.inner.device.fd.borrow(), self.inner.type_)?;
+            ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 
         // The buffer will remain Dequeued until our reference to it is destroyed.
