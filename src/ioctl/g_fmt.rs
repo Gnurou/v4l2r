@@ -52,7 +52,7 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
                             return Err(Error::TooManyPlanes);
                         }
 
-                        let (bytesperline, sizeimage) = if format.plane_fmt.len() > 0 {
+                        let (bytesperline, sizeimage) = if !format.plane_fmt.is_empty() {
                             (
                                 format.plane_fmt[0].bytesperline,
                                 format.plane_fmt[0].sizeimage,

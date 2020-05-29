@@ -67,7 +67,6 @@ pub(super) struct BuffersManager<M: Memory> {
     pub(super) num_queued_buffers: usize,
 }
 
-
 impl<M: Memory> BuffersManager<M> {
     pub(super) fn new(num_buffers: usize) -> Self {
         BuffersManager {

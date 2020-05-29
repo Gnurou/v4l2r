@@ -109,7 +109,7 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut PlaneData,
     ) -> Result<()> {
-        if self.planes.len() == 0 {
+        if self.planes.is_empty() {
             return Err(Error::NotEnoughPlanes);
         }
         if self.planes.len() > v4l2_planes.len() {

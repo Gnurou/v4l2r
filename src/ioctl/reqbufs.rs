@@ -26,9 +26,7 @@ bitflags! {
 }
 
 impl ReqBufs for () {
-    fn from(_reqbufs: bindings::v4l2_requestbuffers) -> Self {
-        ()
-    }
+    fn from(_reqbufs: bindings::v4l2_requestbuffers) -> Self {}
 }
 
 /// In case we are just interested in the number of buffers that `reqbufs`
