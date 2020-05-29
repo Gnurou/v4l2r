@@ -122,8 +122,6 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     let mut total_size = 0usize;
     // Encode generated frames until Ctrl+c is pressed.
     while !lets_quit.load(Ordering::SeqCst) {
-        let output_buffer_index = cpt % output_queue.num_buffers();
-        let capture_buffer_index = cpt % capture_queue.num_buffers();
         let mut output_buffer_data = output_frame
             .take()
             .expect("Output buffer not available. This is a bug.");
@@ -137,7 +135,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
         // There is no information to set on MMAP capture buffers: just queue
         // them as soon as we get them.
         capture_queue
-            .get_buffer(capture_buffer_index)
+            .get_free_buffer()
             .expect("Failed to obtain capture buffer")
             .auto_queue()
             .expect("Failed to queue capture buffer");
@@ -148,7 +146,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
         // with it.
         let bytes_used = output_buffer_data.len();
         output_queue
-            .get_buffer(output_buffer_index)
+            .get_free_buffer()
             .expect("Failed to obtain output buffer")
             .add_plane(qbuf::Plane::out(output_buffer_data, bytes_used))
             .queue()
@@ -173,8 +171,9 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
 
         total_size = total_size.wrapping_add(cap_dqbuf.data.planes[0].bytesused as usize);
         print!(
-            "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8}",
+            "\rEncoded buffer {:#5}, {:#2} -> {:#2}), bytes used:{:#6} total encoded size:{:#8}",
             cap_dqbuf.data.sequence,
+            out_dqbuf.data.index,
             cap_dqbuf.data.index,
             cap_dqbuf.data.planes[0].bytesused,
             total_size

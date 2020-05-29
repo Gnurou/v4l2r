@@ -150,7 +150,7 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         self.fuse.disarm();
 
         let mut buffers_state = self.queue.state.buffers_state.lock().unwrap();
-        std::mem::replace(&mut buffers_state[self.index], BufferState::Queued(plane_handles));
+        std::mem::replace(&mut buffers_state.buffers_state[self.index], BufferState::Queued(plane_handles));
         drop(buffers_state);
 
         // TODO this indicates that we should probably use treemaps for each buffer state

@@ -7,6 +7,7 @@ use super::Device;
 use crate::ioctl;
 use crate::memory::*;
 use crate::*;
+use states::BufferState;
 use direction::*;
 use dqbuf::*;
 use qbuf::*;
@@ -19,19 +20,6 @@ use std::sync::{Arc, Mutex, Weak};
 /// `dequeue()` or `streamoff()`.
 #[allow(type_alias_bounds)]
 pub type PlaneHandles<M: Memory> = Vec<M::DQBufType>;
-
-/// Represents the current state of an allocated buffer.
-enum BufferState<M: Memory> {
-    /// The buffer can be obtained via `get_buffer()` and be queued.
-    Free,
-    /// The buffer has been requested via `get_buffer()` but is not queued yet.
-    PreQueue,
-    /// The buffer is queued and waiting to be dequeued.
-    Queued(PlaneHandles<M>),
-    /// The buffer has been dequeued and the client is still using it. The buffer
-    /// will go back to the `Free` state once the reference is dropped.
-    Dequeued,
-}
 
 /// Base values of a queue, that are always value no matter the state the queue
 /// is in. This base object remains alive as long as the queue is borrowed from
@@ -227,9 +215,7 @@ impl<D: Direction> Queue<D, QueueInit> {
             state: BuffersAllocated {
                 num_buffers,
                 num_queued_buffers: 0,
-                buffers_state: Arc::new(Mutex::new(std::iter::repeat_with(|| BufferState::Free)
-                    .take(num_buffers)
-                    .collect())),
+                buffers_state: Arc::new(Mutex::new(BuffersManager::new(num_buffers))),
                 buffer_features: querybuf,
             },
         })
@@ -324,7 +310,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
 
-        let canceled_buffers: Vec<_> = buffers_state
+        let canceled_buffers: Vec<_> = buffers_state.buffers_state
             .iter_mut()
             .enumerate()
             .filter_map(|(i, state)| {
@@ -349,6 +335,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             .collect();
 
         self.state.num_queued_buffers -= canceled_buffers.len();
+        for buffer in &canceled_buffers {
+            buffers_state.allocator.return_buffer(buffer.index as usize);
+        }
 
         Ok(canceled_buffers)
     }
@@ -362,12 +351,40 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     // etc from QUERY_BUF?
     pub fn get_buffer<'a>(&'a mut self, index: usize) -> Result<QBuffer<'a, D, M>> {
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
-        let buffer_state = &mut buffers_state[index];
+        let buffer_state = &mut buffers_state.buffers_state[index];
 
         match buffer_state {
             BufferState::Free => (),
             _ => return Err(Error::AlreadyBorrowed),
         };
+
+        let num_planes = self.state.buffer_features.planes.len();
+
+        // The buffer will remain in PreQueue state until it is queued
+        // or the reference to it is lost.
+        *buffer_state = BufferState::PreQueue;
+        drop(buffer_state);
+
+        buffers_state.allocator.take_buffer(index);
+        drop(buffers_state);
+
+        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
+
+        Ok(QBuffer::new(self, index, num_planes, fuse))
+    }
+
+    pub fn get_free_buffer<'a>(&'a mut self) -> Result<QBuffer<'a, D, M>> {
+        let mut buffers_state = self.state.buffers_state.lock().unwrap();
+        let index = match buffers_state.allocator.get_free_buffer() {
+            Some(index) => index,
+            None => return Err(Error::AlreadyBorrowed),
+        };
+
+        let buffer_state = &mut buffers_state.buffers_state[index];
+        match buffer_state {
+            BufferState::Free => (),
+            _ => panic!("Inconsistent buffer state!"),
+        }
 
         let num_planes = self.state.buffer_features.planes.len();
 
@@ -394,7 +411,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let id = dqbuf.index as usize;
 
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
-        let buffer_state = &mut buffers_state[id];
+        let buffer_state = &mut buffers_state.buffers_state[id];
 
         // The buffer will remain Dequeued until our reference to it is destroyed.
         let state = std::mem::replace(buffer_state, BufferState::Dequeued);
@@ -414,16 +431,16 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 /// it has been disarmed.
 // TODO Use Arc::Weak<Mutex<BufferState>> here to make DQBuffer passable across threads?
 struct BufferStateFuse<M: Memory> {
-    buffers_state: Weak<Mutex<Vec<BufferState<M>>>>,
+    buffers_manager: Weak<Mutex<BuffersManager<M>>>,
     index: usize,
 }
 
 impl<M: Memory> BufferStateFuse<M> {
     /// Create a new fuse that will set `state` to `BufferState::Free` if
     /// destroyed before `disarm()` has been called.
-    fn new(buffers_state: Weak<Mutex<Vec<BufferState<M>>>>, index: usize) -> Self {
+    fn new(buffers_manager: Weak<Mutex<BuffersManager<M>>>, index: usize) -> Self {
         BufferStateFuse {
-            buffers_state,
+            buffers_manager,
             index,
         }
     }
@@ -432,17 +449,18 @@ impl<M: Memory> BufferStateFuse<M> {
     /// the fuse is destroyed.
     fn disarm(&mut self) {
         // Drop our weak reference.
-        self.buffers_state = Weak::new();
+        self.buffers_manager = Weak::new();
     }
 }
 
 impl<M: Memory> Drop for BufferStateFuse<M> {
     fn drop(&mut self) {
-        match self.buffers_state.upgrade() {
+        match self.buffers_manager.upgrade() {
             None => (),
-            Some(buffers_state) => {
-                let mut buffers_state = buffers_state.lock().unwrap();
-                buffers_state[self.index] = BufferState::Free;
+            Some(buffers_manager) => {
+                let mut buffers_manager = buffers_manager.lock().unwrap();
+                buffers_manager.buffers_state[self.index] = BufferState::Free;
+                buffers_manager.allocator.return_buffer(self.index);
             }
         };
     }
