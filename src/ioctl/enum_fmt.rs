@@ -57,7 +57,7 @@ impl EnumFmt for FmtDesc {
     fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self {
         FmtDesc {
             flags: FormatFlags::from_bits_truncate(fmtdesc.flags),
-            description: string_from_cstr(&fmtdesc.description).unwrap_or("".into()),
+            description: string_from_cstr(&fmtdesc.description).unwrap_or_else(|_| "".into()),
             pixelformat: fmtdesc.pixelformat.into(),
         }
     }
