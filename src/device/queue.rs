@@ -334,7 +334,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
                         // We have already tested for this state above, so this
                         // branch is guaranteed.
                         BufferState::Queued(plane_handles) => plane_handles,
-                        _ => panic!("Inconsistent buffer state!"),
+                        _ => unreachable!("Inconsistent buffer state!"),
                     },
                 })
             })
@@ -387,7 +387,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let state = std::mem::replace(buffer_state, BufferState::Dequeued);
         let plane_handles = match state {
             BufferState::Queued(plane_handles) => plane_handles,
-            _ => panic!("Inconsistent buffer state"),
+            _ => unreachable!("Inconsistent buffer state"),
         };
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
 
