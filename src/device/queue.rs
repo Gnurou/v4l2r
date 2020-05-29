@@ -360,9 +360,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     // When we get a WRBuffer, can't we have it pre-filled with the right number of planes,
     // etc from QUERY_BUF?
-    pub fn get_buffer<'a>(&'a mut self, id: usize) -> Result<QBuffer<'a, D, M>> {
+    pub fn get_buffer<'a>(&'a mut self, index: usize) -> Result<QBuffer<'a, D, M>> {
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
-        let buffer_state = &mut buffers_state[id];
+        let buffer_state = &mut buffers_state[index];
 
         match buffer_state {
             BufferState::Free => (),
@@ -377,9 +377,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         drop(buffer_state);
         drop(buffers_state);
 
-        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
+        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
 
-        Ok(QBuffer::new(self, id, num_planes, fuse))
+        Ok(QBuffer::new(self, index, num_planes, fuse))
     }
 
     /// Dequeue the next processed buffer and return it.
