@@ -214,7 +214,6 @@ impl<D: Direction> Queue<D, QueueInit> {
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
                 num_buffers,
-                num_queued_buffers: 0,
                 buffers_state: Arc::new(Mutex::new(BuffersManager::new(num_buffers))),
                 buffer_features: querybuf,
             },
@@ -278,7 +277,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// Returns the number of buffers currently queued (i.e. being processed
     /// by the device).
     pub fn num_queued_buffers(&self) -> usize {
-        self.state.num_queued_buffers
+        self.state.buffers_state.lock().unwrap().num_queued_buffers
     }
 
     pub fn streamon(&mut self) -> Result<()> {
@@ -321,7 +320,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             })
             .collect();
 
-        self.state.num_queued_buffers -= canceled_buffers.len();
+        buffers_state.num_queued_buffers -= canceled_buffers.len();
         for buffer in &canceled_buffers {
             buffers_state.allocator.return_buffer(buffer.index as usize);
         }
@@ -336,7 +335,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     // When we get a WRBuffer, can't we have it pre-filled with the right number of planes,
     // etc from QUERY_BUF?
-    pub fn get_buffer<'a>(&'a mut self, index: usize) -> Result<QBuffer<'a, D, M>> {
+    pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
         let buffer_state = &mut buffers_state.buffers_state[index];
 
@@ -360,7 +359,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         Ok(QBuffer::new(self, index, num_planes, fuse))
     }
 
-    pub fn get_free_buffer<'a>(&'a mut self) -> Result<QBuffer<'a, D, M>> {
+    pub fn get_free_buffer<'a>(&'a self) -> Result<QBuffer<'a, D, M>> {
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
         let index = match buffers_state.allocator.get_free_buffer() {
             Some(index) => index,
@@ -393,7 +392,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// be moved into a `Rc` or `Arc` if you need to pass it to several clients.
     ///
     /// The data in the `DQBuffer` is read-only.
-    pub fn dequeue(&mut self) -> Result<DQBuffer<M>> {
+    pub fn dequeue(&self) -> Result<DQBuffer<M>> {
         let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 
@@ -408,7 +407,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         };
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
 
-        self.state.num_queued_buffers -= 1;
+        buffers_state.num_queued_buffers -= 1;
 
         Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
     }

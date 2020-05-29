@@ -64,7 +64,9 @@ pub(super) enum BufferState<M: Memory> {
 pub(super) struct BuffersManager<M: Memory> {
     pub(super) allocator: FifoBufferAllocator,
     pub(super) buffers_state: Vec<BufferState<M>>,
+    pub(super) num_queued_buffers: usize,
 }
+
 
 impl<M: Memory> BuffersManager<M> {
     pub(super) fn new(num_buffers: usize) -> Self {
@@ -73,6 +75,7 @@ impl<M: Memory> BuffersManager<M> {
             buffers_state: std::iter::repeat_with(|| BufferState::Free)
                 .take(num_buffers)
                 .collect(),
+            num_queued_buffers: 0,
         }
     }
 }
@@ -81,7 +84,6 @@ impl<M: Memory> BuffersManager<M> {
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<M: Memory> {
     pub(super) num_buffers: usize,
-    pub(super) num_queued_buffers: usize,
     pub(super) buffers_state: Arc<Mutex<BuffersManager<M>>>,
     pub(super) buffer_features: ioctl::QueryBuffer,
 }
