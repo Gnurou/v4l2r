@@ -149,9 +149,8 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         // We got this now.
         self.fuse.disarm();
 
-        let new_state = BufferState::Queued(plane_handles);
-        let mut state = self.queue.state.buffers_state[self.index].borrow_mut();
-        *state = new_state;
+        let mut buffers_state = self.queue.state.buffers_state.lock().unwrap();
+        std::mem::replace(&mut buffers_state[self.index], BufferState::Queued(plane_handles));
 
         Ok(())
     }

@@ -12,9 +12,7 @@ use dqbuf::*;
 use qbuf::*;
 use states::*;
 use std::os::unix::io::{AsRawFd, RawFd};
-
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use std::sync::{Arc, Mutex, Weak};
 
 /// Contains the handles (pointers to user memory or DMABUFs) that are kept
 /// when a buffer is processed by the kernel and returned to the user upon
@@ -39,7 +37,9 @@ enum BufferState<M: Memory> {
 /// is in. This base object remains alive as long as the queue is borrowed from
 /// the `Device`.
 pub struct QueueBase {
-    device: Rc<Device>,
+    /// Reference to the device, so `fd` is kept valid and to let us mark the
+    /// queue as free again upon destruction.
+    device: Arc<Mutex<Device>>,
     /// Fd of the device, for faster access since it can be shared. This is
     /// guaranteed to remain valid as long as the device is alive, and we are
     /// keeping a refcounted reference to it.
@@ -58,7 +58,7 @@ impl<'a> Drop for QueueBase {
     /// Make the queue available again.
     fn drop(&mut self) {
         assert_eq!(
-            self.device.used_queues.borrow_mut().remove(&self.type_),
+            self.device.lock().unwrap().used_queues.remove(&self.type_),
             true
         );
     }
@@ -99,11 +99,7 @@ where
     /// the format on one queue can change the options available on another.
     pub fn set_format(&mut self, format: Format) -> Result<Format> {
         let type_ = self.inner.type_;
-        ioctl::s_fmt(
-            &mut self.inner,
-            type_,
-            format,
-        )
+        ioctl::s_fmt(&mut self.inner, type_, format)
     }
 
     /// Performs exactly as `set_format`, but does not actually apply `format`.
@@ -161,22 +157,14 @@ impl<'a> FormatBuilder<'a> {
     /// the driver's capabilities if needed, and the format actually applied will
     /// be returned.
     pub fn apply(self) -> Result<Format> {
-        ioctl::s_fmt(
-            self.queue,
-            self.queue.type_,
-            self.format,
-        )
+        ioctl::s_fmt(self.queue, self.queue.type_, self.format)
     }
 
     /// Try to apply the format built so far. The kernel will adjust the format
     /// to fit the driver's capabilities if needed, so make sure to check important
     /// parameters after this call.
     pub fn try_apply(&mut self) -> Result<()> {
-        let new_format = ioctl::try_fmt(
-            self.queue,
-            self.queue.type_,
-            self.format.clone(),
-        )?;
+        let new_format = ioctl::try_fmt(self.queue, self.queue.type_, self.format.clone())?;
 
         self.format = new_format;
         Ok(())
@@ -190,23 +178,23 @@ impl<D: Direction> Queue<D, QueueInit> {
     /// Not all devices support all kinds of queue. To test whether the queue is supported,
     /// a REQBUFS(0) is issued on the device. If it is not successful, the device is
     /// deemed to not support this kind of queue and this method will fail.
-    fn create(device: Rc<Device>, queue_type: QueueType) -> Result<Queue<D, QueueInit>> {
-        let mut used_queues = device.used_queues.borrow_mut();
+    fn create(device: Arc<Mutex<Device>>, queue_type: QueueType) -> Result<Queue<D, QueueInit>> {
+        let mut device_lock = device.lock().unwrap();
 
-        if used_queues.contains(&queue_type) {
+        if device_lock.used_queues.contains(&queue_type) {
             return Err(Error::AlreadyBorrowed);
         }
 
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
         // Obtain its capacities while we are at it.
         let capabilities: ioctl::BufferCapabilities =
-            // TODO use try_borrow_mut() and return an error if borrow is impossible.
-            ioctl::reqbufs(&mut *device.fd.borrow_mut(), queue_type, MemoryType::MMAP, 0)?;
+            ioctl::reqbufs(&mut *device_lock, queue_type, MemoryType::MMAP, 0)?;
 
-        assert_eq!(used_queues.insert(queue_type), true);
-        drop(used_queues);
+        assert_eq!(device_lock.used_queues.insert(queue_type), true);
 
-        let fd = device.as_raw_fd();
+        let fd = device_lock.as_raw_fd();
+
+        drop(device_lock);
 
         Ok(Queue::<D, QueueInit> {
             inner: QueueBase {
@@ -222,26 +210,25 @@ impl<D: Direction> Queue<D, QueueInit> {
 
     /// Allocate `count` buffers for this queue and make it transition to the
     /// `BuffersAllocated` state.
-    pub fn request_buffers<M: Memory>(mut self, count: u32) -> Result<Queue<D, BuffersAllocated<M>>> {
+    pub fn request_buffers<M: Memory>(
+        mut self,
+        count: u32,
+    ) -> Result<Queue<D, BuffersAllocated<M>>> {
         let type_ = self.inner.type_;
-        let num_buffers: usize = ioctl::reqbufs(
-            &mut self.inner,
-            type_,
-            M::HandleType::MEMORY_TYPE,
-            count,
-        )?;
+        let num_buffers: usize =
+            ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
 
         // The buffers have been allocated, now let's get their features.
-        let querybuf: ioctl::QueryBuffer =
-            ioctl::querybuf(&self.inner, self.inner.type_, 0)?;
+        let querybuf: ioctl::QueryBuffer = ioctl::querybuf(&self.inner, self.inner.type_, 0)?;
 
         Ok(Queue {
             inner: self.inner,
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
-                buffers_state: std::iter::repeat_with(|| Rc::new(RefCell::new(BufferState::Free)))
+                num_buffers,
+                buffers_state: Arc::new(Mutex::new(std::iter::repeat_with(|| BufferState::Free)
                     .take(num_buffers)
-                    .collect(),
+                    .collect())),
                 buffer_features: querybuf,
             },
         })
@@ -251,12 +238,7 @@ impl<D: Direction> Queue<D, QueueInit> {
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     pub fn free_buffers(mut self) -> Result<Queue<D, QueueInit>> {
         let type_ = self.inner.type_;
-        ioctl::reqbufs(
-            &mut self.inner,
-            type_,
-            M::HandleType::MEMORY_TYPE,
-            0,
-        )?;
+        ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
 
         Ok(Queue {
             inner: self.inner,
@@ -271,7 +253,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_queue(device: Rc<Device>) -> Result<Queue<Output, QueueInit>> {
+    pub fn get_output_queue(device: Arc<Mutex<Device>>) -> Result<Queue<Output, QueueInit>> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutput)
     }
 
@@ -279,7 +261,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_mplane_queue(device: Rc<Device>) -> Result<Queue<Output, QueueInit>> {
+    pub fn get_output_mplane_queue(device: Arc<Mutex<Device>>) -> Result<Queue<Output, QueueInit>> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutputMplane)
     }
 }
@@ -289,7 +271,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_queue(device: Rc<Device>) -> Result<Queue<Capture, QueueInit>> {
+    pub fn get_capture_queue(device: Arc<Mutex<Device>>) -> Result<Queue<Capture, QueueInit>> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCapture)
     }
 
@@ -297,7 +279,9 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_mplane_queue(device: Rc<Device>) -> Result<Queue<Capture, QueueInit>> {
+    pub fn get_capture_mplane_queue(
+        device: Arc<Mutex<Device>>,
+    ) -> Result<Queue<Capture, QueueInit>> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCaptureMplane)
     }
 }
@@ -313,7 +297,7 @@ pub struct CanceledBuffer<M: Memory> {
 
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     pub fn num_buffers(&self) -> usize {
-        self.state.buffers_state.len()
+        self.state.num_buffers
     }
 
     pub fn streamon(&mut self) -> Result<()> {
@@ -330,20 +314,20 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let type_ = self.inner.type_;
         ioctl::streamoff(&mut self.inner, type_)?;
 
-        let canceled_buffers = self
-            .state
-            .buffers_state
-            .iter()
+        let mut buffers_state = self.state.buffers_state.lock().unwrap();
+
+        let canceled_buffers = buffers_state
+            .iter_mut()
             .enumerate()
             .filter_map(|(i, state)| {
                 // Filter entries not in queued state.
-                match *state.borrow() {
+                match *state {
                     BufferState::Queued(_) => (),
                     _ => return None,
                 };
 
                 // Set entry to Free state and steal its handles.
-                let old_state = state.replace(BufferState::Free);
+                let old_state = std::mem::replace(state, BufferState::Free);
                 Some(CanceledBuffer::<M> {
                     index: i as u32,
                     plane_handles: match old_state {
@@ -367,7 +351,10 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     // When we get a WRBuffer, can't we have it pre-filled with the right number of planes,
     // etc from QUERY_BUF?
     pub fn get_buffer<'a>(&'a mut self, id: usize) -> Result<QBuffer<'a, D, M>> {
-        match *self.state.buffers_state[id].borrow() {
+        let mut buffers_state = self.state.buffers_state.lock().unwrap();
+        let buffer_state = &mut buffers_state[id];
+
+        match buffer_state {
             BufferState::Free => (),
             _ => return Err(Error::AlreadyBorrowed),
         };
@@ -376,8 +363,8 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         // The buffer remains will remain in PreQueue state until it is queued
         // or the reference to it is lost.
-        *self.state.buffers_state[id].borrow_mut() = BufferState::PreQueue;
-        let fuse = BufferStateFuse::new(Rc::downgrade(&self.state.buffers_state[id]));
+        *buffer_state = BufferState::PreQueue;
+        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
 
         Ok(QBuffer::new(self, id, num_planes, fuse))
     }
@@ -390,17 +377,19 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     ///
     /// The data in the `DQBuffer` is read-only.
     pub fn dequeue(&self) -> Result<DQBuffer<M>> {
-        let dqbuf: ioctl::DQBuffer =
-            ioctl::dqbuf(&self.inner, self.inner.type_)?;
+        let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 
+        let mut buffers_state = self.state.buffers_state.lock().unwrap();
+        let buffer_state = &mut buffers_state[id];
+
         // The buffer will remain Dequeued until our reference to it is destroyed.
-        let state = self.state.buffers_state[id].replace(BufferState::Dequeued);
+        let state = std::mem::replace(buffer_state, BufferState::Dequeued);
         let plane_handles = match state {
             BufferState::Queued(plane_handles) => plane_handles,
             _ => panic!("Inconsistent buffer state"),
         };
-        let fuse = BufferStateFuse::new(Rc::downgrade(&self.state.buffers_state[id]));
+        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
 
         Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
     }
@@ -408,28 +397,38 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
 /// A fuse that will return the buffer to the Free state when destroyed, unless
 /// it has been disarmed.
-struct BufferStateFuse<M: Memory>(Weak<RefCell<BufferState<M>>>);
+// TODO Use Arc::Weak<Mutex<BufferState>> here to make DQBuffer passable across threads?
+struct BufferStateFuse<M: Memory> {
+    buffers_state: Weak<Mutex<Vec<BufferState<M>>>>,
+    index: usize,
+}
 
 impl<M: Memory> BufferStateFuse<M> {
     /// Create a new fuse that will set `state` to `BufferState::Free` if
     /// destroyed before `disarm()` has been called.
-    fn new(state: Weak<RefCell<BufferState<M>>>) -> Self {
-        BufferStateFuse(state)
+    fn new(buffers_state: Weak<Mutex<Vec<BufferState<M>>>>, index: usize) -> Self {
+        BufferStateFuse {
+            buffers_state,
+            index,
+        }
     }
 
     /// Disarm this fuse, e.g. the monitored state will be left untouched when
     /// the fuse is destroyed.
     fn disarm(&mut self) {
         // Drop our weak reference.
-        self.0 = Weak::new();
+        self.buffers_state = Weak::new();
     }
 }
 
 impl<M: Memory> Drop for BufferStateFuse<M> {
     fn drop(&mut self) {
-        match self.0.upgrade() {
+        match self.buffers_state.upgrade() {
             None => (),
-            Some(state) => *state.borrow_mut() = BufferState::Free,
+            Some(buffers_state) => {
+                let mut buffers_state = buffers_state.lock().unwrap();
+                buffers_state[self.index] = BufferState::Free;
+            }
         };
     }
 }

@@ -1,9 +1,8 @@
 use super::framegen;
 use std::io::{self, Write};
 use std::path::Path;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use v4l2::device::queue::*;
 use v4l2::device::*;
@@ -12,8 +11,7 @@ use v4l2::memory::{UserPtr, MMAP};
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
 pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
-    let device =
-        Rc::new(Device::open(device_path, DeviceConfig::new()).expect("Failed to open device"));
+    let device = Device::open(device_path, DeviceConfig::new()).expect("Failed to open device");
     let caps = &device.capability;
     println!(
         "Opened device: {}\n\tdriver: {}\n\tbus: {}\n\tcapabilities: {}",
@@ -26,19 +24,21 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
         );
     }
 
+    let device = Arc::new(Mutex::new(device));
+
     // Obtain the queues, depending on whether we are using the single or multi planar API.
     let (mut output_queue, mut capture_queue, use_multi_planar) = if let Ok(output_queue) =
-        Queue::get_output_queue(Rc::clone(&device))
+        Queue::get_output_queue(Arc::clone(&device))
     {
         (
             output_queue,
-            Queue::get_capture_queue(Rc::clone(&device)).expect("Failed to obtain capture queue"),
+            Queue::get_capture_queue(Arc::clone(&device)).expect("Failed to obtain capture queue"),
             false,
         )
-    } else if let Ok(output_queue) = Queue::get_output_mplane_queue(Rc::clone(&device)) {
+    } else if let Ok(output_queue) = Queue::get_output_mplane_queue(Arc::clone(&device)) {
         (
             output_queue,
-            Queue::get_capture_mplane_queue(Rc::clone(&device))
+            Queue::get_capture_mplane_queue(Arc::clone(&device))
                 .expect("Failed to obtain capture queue"),
             true,
         )

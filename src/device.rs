@@ -21,10 +21,9 @@ use super::ioctl;
 use super::ioctl::Capability;
 use super::QueueType;
 use super::Result;
-use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fs::File;
-use std::os::unix::io::FromRawFd;
+use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::path::Path;
 
 pub mod queue;
@@ -51,16 +50,16 @@ impl DeviceConfig {
 /// An opened V4L2 device. `Queue` objects can be instantiated from it.
 pub struct Device {
     pub capability: Capability,
-    fd: RefCell<File>,
-    used_queues: RefCell<BTreeSet<QueueType>>,
+    fd: File,
+    used_queues: BTreeSet<QueueType>,
 }
 
 impl Device {
     fn new(fd: File) -> Result<Self> {
         Ok(Device {
             capability: ioctl::querycap(&fd)?,
-            fd: RefCell::new(fd),
-            used_queues: RefCell::new(BTreeSet::new()),
+            fd,
+            used_queues: BTreeSet::new(),
         })
     }
 
@@ -79,5 +78,11 @@ impl Device {
 
         // Safe because we are constructing a file from Fd we just opened.
         Device::new(unsafe { File::from_raw_fd(fd) })
+    }
+}
+
+impl AsRawFd for Device {
+    fn as_raw_fd(&self) -> RawFd {
+        self.fd.as_raw_fd()
     }
 }

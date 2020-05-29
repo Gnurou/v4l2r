@@ -37,11 +37,11 @@ pub trait PlaneHandle: Sized + Debug {
 /// with buffers are also generally typed after this trait.
 pub trait Memory {
     /// The type we need to pass to enqueue a buffer.
-    type QBufType;
+    type QBufType: Send;
 
     /// The type we will get back when dequeuing a buffer, or when calling
     /// `streamoff` on the queue.
-    type DQBufType;
+    type DQBufType: Send;
 
     /// The type of handle produced by this memory type, for use with the
     /// `ioctl` module.
