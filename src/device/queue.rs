@@ -222,19 +222,6 @@ impl<D: Direction> Queue<D, QueueInit> {
     }
 }
 
-impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
-    pub fn free_buffers(mut self) -> Result<Queue<D, QueueInit>> {
-        let type_ = self.inner.type_;
-        ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
-
-        Ok(Queue {
-            inner: self.inner,
-            _d: std::marker::PhantomData,
-            state: QueueInit {},
-        })
-    }
-}
-
 impl Queue<Output, QueueInit> {
     /// Acquires the OUTPUT queue from `device`.
     ///
@@ -424,6 +411,17 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.num_queued_buffers -= 1;
 
         Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
+    }
+
+    pub fn free_buffers(mut self) -> Result<Queue<D, QueueInit>> {
+        let type_ = self.inner.type_;
+        ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
+
+        Ok(Queue {
+            inner: self.inner,
+            _d: std::marker::PhantomData,
+            state: QueueInit {},
+        })
     }
 }
 
