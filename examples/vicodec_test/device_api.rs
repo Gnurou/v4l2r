@@ -111,10 +111,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     );
 
     // Create backing memory for the OUTPUT buffers.
-    let mut output_buffers: Vec<Option<Vec<u8>>> =
-        std::iter::repeat(Some(vec![0u8; output_image_size]))
-            .take(output_queue.num_buffers())
-            .collect();
+    let mut output_frame = Some(vec![0u8; output_image_size]);
 
     output_queue
         .streamon()
@@ -127,7 +124,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     while !lets_quit.load(Ordering::SeqCst) {
         let output_buffer_index = cpt % output_queue.num_buffers();
         let capture_buffer_index = cpt % capture_queue.num_buffers();
-        let mut output_buffer_data = output_buffers[output_buffer_index]
+        let mut output_buffer_data = output_frame
             .take()
             .expect("Output buffer not available. This is a bug.");
 
@@ -166,8 +163,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
         // Make the buffer data available again. It should have been empty since
         // the buffer was owned by the queue.
         assert_eq!(
-            output_buffers[out_dqbuf.data.index as usize]
-                .replace(out_dqbuf.plane_handles.remove(0)),
+            output_frame.replace(out_dqbuf.plane_handles.remove(0)),
             None
         );
 
