@@ -1,4 +1,4 @@
-# Experimental Rust bindings for V4L2 [![Build Status](https://travis-ci.org/Gnurou/v4l2_rust.svg?branch=master)](https://travis-ci.org/Gnurou/v4l2_rust)
+# Experimental Rust bindings for V4L2 [![Build Status](https://travis-ci.com/Gnurou/v4l2_rust.svg?branch=master)](https://travis-ci.com/Gnurou/v4l2_rust)
 
 This is a work-in-progress library to implement safe Rust bindings for V4L2.
 
