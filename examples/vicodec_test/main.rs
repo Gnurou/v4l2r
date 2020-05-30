@@ -8,7 +8,6 @@ mod device_api;
 mod framegen;
 mod ioctl_api;
 
-use ctrlc;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -45,9 +44,9 @@ fn main() {
 
     if use_ioctl {
         println!("Using ioctl interface");
-        return ioctl_api::run(&Path::new(&device_path), lets_quit);
+        ioctl_api::run(&Path::new(&device_path), lets_quit)
     } else {
         println!("Using device interface");
-        return device_api::run(&Path::new(&device_path), lets_quit);
+        device_api::run(&Path::new(&device_path), lets_quit)
     }
 }

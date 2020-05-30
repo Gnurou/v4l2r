@@ -150,7 +150,10 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         self.fuse.disarm();
 
         let mut buffers_state = self.queue.state.buffers_state.lock().unwrap();
-        std::mem::replace(&mut buffers_state.buffers_state[self.index], BufferState::Queued(plane_handles));
+        std::mem::replace(
+            &mut buffers_state.buffers_state[self.index],
+            BufferState::Queued(plane_handles),
+        );
         // TODO this indicates that we should probably use treemaps for each buffer state
         // (or bitmaps for simple state and a treemap for the queued one) instead of a global
         // array?
@@ -167,7 +170,7 @@ impl<'a> QBuffer<'a, Capture, MMAP> {
     /// methods allows to queue them as soon as they are obtained.
     pub fn auto_queue(mut self) -> QueueResult<MMAP, ()> {
         while self.num_set_planes() < self.num_expected_planes() {
-            self = self.add_plane(Plane::<Capture, MMAP>::cap(().into()));
+            self = self.add_plane(Plane::<Capture, MMAP>::cap(()));
         }
         self.queue()
     }

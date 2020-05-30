@@ -42,7 +42,6 @@ impl DeviceConfig {
     pub fn non_blocking_dqbuf(self) -> Self {
         DeviceConfig {
             non_blocking_dqbuf: true,
-            ..self
         }
     }
 }
@@ -69,9 +68,10 @@ impl Device {
 
         let flags = OFlag::O_RDWR
             | OFlag::O_CLOEXEC
-            | match config.non_blocking_dqbuf {
-                true => OFlag::O_NONBLOCK,
-                false => OFlag::empty(),
+            | if config.non_blocking_dqbuf {
+                OFlag::O_NONBLOCK
+            } else {
+                OFlag::empty()
             };
 
         let fd = open(path, flags, Mode::empty())?;

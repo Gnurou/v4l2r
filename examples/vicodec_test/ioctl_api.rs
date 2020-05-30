@@ -18,7 +18,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     let mut fd = unsafe {
         File::from_raw_fd(
             open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
-                .expect(&format!("Cannot open {}", device_path.display())),
+                .unwrap_or_else(|_| panic!("Cannot open {}", device_path.display())),
         )
     };
 
@@ -39,14 +39,13 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     // Check whether the driver uses the single or multi-planar API by
     // requesting 0 MMAP buffers on the OUTPUT queue. The working queue will
     // return a success.
-    let use_multi_planar =
-        if let Ok(_) = reqbufs::<(), _>(&mut fd, VideoOutput, MemoryType::MMAP, 0) {
-            false
-        } else if let Ok(_) = reqbufs::<(), _>(&mut fd, VideoOutputMplane, MemoryType::MMAP, 0) {
-            true
-        } else {
-            panic!("Both single-planar and multi-planar queues are unusable.");
-        };
+    let use_multi_planar = if reqbufs::<(), _>(&mut fd, VideoOutput, MemoryType::MMAP, 0).is_ok() {
+        false
+    } else if reqbufs::<(), _>(&mut fd, VideoOutputMplane, MemoryType::MMAP, 0).is_ok() {
+        true
+    } else {
+        panic!("Both single-planar and multi-planar queues are unusable.");
+    };
     println!(
         "Multi-planar: {}",
         if use_multi_planar { "yes" } else { "no" }

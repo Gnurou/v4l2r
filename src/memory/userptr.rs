@@ -19,6 +19,8 @@ pub struct UserPtrHandle {
 impl UserPtrHandle {
     /// Create a new handle from anything that references bytes.
     ///
+    /// # Safety
+    ///
     /// This method is unsafe. The caller must guarantee that the owner of the
     /// buffer memory will outlive the created handle: this means keeping the
     /// owning object alive until the queued buffer using the handle has been

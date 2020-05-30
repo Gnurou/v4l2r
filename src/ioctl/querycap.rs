@@ -81,9 +81,9 @@ pub struct Capability {
 impl QueryCap for Capability {
     fn from(qcap: bindings::v4l2_capability) -> Self {
         Capability {
-            driver: string_from_cstr(&qcap.driver).unwrap_or("".into()),
-            card: string_from_cstr(&qcap.card).unwrap_or("".into()),
-            bus_info: string_from_cstr(&qcap.bus_info).unwrap_or("".into()),
+            driver: string_from_cstr(&qcap.driver).unwrap_or_else(|_| "".into()),
+            card: string_from_cstr(&qcap.card).unwrap_or_else(|_| "".into()),
+            bus_info: string_from_cstr(&qcap.bus_info).unwrap_or_else(|_| "".into()),
             version: qcap.version,
             capabilities: Capabilities::from_bits_truncate(qcap.capabilities),
             device_caps: if qcap.capabilities & bindings::V4L2_CAP_DEVICE_CAPS != 0 {

@@ -7,10 +7,10 @@ use super::Device;
 use crate::ioctl;
 use crate::memory::*;
 use crate::*;
-use states::BufferState;
 use direction::*;
 use dqbuf::*;
 use qbuf::*;
+use states::BufferState;
 use states::*;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::{Arc, Mutex, Weak};
@@ -296,7 +296,8 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
 
-        let canceled_buffers: Vec<_> = buffers_state.buffers_state
+        let canceled_buffers: Vec<_> = buffers_state
+            .buffers_state
             .iter_mut()
             .enumerate()
             .filter_map(|(i, state)| {
@@ -349,7 +350,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         // The buffer will remain in PreQueue state until it is queued
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
-        drop(buffer_state);
 
         buffers_state.allocator.take_buffer(index);
         drop(buffers_state);
@@ -377,7 +377,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         // The buffer remains will remain in PreQueue state until it is queued
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
-        drop(buffer_state);
         drop(buffers_state);
 
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
