@@ -447,17 +447,26 @@ impl<M: Memory> BufferStateFuse<M> {
         // Drop our weak reference.
         self.buffers_manager = Weak::new();
     }
-}
 
-impl<M: Memory> Drop for BufferStateFuse<M> {
-    fn drop(&mut self) {
+    /// Trigger the fuse, i.e. make the buffer return to the Free state, unless
+    /// the fuse has been `disarm`ed. This method should only be called when
+    /// the buffer is being dropped, otherwise inconsistent state may ensue.
+    /// The fuse will be disarmed after this call.
+    fn trigger(&mut self) {
         match self.buffers_manager.upgrade() {
             None => (),
             Some(buffers_manager) => {
                 let mut buffers_manager = buffers_manager.lock().unwrap();
                 buffers_manager.buffers_state[self.index] = BufferState::Free;
                 buffers_manager.allocator.return_buffer(self.index);
+                self.buffers_manager = Weak::new();
             }
         };
+    }
+}
+
+impl<M: Memory> Drop for BufferStateFuse<M> {
+    fn drop(&mut self) {
+        self.trigger();
     }
 }
