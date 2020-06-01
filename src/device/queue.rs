@@ -359,11 +359,11 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         Ok(QBuffer::new(self, index, num_planes, fuse))
     }
 
-    pub fn get_free_buffer<'a>(&'a self) -> Result<QBuffer<'a, D, M>> {
+    pub fn get_free_buffer<'a>(&'a self) -> Option<QBuffer<'a, D, M>> {
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
         let index = match buffers_state.allocator.get_free_buffer() {
             Some(index) => index,
-            None => return Err(Error::AlreadyBorrowed),
+            None => return None,
         };
 
         let buffer_state = &mut buffers_state.buffers_state[index];
@@ -381,7 +381,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
 
-        Ok(QBuffer::new(self, index, num_planes, fuse))
+        Some(QBuffer::new(self, index, num_planes, fuse))
     }
 
     /// Dequeue the next processed buffer and return it.
