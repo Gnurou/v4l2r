@@ -359,7 +359,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         Ok(QBuffer::new(self, index, num_planes, fuse))
     }
 
-    pub fn get_free_buffer<'a>(&'a self) -> Option<QBuffer<'a, D, M>> {
+    pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {
         let mut buffers_state = self.state.buffers_state.lock().unwrap();
         let index = match buffers_state.allocator.get_free_buffer() {
             Some(index) => index,
