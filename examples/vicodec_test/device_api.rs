@@ -3,6 +3,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use v4l2::device::queue::*;
 use v4l2::device::*;
@@ -120,6 +121,7 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
 
     let mut cpt = 0usize;
     let mut total_size = 0usize;
+    let start_time = Instant::now();
     // Encode generated frames until Ctrl+c is pressed.
     while !lets_quit.load(Ordering::SeqCst) {
         if let Some(max_cpt) = stop_after {
@@ -176,13 +178,16 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
             .expect("Failed to dequeue capture buffer");
 
         total_size = total_size.wrapping_add(cap_dqbuf.data.planes[0].bytesused as usize);
+        let elapsed = start_time.elapsed();
+        let fps = cpt as f64 / elapsed.as_millis() as f64 * 1000.0;
         print!(
-            "\rEncoded buffer {:#5}, {:#2} -> {:#2}), bytes used:{:#6} total encoded size:{:#8}",
+            "\rEncoded buffer {:#5}, {:#2} -> {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
             cap_dqbuf.data.sequence,
             out_dqbuf.data.index,
             cap_dqbuf.data.index,
             cap_dqbuf.data.planes[0].bytesused,
-            total_size
+            total_size,
+            fps
         );
         io::stdout().flush().unwrap();
 
