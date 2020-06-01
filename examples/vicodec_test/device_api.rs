@@ -10,7 +10,7 @@ use v4l2::memory::{UserPtr, MMAP};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
-pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
+pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<usize>) {
     let device = Device::open(device_path, DeviceConfig::new()).expect("Failed to open device");
     let caps = &device.capability;
     println!(
@@ -122,6 +122,12 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     let mut total_size = 0usize;
     // Encode generated frames until Ctrl+c is pressed.
     while !lets_quit.load(Ordering::SeqCst) {
+        if let Some(max_cpt) = stop_after {
+            if cpt >= max_cpt {
+                break;
+            }
+        }
+
         let mut output_buffer_data = output_frame
             .take()
             .expect("Output buffer not available. This is a bug.");

@@ -22,6 +22,12 @@ fn main() {
                 .help("Use the lower-level ioctl interface"),
         )
         .arg(
+            Arg::with_name("stop_after")
+                .long("stop_after")
+                .takes_value(true)
+                .help("Stop after encoding this number of buffers"),
+        )
+        .arg(
             Arg::with_name("device")
                 .required(true)
                 .help("Path to the vicodec device file"),
@@ -30,6 +36,11 @@ fn main() {
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
     let use_ioctl = matches.is_present("use_ioctl");
+    let stop_after = match clap::value_t!(matches.value_of("stop_after"), usize) {
+        Ok(v) => Some(v),
+        Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
+        Err(e) => panic!("Invalid value for stop_after: {}", e),
+    };
 
     let lets_quit = Arc::new(AtomicBool::new(false));
 
@@ -44,9 +55,9 @@ fn main() {
 
     if use_ioctl {
         println!("Using ioctl interface");
-        ioctl_api::run(&Path::new(&device_path), lets_quit)
+        ioctl_api::run(&Path::new(&device_path), lets_quit, stop_after)
     } else {
         println!("Using device interface");
-        device_api::run(&Path::new(&device_path), lets_quit)
+        device_api::run(&Path::new(&device_path), lets_quit, stop_after)
     }
 }

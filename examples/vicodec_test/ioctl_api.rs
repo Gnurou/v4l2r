@@ -14,7 +14,7 @@ use v4l2::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
-pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
+pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<usize>) {
     let mut fd = unsafe {
         File::from_raw_fd(
             open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
@@ -131,6 +131,12 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>) {
     let mut total_size = 0usize;
     // Encode generated frames until Ctrl+c is pressed.
     while !lets_quit.load(Ordering::SeqCst) {
+        if let Some(max_cpt) = stop_after {
+            if cpt >= max_cpt {
+                break;
+            }
+        }
+
         let output_buffer_index = cpt % num_output_buffers;
         let capture_buffer_index = cpt % num_output_buffers;
         let output_buffer = &mut output_buffers[output_buffer_index];
