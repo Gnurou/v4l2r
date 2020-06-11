@@ -6,6 +6,7 @@ use crate::memory::*;
 use crate::Error;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug, Display};
+use std::sync::atomic;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
 /// returns the plane handles back to the user.
@@ -154,11 +155,12 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
             &mut buffers_state.buffers_state[self.index],
             BufferState::Queued(plane_handles),
         );
-        // TODO this indicates that we should probably use treemaps for each buffer state
-        // (or bitmaps for simple state and a treemap for the queued one) instead of a global
-        // array?
-        buffers_state.num_queued_buffers += 1;
         drop(buffers_state);
+
+        self.queue
+            .state
+            .num_queued_buffers
+            .fetch_add(1, atomic::Ordering::SeqCst);
 
         Ok(())
     }
