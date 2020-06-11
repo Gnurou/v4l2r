@@ -48,8 +48,10 @@ pub struct ReadyToEncode {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
     // The number of encoding jobs currently in progress, i.e. the number of
-    // OUTPUT buffers we are currently using.
+    // OUTPUT buffers we are currently using. The client increases it before
+    // submitting a job, and the encode decreases it when a job completes.
     jobs_in_progress: Arc<AtomicUsize>,
+    // Number of times we have awaken from a poll, for stats purposes.
     num_poll_wakeups: Arc<AtomicUsize>,
 }
 impl EncoderState for ReadyToEncode {}
@@ -114,6 +116,8 @@ impl Encoder<AwaitingCaptureFormat> {
         &mut self.state.capture_queue
     }
 
+    // TODO we should transition to the next state when setting the format, and
+    // not request it explicitly.
     pub fn capture_format_configured(self) -> Encoder<AwaitingOutputFormat> {
         Encoder {
             inner: self.inner,
