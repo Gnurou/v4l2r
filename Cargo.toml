@@ -8,6 +8,7 @@ license = "LGPL-2.1"
 [dependencies]
 nix = "0.17.0"
 bitflags = "1.2.1"
+thiserror = "1.0"
 
 [dependencies.mio]
 version = "0.7"
