@@ -425,7 +425,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
 /// A fuse that will return the buffer to the Free state when destroyed, unless
 /// it has been disarmed.
-// TODO Use Arc::Weak<Mutex<BufferState>> here to make DQBuffer passable across threads?
 struct BufferStateFuse<M: Memory> {
     buffers_manager: Weak<Mutex<BuffersManager<M>>>,
     index: usize,
