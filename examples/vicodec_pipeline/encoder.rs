@@ -207,6 +207,10 @@ impl Encoder<ReadyToEncode> {
     fn process_command(&mut self, cmd: Command, msg_send: &Sender<Message>) -> v4l2::Result<bool> {
         match cmd {
             Command::Stop => {
+                // Stop the CAPTURE queue and lose all buffers.
+                self.state.capture_queue.streamoff()?;
+
+                // Stop the OUTPUT queue and return all handles to client.
                 let canceled_buffers = self.state.output_queue.streamoff()?;
                 for mut buffer in canceled_buffers {
                     msg_send
