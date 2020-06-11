@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use thiserror::Error;
 
 pub struct Client {
     pub(super) handle: JoinHandle<Encoder<ReadyToEncode>>,
@@ -20,20 +21,16 @@ pub struct Client {
     pub num_poll_wakeups: Arc<AtomicUsize>,
 }
 
+#[derive(Error)]
 pub enum EncodeError {
+    #[error("queue is currently full")]
     QueueFull(Vec<u8>),
-    SendError(SendError),
+    #[error("error sending command")]
+    SendError(#[from] SendError),
 }
 
-impl fmt::Display for EncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            EncodeError::QueueFull(_) => write!(f, "Queue is currently full"),
-            EncodeError::SendError(e) => e.fmt(f),
-        }
-    }
-}
-
+// Without this custom implementation the whole input buffer would be dumped
+// in the debug print.
 impl fmt::Debug for EncodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -43,57 +40,26 @@ impl fmt::Debug for EncodeError {
     }
 }
 
-impl From<SendError> for EncodeError {
-    fn from(e: SendError) -> Self {
-        EncodeError::SendError(e)
-    }
-}
-
-impl std::error::Error for EncodeError {}
-
 type EncodeResult<T> = std::result::Result<T, EncodeError>;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum StopError {
-    SendError(SendError),
+    #[error("error sending command")]
+    SendError(#[from] SendError),
+    #[error("thread not responding")]
     ThreadBlocked,
 }
 
-impl fmt::Display for StopError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            StopError::SendError(e) => e.fmt(f),
-            StopError::ThreadBlocked => write!(f, "Thread not responding"),
-        }
-    }
-}
-
-impl From<SendError> for StopError {
-    fn from(e: SendError) -> Self {
-        StopError::SendError(e)
-    }
-}
-
-impl std::error::Error for StopError {}
-
 type StopResult<T> = std::result::Result<T, StopError>;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum SendError {
+    #[error("channel send error")]
     ChannelSendError,
+    #[error("io error")]
     IoError(std::io::Error),
 }
 
-impl fmt::Display for SendError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SendError::ChannelSendError => write!(f, "Channel send error"),
-            SendError::IoError(e) => e.fmt(f),
-        }
-    }
-}
-
-impl std::error::Error for SendError {}
 type SendResult<T> = std::result::Result<T, SendError>;
 
 impl Client {
