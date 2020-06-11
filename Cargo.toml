@@ -9,6 +9,10 @@ license = "LGPL-2.1"
 nix = "0.17.0"
 bitflags = "1.2.1"
 
+[dependencies.mio]
+version = "0.7"
+features = ["os-poll", "os-util"]
+
 # For example programs
 [dev-dependencies]
 ctrlc = "3.1.4"
