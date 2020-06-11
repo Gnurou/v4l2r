@@ -6,7 +6,6 @@ use crate::memory::*;
 use crate::Error;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug, Display};
-use std::sync::atomic;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
 /// returns the plane handles back to the user.
@@ -157,10 +156,11 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         );
         drop(buffers_state);
 
+        let num_queued_buffers = self.queue.state.num_queued_buffers.take();
         self.queue
             .state
             .num_queued_buffers
-            .fetch_add(1, atomic::Ordering::SeqCst);
+            .set(num_queued_buffers + 1);
 
         Ok(())
     }

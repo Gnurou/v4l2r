@@ -3,7 +3,7 @@ use crate::ioctl;
 use crate::memory::Memory;
 use std::collections::VecDeque;
 
-use std::sync::atomic::AtomicUsize;
+use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 
 /// Trait for the different states a queue can be in. This allows us to limit
@@ -82,8 +82,7 @@ impl<M: Memory> BuffersManager<M> {
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<M: Memory> {
     pub(super) num_buffers: usize,
-    // TODO replace with Cell<usize>? Since we are not using this in a multi-threaded context.
-    pub(super) num_queued_buffers: AtomicUsize,
+    pub(super) num_queued_buffers: Cell<usize>,
     pub(super) buffers_state: Arc<Mutex<BuffersManager<M>>>,
     pub(super) buffer_features: ioctl::QueryBuffer,
 }

@@ -13,7 +13,6 @@ use qbuf::*;
 use states::BufferState;
 use states::*;
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex, Weak};
 
 /// Contains the handles (pointers to user memory or DMABUFs) that are kept
@@ -279,7 +278,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// Returns the number of buffers currently queued (i.e. being processed
     /// by the device).
     pub fn num_queued_buffers(&self) -> usize {
-        self.state.num_queued_buffers.load(Ordering::SeqCst)
+        self.state.num_queued_buffers.get()
     }
 
     pub fn streamon(&self) -> Result<()> {
@@ -323,9 +322,10 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             })
             .collect();
 
+        let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state
             .num_queued_buffers
-            .fetch_sub(canceled_buffers.len(), Ordering::SeqCst);
+            .set(num_queued_buffers - canceled_buffers.len());
         for buffer in &canceled_buffers {
             buffers_state.allocator.return_buffer(buffer.index as usize);
         }
@@ -410,7 +410,8 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         };
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
 
-        self.state.num_queued_buffers.fetch_sub(1, Ordering::SeqCst);
+        let num_queued_buffers = self.state.num_queued_buffers.take();
+        self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
         Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
     }
