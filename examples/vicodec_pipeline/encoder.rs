@@ -7,10 +7,12 @@ use v4l2::ioctl::FormatFlags;
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
+use std::error::Error;
+use std::fmt;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, PartialEq)]
@@ -71,6 +73,36 @@ pub struct Encoder<S: EncoderState> {
 
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
+
+#[derive(Debug)]
+enum ProcessError {
+    V4L2Error(v4l2::Error),
+    SendError,
+}
+
+impl fmt::Display for ProcessError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ProcessError::V4L2Error(e) => e.fmt(f),
+            ProcessError::SendError => write!(f, "Send error"),
+        }
+    }
+}
+
+impl From<v4l2::Error> for ProcessError {
+    fn from(e: v4l2::Error) -> Self {
+        ProcessError::V4L2Error(e)
+    }
+}
+
+impl<T> From<mpsc::SendError<T>> for ProcessError {
+    fn from(_e: mpsc::SendError<T>) -> Self {
+        ProcessError::SendError
+    }
+}
+
+impl Error for ProcessError {}
+type ProcessResult<T> = std::result::Result<T, ProcessError>;
 
 impl Encoder<AwaitingCaptureFormat> {
     pub fn open(path: &Path) -> v4l2::Result<Self> {
@@ -204,7 +236,7 @@ impl Encoder<ReadyToEncode> {
         }
     }
 
-    fn process_command(&mut self, cmd: Command, msg_send: &Sender<Message>) -> v4l2::Result<bool> {
+    fn process_command(&mut self, cmd: Command, msg_send: &Sender<Message>) -> ProcessResult<bool> {
         match cmd {
             Command::Stop => {
                 // Stop the CAPTURE queue and lose all buffers.
@@ -213,9 +245,7 @@ impl Encoder<ReadyToEncode> {
                 // Stop the OUTPUT queue and return all handles to client.
                 let canceled_buffers = self.state.output_queue.streamoff()?;
                 for mut buffer in canceled_buffers {
-                    msg_send
-                        .send(Message::InputBufferDone(buffer.plane_handles.remove(0)))
-                        .unwrap();
+                    msg_send.send(Message::InputBufferDone(buffer.plane_handles.remove(0)))?;
                 }
                 return Ok(false);
             }
@@ -283,7 +313,7 @@ impl Encoder<ReadyToEncode> {
                                     drop(msg_send);
                                     break 'poll_loop;
                                 }
-                                Err(_) => panic!("Platform error"),
+                                Err(e) => panic!("Platform error: {}", e),
                             }
                         }
 
