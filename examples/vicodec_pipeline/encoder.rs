@@ -75,7 +75,7 @@ unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
 #[derive(Debug, Error)]
 enum ProcessError {
-    #[error("V4L2 error")]
+    #[error("V4L2 error: {0}")]
     V4L2Error(#[from] v4l2::Error),
     #[error("send error")]
     SendError,

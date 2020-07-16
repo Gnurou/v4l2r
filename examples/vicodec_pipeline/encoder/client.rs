@@ -35,32 +35,30 @@ impl fmt::Debug for EncodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             EncodeError::QueueFull(_) => write!(f, "EncodeError::QueueFull"),
-            EncodeError::SendError(_) => write!(f, "EncodeError::SendError"),
+            EncodeError::SendError(e) => write!(f, "EncodeError::SendError: {:?}", e),
         }
     }
 }
 
-type EncodeResult<T> = std::result::Result<T, EncodeError>;
+pub type EncodeResult<T> = std::result::Result<T, EncodeError>;
 
 #[derive(Debug, Error)]
 pub enum StopError {
-    #[error("error sending command")]
+    #[error("error sending stop command: {0}")]
     SendError(#[from] SendError),
     #[error("thread not responding")]
     ThreadBlocked,
 }
-
-type StopResult<T> = std::result::Result<T, StopError>;
+pub type StopResult<T> = std::result::Result<T, StopError>;
 
 #[derive(Debug, Error)]
 pub enum SendError {
     #[error("channel send error")]
     ChannelSendError,
-    #[error("io error")]
+    #[error("io error: {0}")]
     IoError(std::io::Error),
 }
-
-type SendResult<T> = std::result::Result<T, SendError>;
+pub type SendResult<T> = std::result::Result<T, SendError>;
 
 impl Client {
     fn send(&self, command: Command) -> SendResult<()> {
@@ -90,7 +88,7 @@ impl Client {
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Ok(_) => {
                     // TODO get buffers that were pending, as well as those that
-                    // were streamed off.
+                    // were streamed off and return then to the client.
                 }
             }
         }
