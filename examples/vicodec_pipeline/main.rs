@@ -52,27 +52,20 @@ fn main() {
     }
 
     let encoder = Encoder::open(&Path::new(&device_path)).unwrap();
-    let (encoder, capture_format) = encoder
+    let encoder = encoder
         .set_capture_format(|f| {
-            let format = f
-                .set_pixelformat(b"FWHT")
-                .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
-                .apply()?;
+            let format = f.set_pixelformat(b"FWHT").apply()?;
 
             ensure!(
                 format.pixelformat == b"FWHT".into(),
                 "FWHT format not supported"
             );
-            ensure!(
-                format.width as usize == FRAME_SIZE.0 && format.height as usize == FRAME_SIZE.1,
-                "Frame resolution not supported on capture queue"
-            );
 
-            Ok(format)
+            Ok(())
         })
         .unwrap();
 
-    let (encoder, output_format) = encoder
+    let encoder = encoder
         .set_output_format(|f| {
             let format = f
                 .set_pixelformat(b"RGB3")
@@ -88,12 +81,16 @@ fn main() {
                 "Output frame resolution not supported"
             );
 
-            Ok(format)
+            Ok(())
         })
         .unwrap();
 
+    let output_format = encoder.get_output_format().unwrap();
     println!("Adjusted output format: {:?}", output_format);
-    println!("Adjusted capture format: {:?}", capture_format);
+    println!(
+        "Adjusted capture format: {:?}",
+        encoder.get_capture_format().unwrap()
+    );
 
     println!(
         "Configured encoder for {}x{} ({} bytes per line)",

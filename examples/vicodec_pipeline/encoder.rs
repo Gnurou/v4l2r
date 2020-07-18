@@ -27,6 +27,7 @@ pub enum Message {
     FrameEncoded(dqbuf::DQBuffer<MMAP>),
 }
 
+/// Trait implemented by all states of the encoder.
 pub trait EncoderState {}
 
 pub struct AwaitingCaptureFormat {
@@ -132,42 +133,36 @@ impl Encoder<AwaitingCaptureFormat> {
 
     pub fn set_capture_format(
         mut self,
-        f: fn(FormatBuilder) -> anyhow::Result<v4l2::Format>,
-    ) -> anyhow::Result<(Encoder<AwaitingOutputFormat>, v4l2::Format)> {
+        f: fn(FormatBuilder) -> anyhow::Result<()>,
+    ) -> anyhow::Result<Encoder<AwaitingOutputFormat>> {
         let builder = self.state.capture_queue.change_format()?;
-        let format = f(builder)?;
+        f(builder)?;
 
-        Ok((
-            Encoder {
-                inner: self.inner,
-                state: AwaitingOutputFormat {
-                    output_queue: self.state.output_queue,
-                    capture_queue: self.state.capture_queue,
-                },
+        Ok(Encoder {
+            inner: self.inner,
+            state: AwaitingOutputFormat {
+                output_queue: self.state.output_queue,
+                capture_queue: self.state.capture_queue,
             },
-            format,
-        ))
+        })
     }
 }
 
 impl Encoder<AwaitingOutputFormat> {
     pub fn set_output_format(
         mut self,
-        f: fn(FormatBuilder) -> anyhow::Result<v4l2::Format>,
-    ) -> anyhow::Result<(Encoder<AwaitingBufferAllocation>, v4l2::Format)> {
+        f: fn(FormatBuilder) -> anyhow::Result<()>,
+    ) -> anyhow::Result<Encoder<AwaitingBufferAllocation>> {
         let builder = self.state.output_queue.change_format()?;
-        let format = f(builder)?;
+        f(builder)?;
 
-        Ok((
-            Encoder {
-                inner: self.inner,
-                state: AwaitingBufferAllocation {
-                    output_queue: self.state.output_queue,
-                    capture_queue: self.state.capture_queue,
-                },
+        Ok(Encoder {
+            inner: self.inner,
+            state: AwaitingBufferAllocation {
+                output_queue: self.state.output_queue,
+                capture_queue: self.state.capture_queue,
             },
-            format,
-        ))
+        })
     }
 }
 
@@ -195,6 +190,14 @@ impl Encoder<AwaitingBufferAllocation> {
                 num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
             },
         })
+    }
+
+    pub fn get_output_format(&self) -> v4l2::Result<v4l2::Format> {
+        self.state.output_queue.get_format()
+    }
+
+    pub fn get_capture_format(&self) -> v4l2::Result<v4l2::Format> {
+        self.state.capture_queue.get_format()
     }
 }
 
