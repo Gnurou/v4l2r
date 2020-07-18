@@ -150,7 +150,10 @@ impl<'a> FormatBuilder<'a> {
 
     /// Try to apply the format built so far. The kernel will adjust the format
     /// to fit the driver's capabilities if needed, so make sure to check important
-    /// parameters after this call.
+    /// parameters upon return.
+    ///
+    /// Calling `apply()` right after this method is guaranteed to successfully
+    /// apply the format without further change.
     pub fn try_apply(&mut self) -> Result<()> {
         let new_format = ioctl::try_fmt(self.queue, self.queue.type_, self.format.clone())?;
 
