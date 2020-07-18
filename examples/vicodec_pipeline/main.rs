@@ -49,46 +49,46 @@ fn main() {
         .expect("Failed to set Ctrl-C handler.");
     }
 
-    let mut encoder = Encoder::open(&Path::new(&device_path)).unwrap();
+    let encoder = Encoder::open(&Path::new(&device_path)).unwrap();
+    let (encoder, capture_format) = encoder
+        .set_capture_format(|f| {
+            let format = f
+                .set_pixelformat(b"FWHT")
+                .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
+                .apply()?;
 
-    let capture_format = encoder
-        .capture_queue_mut()
-        .change_format()
-        .unwrap()
-        .set_pixelformat(b"FWHT")
-        .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
-        .apply()
+            if format.pixelformat != b"FWHT".into() {
+                panic!("FWHT format not supported");
+            }
+            if format.width as usize != FRAME_SIZE.0 || format.height as usize != FRAME_SIZE.1 {
+                panic!("Frame resolution not supported on capture queue");
+            }
+
+            Ok(format)
+        })
         .unwrap();
-    if capture_format.pixelformat != b"FWHT".into() {
-        panic!("FWHT format not supported");
-    }
-    if capture_format.width as usize != FRAME_SIZE.0
-        || capture_format.height as usize != FRAME_SIZE.1
-    {
-        panic!("Frame resolution not supported on capture queue");
-    }
-    let mut encoder = encoder.capture_format_configured();
 
-    let output_format = encoder
-        .output_queue_mut()
-        .change_format()
-        .unwrap()
-        .set_pixelformat(b"RGB3")
-        .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
-        .apply()
+    let (encoder, output_format) = encoder
+        .set_output_format(|f| {
+            let format = f
+                .set_pixelformat(b"RGB3")
+                .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
+                .apply()?;
+
+            // TODO we should be allowed to return an error here.
+            if format.pixelformat != b"RGB3".into() {
+                panic!("RGB3 format not supported");
+            }
+            if format.width as usize != FRAME_SIZE.0 || format.height as usize != FRAME_SIZE.1 {
+                panic!("Frame resolution not supported on output queue");
+            }
+
+            Ok(format)
+        })
         .unwrap();
 
     println!("Adjusted output format: {:?}", output_format);
     println!("Adjusted capture format: {:?}", capture_format);
-
-    if output_format.pixelformat != b"RGB3".into() {
-        panic!("RGB3 format not supported");
-    }
-    if output_format.width as usize != FRAME_SIZE.0 || output_format.height as usize != FRAME_SIZE.1
-    {
-        panic!("Frame resolution not supported on output queue");
-    }
-    let encoder = encoder.output_format_configured();
 
     println!(
         "Configured encoder for {}x{} ({} bytes per line)",

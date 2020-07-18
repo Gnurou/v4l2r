@@ -1,7 +1,7 @@
 pub mod client;
 
 use v4l2;
-use v4l2::device::queue::{direction, dqbuf, qbuf, states, Queue};
+use v4l2::device::queue::{direction, dqbuf, qbuf, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
 use v4l2::ioctl::FormatFlags;
 use v4l2::memory::{UserPtr, MMAP};
@@ -128,38 +128,44 @@ impl Encoder<AwaitingCaptureFormat> {
         })
     }
 
-    /// Returns a mutable reference to the CAPTURE queue so it can be configured.
-    pub fn capture_queue_mut(&mut self) -> &mut Queue<direction::Capture, states::QueueInit> {
-        &mut self.state.capture_queue
-    }
+    pub fn set_capture_format(
+        mut self,
+        f: fn(FormatBuilder) -> v4l2::Result<v4l2::Format>,
+    ) -> v4l2::Result<(Encoder<AwaitingOutputFormat>, v4l2::Format)> {
+        let builder = self.state.capture_queue.change_format()?;
+        let format = f(builder)?;
 
-    // TODO we should transition to the next state when setting the format, and
-    // not request it explicitly.
-    pub fn capture_format_configured(self) -> Encoder<AwaitingOutputFormat> {
-        Encoder {
-            inner: self.inner,
-            state: AwaitingOutputFormat {
-                output_queue: self.state.output_queue,
-                capture_queue: self.state.capture_queue,
+        Ok((
+            Encoder {
+                inner: self.inner,
+                state: AwaitingOutputFormat {
+                    output_queue: self.state.output_queue,
+                    capture_queue: self.state.capture_queue,
+                },
             },
-        }
+            format,
+        ))
     }
 }
 
 impl Encoder<AwaitingOutputFormat> {
-    /// Returns a mutable reference to the OUTPUT queue so it can be configured.
-    pub fn output_queue_mut(&mut self) -> &mut Queue<direction::Output, states::QueueInit> {
-        &mut self.state.output_queue
-    }
+    pub fn set_output_format(
+        mut self,
+        f: fn(FormatBuilder) -> v4l2::Result<v4l2::Format>,
+    ) -> v4l2::Result<(Encoder<AwaitingBufferAllocation>, v4l2::Format)> {
+        let builder = self.state.output_queue.change_format()?;
+        let format = f(builder)?;
 
-    pub fn output_format_configured(self) -> Encoder<AwaitingBufferAllocation> {
-        Encoder {
-            inner: self.inner,
-            state: AwaitingBufferAllocation {
-                output_queue: self.state.output_queue,
-                capture_queue: self.state.capture_queue,
+        Ok((
+            Encoder {
+                inner: self.inner,
+                state: AwaitingBufferAllocation {
+                    output_queue: self.state.output_queue,
+                    capture_queue: self.state.capture_queue,
+                },
             },
-        }
+            format,
+        ))
     }
 }
 
