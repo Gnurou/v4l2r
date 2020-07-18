@@ -51,7 +51,7 @@ fn main() {
         .expect("Failed to set Ctrl-C handler.");
     }
 
-    let encoder = Encoder::open(&Path::new(&device_path)).unwrap();
+    let encoder = Encoder::open(&Path::new(&device_path)).expect("Failed to open device");
     let encoder = encoder
         .set_capture_format(|f| {
             let format = f.set_pixelformat(b"FWHT").apply()?;
@@ -63,7 +63,7 @@ fn main() {
 
             Ok(())
         })
-        .unwrap();
+        .expect("Failed to set capture format");
 
     let encoder = encoder
         .set_output_format(|f| {
@@ -83,13 +83,17 @@ fn main() {
 
             Ok(())
         })
-        .unwrap();
+        .expect("Failed to set output format");
 
-    let output_format = encoder.get_output_format().unwrap();
+    let output_format = encoder
+        .get_output_format()
+        .expect("Failed to get output format");
     println!("Adjusted output format: {:?}", output_format);
     println!(
         "Adjusted capture format: {:?}",
-        encoder.get_capture_format().unwrap()
+        encoder
+            .get_capture_format()
+            .expect("Failed to get capture format")
     );
 
     println!(
@@ -102,12 +106,14 @@ fn main() {
         output_format.height as usize,
         output_format.plane_fmt[0].bytesperline as usize,
     )
-    .unwrap();
+    .expect("Failed to create frame generator");
 
     const NUM_BUFFERS: usize = 2;
 
-    let encoder = encoder.allocate_buffers(NUM_BUFFERS, NUM_BUFFERS).unwrap();
-    let client = encoder.start_encoding().unwrap();
+    let encoder = encoder
+        .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
+        .expect("Failed to allocate encoder buffers");
+    let client = encoder.start_encoding().expect("Failed to start encoder");
 
     use std::collections::VecDeque;
 
@@ -123,7 +129,9 @@ fn main() {
         // Generate the next buffer to encode if there is none yet.
         if next_buffer.is_none() {
             if let Some(mut buffer) = free_buffers.pop_front() {
-                frame_gen.next_frame(&mut buffer[..]).unwrap();
+                frame_gen
+                    .next_frame(&mut buffer[..])
+                    .expect("Failed to generate frame");
                 next_buffer = Some(buffer);
             }
         }
