@@ -85,6 +85,14 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
         panic!("FWHT format not supported on CAPTURE queue.");
     }
 
+    let mut capture_format: Format =
+        g_fmt(&fd, capture_queue).expect("Failed getting capture format");
+    // Let's just make sure the encoding format on the CAPTURE queue is FWHT.
+    capture_format.pixelformat = b"FWHT".into();
+    println!("Setting capture format: {:?}", capture_format);
+    let _capture_format: Format =
+        s_fmt(&mut fd, capture_queue, capture_format).expect("Failed setting capture format");
+
     // We will be happy with 640x480 resolution.
     let output_format = Format {
         width: 640,
@@ -96,15 +104,9 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
     println!("Setting output format: {:?}", output_format);
     let output_format: Format =
         s_fmt(&mut fd, output_queue, output_format).expect("Failed setting output format");
-    println!("Adjusted output format: {:?}", output_format);
 
-    let mut capture_format: Format =
-        g_fmt(&fd, capture_queue).expect("Failed getting capture format");
-    // Let's just make sure the encoding format on the CAPTURE queue is FWHT.
-    capture_format.pixelformat = b"FWHT".into();
-    println!("Setting capture format: {:?}", capture_format);
-    let capture_format: Format =
-        s_fmt(&mut fd, capture_queue, capture_format).expect("Failed setting capture format");
+    let capture_format: Format = g_fmt(&fd, capture_queue).expect("Failed getting capture format");
+    println!("Adjusted output format: {:?}", output_format);
     println!("Adjusted capture format: {:?}", capture_format);
 
     // We could run this with as little as one buffer, but let's cycle between

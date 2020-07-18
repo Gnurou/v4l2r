@@ -68,6 +68,18 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
         println!("\t{}", fmtdesc);
     }
 
+    // Make sure the CAPTURE queue will produce FWHT.
+    let capture_format = capture_queue
+        .change_format()
+        .expect("Failed to get capture format")
+        .set_pixelformat(b"FWHT")
+        .apply()
+        .expect("Failed to set capture format");
+
+    if capture_format.pixelformat != b"FWHT".into() {
+        panic!("FWHT format not supported on CAPTURE queue.");
+    }
+
     // Set 640x480 RGB3 format on the OUTPUT queue.
     let output_format = output_queue
         .change_format()
@@ -80,20 +92,14 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
     if output_format.pixelformat != b"RGB3".into() {
         panic!("RGB3 format not supported on OUTPUT queue.");
     }
+
     println!("Adjusted output format: {:?}", output_format);
-
-    // Make sure the CAPTURE queue will produce FWHT.
-    let capture_format = capture_queue
-        .change_format()
-        .expect("Failed to get capture format")
-        .set_pixelformat(b"FWHT")
-        .apply()
-        .expect("Failed to set capture format");
-
-    if capture_format.pixelformat != b"FWHT".into() {
-        panic!("FWHT format not supported on CAPTURE queue.");
-    }
-    println!("Adjusted capture format: {:?}", capture_format);
+    println!(
+        "Adjusted capture format: {:?}",
+        capture_queue
+            .get_format()
+            .expect("Failed to get capture format")
+    );
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
