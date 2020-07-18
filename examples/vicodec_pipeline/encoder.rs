@@ -12,6 +12,8 @@ use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
+
+use anyhow;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]
@@ -130,8 +132,8 @@ impl Encoder<AwaitingCaptureFormat> {
 
     pub fn set_capture_format(
         mut self,
-        f: fn(FormatBuilder) -> v4l2::Result<v4l2::Format>,
-    ) -> v4l2::Result<(Encoder<AwaitingOutputFormat>, v4l2::Format)> {
+        f: fn(FormatBuilder) -> anyhow::Result<v4l2::Format>,
+    ) -> anyhow::Result<(Encoder<AwaitingOutputFormat>, v4l2::Format)> {
         let builder = self.state.capture_queue.change_format()?;
         let format = f(builder)?;
 
@@ -151,8 +153,8 @@ impl Encoder<AwaitingCaptureFormat> {
 impl Encoder<AwaitingOutputFormat> {
     pub fn set_output_format(
         mut self,
-        f: fn(FormatBuilder) -> v4l2::Result<v4l2::Format>,
-    ) -> v4l2::Result<(Encoder<AwaitingBufferAllocation>, v4l2::Format)> {
+        f: fn(FormatBuilder) -> anyhow::Result<v4l2::Format>,
+    ) -> anyhow::Result<(Encoder<AwaitingBufferAllocation>, v4l2::Format)> {
         let builder = self.state.output_queue.change_format()?;
         let format = f(builder)?;
 

@@ -12,6 +12,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
+use anyhow::ensure;
+
 use clap::{App, Arg};
 
 const FRAME_SIZE: (usize, usize) = (640, 480);
@@ -57,12 +59,14 @@ fn main() {
                 .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
                 .apply()?;
 
-            if format.pixelformat != b"FWHT".into() {
-                panic!("FWHT format not supported");
-            }
-            if format.width as usize != FRAME_SIZE.0 || format.height as usize != FRAME_SIZE.1 {
-                panic!("Frame resolution not supported on capture queue");
-            }
+            ensure!(
+                format.pixelformat == b"FWHT".into(),
+                "FWHT format not supported"
+            );
+            ensure!(
+                format.width as usize == FRAME_SIZE.0 && format.height as usize == FRAME_SIZE.1,
+                "Frame resolution not supported on capture queue"
+            );
 
             Ok(format)
         })
@@ -75,13 +79,14 @@ fn main() {
                 .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
                 .apply()?;
 
-            // TODO we should be allowed to return an error here.
-            if format.pixelformat != b"RGB3".into() {
-                panic!("RGB3 format not supported");
-            }
-            if format.width as usize != FRAME_SIZE.0 || format.height as usize != FRAME_SIZE.1 {
-                panic!("Frame resolution not supported on output queue");
-            }
+            ensure!(
+                format.pixelformat == b"RGB3".into(),
+                "RGB3 format not supported"
+            );
+            ensure!(
+                format.width as usize == FRAME_SIZE.0 && format.height as usize == FRAME_SIZE.1,
+                "Output frame resolution not supported"
+            );
 
             Ok(format)
         })
