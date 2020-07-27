@@ -35,8 +35,15 @@ You can try it with
 
     cargo run --example vicodec_test -- /dev/video0
 
-or
+for running the device API example, or
 
     cargo run --example vicodec_test -- /dev/video0 --use_ioctl
 
-assuming `/dev/video0` is the path to the `vicodec` encoder.
+for the ioctl example, assuming `/dev/video0` is the path to the `vicodec`
+encoder.
+
+`examples/vicodec_pipeline` contains another example program implementing a
+higher-level vicodec encoder running in its own thread. As the name implies the
+goal is to also feature a decoder at some point in the future. Run as follows:
+
+    cargo run --example vicodec_pipeline -- /dev/video0
