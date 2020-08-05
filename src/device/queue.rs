@@ -230,7 +230,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_queue(device: Arc<Mutex<Device>>) -> Result<Queue<Output, QueueInit>> {
+    pub fn get_output_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutput)
     }
 
@@ -238,7 +238,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_mplane_queue(device: Arc<Mutex<Device>>) -> Result<Queue<Output, QueueInit>> {
+    pub fn get_output_mplane_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutputMplane)
     }
 }
@@ -248,7 +248,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_queue(device: Arc<Mutex<Device>>) -> Result<Queue<Capture, QueueInit>> {
+    pub fn get_capture_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCapture)
     }
 
@@ -256,9 +256,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_mplane_queue(
-        device: Arc<Mutex<Device>>,
-    ) -> Result<Queue<Capture, QueueInit>> {
+    pub fn get_capture_mplane_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCaptureMplane)
     }
 }
