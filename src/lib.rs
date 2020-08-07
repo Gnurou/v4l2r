@@ -239,6 +239,17 @@ pub struct Format {
 }
 
 /// Quickly build a usable `Format` from a pixel format and resolution.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::Format;
+/// let f = Format::from((b"NV12", (640, 480)));
+/// assert_eq!(f.width, 640);
+/// assert_eq!(f.height, 480);
+/// assert_eq!(f.pixelformat.to_string(), "NV12");
+/// assert_eq!(f.plane_fmt.len(), 0);
+/// ```
 impl<T: Into<PixelFormat>> From<(T, (usize, usize))> for Format {
     fn from((pixel_format, (width, height)): (T, (usize, usize))) -> Self {
         Format {
