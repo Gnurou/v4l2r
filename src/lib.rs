@@ -106,97 +106,119 @@ pub enum QueueType {
     VideoOutputMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE as isize,
 }
 
-mod pixel_format {
-    use std::fmt;
+/// A Fourcc pixel format, used to pass formats to V4L2. It can be converted
+/// back and forth from a 32-bit integer, or a 4-bytes string.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct PixelFormat(u32);
 
-    /// A Fourcc pixel format, used to pass formats to V4L2. It can be converted
-    /// back and forth from a 32-bit integer, or a 4-bytes string.
-    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-    pub struct PixelFormat(u32);
-
-    /// Convert a Fourcc in 32-bit integer format (like the ones passed in V4L2
-    /// structures) into the matching pixel format.
-    impl From<u32> for PixelFormat {
-        fn from(i: u32) -> Self {
-            PixelFormat(i)
-        }
-    }
-
-    /// Convert a pixel format back to its 32-bit representation.
-    impl From<PixelFormat> for u32 {
-        fn from(format: PixelFormat) -> Self {
-            format.0
-        }
-    }
-
-    /// Simple way to convert a string litteral (e.g. b"NV12") into a pixel
-    /// format that can be passed to V4L2.
-    impl From<&[u8; 4]> for PixelFormat {
-        fn from(n: &[u8; 4]) -> Self {
-            PixelFormat(
-                n[0] as u32 | (n[1] as u32) << 8 | (n[2] as u32) << 16 | (n[3] as u32) << 24,
-            )
-        }
-    }
-
-    /// Convert a pixel format back to its 4-character representation.
-    impl From<PixelFormat> for [u8; 4] {
-        fn from(format: PixelFormat) -> Self {
-            format.0.to_le_bytes()
-        }
-    }
-
-    impl fmt::Debug for PixelFormat {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            f.write_fmt(format_args!("0x{:08x} ({})", self.0, self))
-        }
-    }
-
-    impl fmt::Display for PixelFormat {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let fourcc = self
-                .0
-                .to_le_bytes()
-                .iter()
-                .map(|&x| x as char)
-                .collect::<String>();
-            f.write_str(fourcc.as_str())
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::PixelFormat;
-
-        // "NV12"
-        const NV12_U32: u32 = u32::from_le(0x3231564e);
-        const NV12_U8S: &[u8; 4] = b"NV12";
-        const NV12_STRING: &str = "NV12";
-
-        #[test]
-        fn pixelformat_from_u32() {
-            let format = PixelFormat::from(NV12_U32);
-            let to_u32: u32 = format.into();
-            let to_u8s: [u8; 4] = format.into();
-            let to_string = format.to_string();
-            assert_eq!(to_u32, NV12_U32);
-            assert_eq!(&to_u8s, NV12_U8S);
-            assert_eq!(to_string, NV12_STRING);
-        }
-
-        #[test]
-        fn pixelformat_from_u8s() {
-            let format = PixelFormat::from(NV12_U8S);
-            let to_u32: u32 = format.into();
-            let to_u8s: [u8; 4] = format.into();
-            let to_string = format.to_string();
-            assert_eq!(to_u32, NV12_U32);
-            assert_eq!(&to_u8s, NV12_U8S);
-            assert_eq!(to_string, NV12_STRING);
-        }
+/// Converts a Fourcc in 32-bit integer format (like the ones passed in V4L2
+/// structures) into the matching pixel format.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::PixelFormat;
+/// // Fourcc representation of NV12.
+/// let nv12 = u32::from_le(0x3231564e);
+/// let f = PixelFormat::from(nv12);
+/// assert_eq!(u32::from(f), nv12);
+/// ```
+impl From<u32> for PixelFormat {
+    fn from(i: u32) -> Self {
+        PixelFormat(i)
     }
 }
-pub use pixel_format::*;
+
+/// Converts a pixel format back to its 32-bit representation.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::PixelFormat;
+/// // Fourcc representation of NV12.
+/// let nv12 = u32::from_le(0x3231564e);
+/// let f = PixelFormat::from(nv12);
+/// assert_eq!(u32::from(f), nv12);
+/// ```
+impl From<PixelFormat> for u32 {
+    fn from(format: PixelFormat) -> Self {
+        format.0
+    }
+}
+
+/// Simple way to convert a string litteral (e.g. b"NV12") into a pixel
+/// format that can be passed to V4L2.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::PixelFormat;
+/// let nv12 = b"NV12";
+/// let f = PixelFormat::from(nv12);
+/// assert_eq!(&<[u8; 4]>::from(f), nv12);
+/// ```
+impl From<&[u8; 4]> for PixelFormat {
+    fn from(n: &[u8; 4]) -> Self {
+        PixelFormat(n[0] as u32 | (n[1] as u32) << 8 | (n[2] as u32) << 16 | (n[3] as u32) << 24)
+    }
+}
+
+/// Convert a pixel format back to its 4-character representation.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::PixelFormat;
+/// let nv12 = b"NV12";
+/// let f = PixelFormat::from(nv12);
+/// assert_eq!(&<[u8; 4]>::from(f), nv12);
+/// ```
+impl From<PixelFormat> for [u8; 4] {
+    fn from(format: PixelFormat) -> Self {
+        format.0.to_le_bytes()
+    }
+}
+
+/// Produces a debug string for this PixelFormat, including its hexadecimal
+/// and string representation.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::PixelFormat;
+/// // Fourcc representation of NV12.
+/// let nv12 = u32::from_le(0x3231564e);
+/// let f = PixelFormat::from(nv12);
+/// assert_eq!(format!("{:?}", f), "0x3231564e (NV12)");
+/// ```
+impl fmt::Debug for PixelFormat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_fmt(format_args!("0x{:08x} ({})", self.0, self))
+    }
+}
+
+/// Produces a displayable form of this PixelFormat.
+///
+/// # Examples
+///
+/// ```
+/// # use v4l2::PixelFormat;
+/// // Fourcc representation of NV12.
+/// let nv12 = u32::from_le(0x3231564e);
+/// let f = PixelFormat::from(nv12);
+/// assert_eq!(f.to_string(), "NV12");
+/// ```
+impl fmt::Display for PixelFormat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let fourcc = self
+            .0
+            .to_le_bytes()
+            .iter()
+            .map(|&x| x as char)
+            .collect::<String>();
+        f.write_str(fourcc.as_str())
+    }
+}
 
 mod format {
     use super::PixelFormat;
