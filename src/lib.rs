@@ -220,37 +220,32 @@ impl fmt::Display for PixelFormat {
     }
 }
 
-mod format {
-    use super::PixelFormat;
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct PlanePixFormat {
+    pub sizeimage: u32,
+    pub bytesperline: u32,
+}
 
-    #[derive(Debug, PartialEq, Clone, Default)]
-    pub struct PlanePixFormat {
-        pub sizeimage: u32,
-        pub bytesperline: u32,
-    }
+/// Unified representation of a V4L2 format capable of handling both single
+/// and multi-planar formats. When the single-planar API is used, only
+/// one plane shall be used - attempts to have more will be rejected by the
+/// ioctl wrappers.
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Format {
+    pub width: u32,
+    pub height: u32,
+    pub pixelformat: PixelFormat,
+    pub plane_fmt: Vec<PlanePixFormat>,
+}
 
-    /// Unified representation of a V4L2 format capable of handling both single
-    /// and multi-planar formats. When the single-planar API is used, only
-    /// one plane shall be used - attempts to have more will be rejected by the
-    /// ioctl wrappers.
-    #[derive(Debug, PartialEq, Clone, Default)]
-    pub struct Format {
-        pub width: u32,
-        pub height: u32,
-        pub pixelformat: PixelFormat,
-        pub plane_fmt: Vec<PlanePixFormat>,
-    }
-
-    /// Quickly build a usable `Format` from a pixel format and resolution.
-    impl<T: Into<PixelFormat>> From<(T, (usize, usize))> for Format {
-        fn from((pixel_format, (width, height)): (T, (usize, usize))) -> Self {
-            Format {
-                width: width as u32,
-                height: height as u32,
-                pixelformat: pixel_format.into(),
-                ..Default::default()
-            }
+/// Quickly build a usable `Format` from a pixel format and resolution.
+impl<T: Into<PixelFormat>> From<(T, (usize, usize))> for Format {
+    fn from((pixel_format, (width, height)): (T, (usize, usize))) -> Self {
+        Format {
+            width: width as u32,
+            height: height as u32,
+            pixelformat: pixel_format.into(),
+            ..Default::default()
         }
     }
 }
-pub use format::*;
