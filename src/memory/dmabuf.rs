@@ -1,34 +1,20 @@
 //! Operations specific to DMABuf-type buffers.
 use super::*;
 use crate::bindings;
-use std::default::Default;
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, RawFd};
 
-/// Handle for a DMABUF buffer. These buffers are backed by DMABuf-shared
-/// memory.
-#[derive(Debug, Default)]
-pub struct DMABufHandle(RawFd);
-
-impl DMABufHandle {
-    /// Create a new DMABUF handle.
-    ///
-    /// This method is unsafe. The caller must ensure that `fd` will not be closed
-    /// at least until the buffer using this handle is queued.
-    unsafe fn new(fd: RawFd) -> Self {
-        DMABufHandle(fd)
-    }
-}
+type DMABufHandle = RawFd;
 
 impl PlaneHandle for DMABufHandle {
     const MEMORY_TYPE: MemoryType = MemoryType::DMABuf;
 
     fn fill_v4l2_buffer(&self, buffer: &mut bindings::v4l2_buffer) {
-        buffer.m.fd = self.0;
+        buffer.m.fd = *self;
     }
 
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane) {
-        plane.m.fd = self.0;
+        plane.m.fd = *self;
     }
 }
 
@@ -46,7 +32,7 @@ impl Memory for DMABuf {
     type HandleType = DMABufHandle;
 
     unsafe fn build_handle(qb: &Self::QBufType) -> Self::HandleType {
-        DMABufHandle::new(qb.as_raw_fd())
+        qb.as_raw_fd()
     }
 
     fn build_dqbuftype(qb: Self::QBufType) -> Self::DQBufType {
