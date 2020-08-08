@@ -16,7 +16,12 @@ use v4l2::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
-pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<usize>) {
+pub fn run(
+    device_path: &Path,
+    lets_quit: Arc<AtomicBool>,
+    stop_after: Option<usize>,
+    mut output_file: Option<File>,
+) {
     let mut fd = unsafe {
         File::from_raw_fd(
             open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
@@ -121,6 +126,24 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
         num_output_buffers, num_capture_buffers
     );
 
+    let mut capture_mappings = Vec::new();
+    for i in 0..num_capture_buffers {
+        let query_buf: QueryBuffer =
+            querybuf(&fd, capture_queue, i).expect("Failed to query buffer");
+        println!(
+            "Capture buffer {} at offset 0x{:0x}, length 0x{:0x}",
+            i, query_buf.planes[0].mem_offset, query_buf.planes[0].length
+        );
+        capture_mappings.push(
+            mmap(
+                &fd,
+                query_buf.planes[0].mem_offset,
+                query_buf.planes[0].length,
+            )
+            .expect("Failed to map buffer"),
+        );
+    }
+
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
     let mut output_buffers: Vec<Vec<u8>> = std::iter::repeat(vec![0u8; output_image_size])
@@ -183,15 +206,22 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
         // The CAPTURE buffer, on the other hand, we want to examine more closely.
         let cap_dqbuf: DQBuffer =
             dqbuf(&fd, capture_queue).expect("Failed to dequeue capture buffer");
+        let bytes_used = cap_dqbuf.planes[0].bytesused as usize;
 
-        total_size = total_size.wrapping_add(cap_dqbuf.planes[0].bytesused as usize);
+        total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
         let fps = cpt as f64 / elapsed.as_millis() as f64 * 1000.0;
         print!(
             "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
-            cap_dqbuf.sequence, cap_dqbuf.index, cap_dqbuf.planes[0].bytesused, total_size, fps
+            cap_dqbuf.sequence, cap_dqbuf.index, bytes_used, total_size, fps
         );
         io::stdout().flush().unwrap();
+
+        if let Some(ref mut output) = output_file {
+            output
+                .write_all(&capture_mappings[cap_dqbuf.index as usize].as_slice()[0..bytes_used])
+                .expect("Error while writing output data");
+        }
 
         cpt = cpt.wrapping_add(1);
     }
@@ -199,6 +229,9 @@ pub fn run(device_path: &Path, lets_quit: Arc<AtomicBool>, stop_after: Option<us
     // Stop streaming.
     streamoff(&mut fd, capture_queue).expect("Failed to stop capture queue");
     streamoff(&mut fd, output_queue).expect("Failed to stop output queue");
+
+    // Clear the mappings
+    drop(capture_mappings);
 
     // Free the buffers.
     reqbufs::<(), _>(&mut fd, capture_queue, MemoryType::MMAP, 0)

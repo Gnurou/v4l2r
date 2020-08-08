@@ -10,7 +10,7 @@ mod ioctl_api;
 
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::{fs::File, sync::Arc};
 
 use clap::{App, Arg};
 
@@ -32,6 +32,13 @@ fn main() {
                 .required(true)
                 .help("Path to the vicodec device file"),
         )
+        .arg(
+            Arg::with_name("output_file")
+                .long("save")
+                .required(false)
+                .takes_value(true)
+                .help("Save the encoded stream to a file"),
+        )
         .get_matches();
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
@@ -42,8 +49,13 @@ fn main() {
         Err(e) => panic!("Invalid value for stop_after: {}", e),
     };
 
-    let lets_quit = Arc::new(AtomicBool::new(false));
+    let output_file: Option<File> = if let Some(path) = matches.value_of("output_file") {
+        Some(File::create(path).expect("Invalid output file specified."))
+    } else {
+        None
+    };
 
+    let lets_quit = Arc::new(AtomicBool::new(false));
     // Setup the Ctrl+c handler.
     {
         let lets_quit_handler = lets_quit.clone();
@@ -55,9 +67,9 @@ fn main() {
 
     if use_ioctl {
         println!("Using ioctl interface");
-        ioctl_api::run(&Path::new(&device_path), lets_quit, stop_after)
+        ioctl_api::run(&Path::new(&device_path), lets_quit, stop_after, output_file)
     } else {
         println!("Using device interface");
-        device_api::run(&Path::new(&device_path), lets_quit, stop_after)
+        device_api::run(&Path::new(&device_path), lets_quit, stop_after, output_file)
     }
 }
