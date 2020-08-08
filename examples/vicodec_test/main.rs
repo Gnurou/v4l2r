@@ -22,7 +22,7 @@ fn main() {
                 .help("Use the lower-level ioctl interface"),
         )
         .arg(
-            Arg::with_name("stop_after")
+            Arg::with_name("num_frames")
                 .long("stop_after")
                 .takes_value(true)
                 .help("Stop after encoding this number of buffers"),
@@ -36,7 +36,7 @@ fn main() {
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
     let use_ioctl = matches.is_present("use_ioctl");
-    let stop_after = match clap::value_t!(matches.value_of("stop_after"), usize) {
+    let stop_after = match clap::value_t!(matches.value_of("num_frames"), usize) {
         Ok(v) => Some(v),
         Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
         Err(e) => panic!("Invalid value for stop_after: {}", e),
