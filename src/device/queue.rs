@@ -421,6 +421,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
     }
 
+    /// Release all the allocated buffers and returns the queue to the `Init` state.
     pub fn free_buffers(mut self) -> Result<Queue<D, QueueInit>> {
         let type_ = self.inner.type_;
         ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;

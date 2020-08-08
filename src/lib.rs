@@ -220,9 +220,12 @@ impl fmt::Display for PixelFormat {
     }
 }
 
+/// Description of a single plane in a format.
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct PlanePixFormat {
+    /// Useful size of the plane ; the backing memory must be at least that large.
     pub sizeimage: u32,
+    /// Bytes per line of data. Only meaningful for image formats.
     pub bytesperline: u32,
 }
 
@@ -232,9 +235,14 @@ pub struct PlanePixFormat {
 /// ioctl wrappers.
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Format {
+    /// Width of the image in pixels.
     pub width: u32,
+    /// Height of the image in pixels.
     pub height: u32,
+    /// Format each pixel is encoded in.
     pub pixelformat: PixelFormat,
+    /// Individual layout of each plane in this format. The exact number of planes
+    /// is defined by `pixelformat`.
     pub plane_fmt: Vec<PlanePixFormat>,
 }
 
