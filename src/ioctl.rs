@@ -10,6 +10,7 @@
 mod dqbuf;
 mod enum_fmt;
 mod g_fmt;
+mod mmap;
 mod qbuf;
 mod querybuf;
 mod querycap;
@@ -19,6 +20,7 @@ mod streamon;
 pub use dqbuf::*;
 pub use enum_fmt::*;
 pub use g_fmt::*;
+pub use mmap::*;
 pub use qbuf::*;
 pub use querybuf::*;
 pub use querycap::*;
