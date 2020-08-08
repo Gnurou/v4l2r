@@ -151,8 +151,8 @@ pub fn run(
         .collect();
 
     // Start streaming.
-    streamon(&mut fd, output_queue).expect("Failed to start output queue");
-    streamon(&mut fd, capture_queue).expect("Failed to start capture queue");
+    streamon(&fd, output_queue).expect("Failed to start output queue");
+    streamon(&fd, capture_queue).expect("Failed to start capture queue");
 
     let mut cpt = 0usize;
     let mut total_size = 0usize;
@@ -227,8 +227,8 @@ pub fn run(
     }
 
     // Stop streaming.
-    streamoff(&mut fd, capture_queue).expect("Failed to stop capture queue");
-    streamoff(&mut fd, output_queue).expect("Failed to stop output queue");
+    streamoff(&fd, capture_queue).expect("Failed to stop capture queue");
+    streamoff(&fd, output_queue).expect("Failed to stop output queue");
 
     // Clear the mappings
     drop(capture_mappings);

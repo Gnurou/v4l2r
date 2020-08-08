@@ -62,7 +62,7 @@ pub type SendResult<T> = std::result::Result<T, SendError>;
 
 impl Client {
     fn send(&self, command: Command) -> SendResult<()> {
-        if let Err(_) = self.send.send(command) {
+        if self.send.send(command).is_err() {
             return Err(SendError::ChannelSendError);
         }
         if let Err(e) = self.waker.wake() {

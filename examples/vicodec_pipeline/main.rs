@@ -5,7 +5,6 @@ use encoder::client;
 use encoder::*;
 use framegen::FrameGenerator;
 
-use ctrlc;
 use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -118,7 +117,7 @@ fn main() {
     use std::collections::VecDeque;
 
     let mut free_buffers = VecDeque::new();
-    for _ in 0..NUM_BUFFERS + 0 {
+    for _ in 0..NUM_BUFFERS {
         free_buffers.push_back(vec![0u8; output_format.plane_fmt[0].sizeimage as usize]);
     }
 

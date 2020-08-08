@@ -1,6 +1,5 @@
 pub mod client;
 
-use v4l2;
 use v4l2::device::queue::{direction, dqbuf, qbuf, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
 use v4l2::ioctl::FormatFlags;
@@ -13,7 +12,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
-use anyhow;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]
@@ -104,17 +102,19 @@ impl Encoder<AwaitingCaptureFormat> {
         let output_queue = Queue::get_output_mplane_queue(device.clone())?;
 
         // On an encoder, the OUTPUT formats are not compressed...
-        if let None = output_queue
+        if output_queue
             .format_iter()
             .find(|fmt| !fmt.flags.contains(FormatFlags::COMPRESSED))
+            .is_none()
         {
             panic!("This is not an encoder: input formats are not raw.");
         }
 
         // But the CAPTURE ones are.
-        if let None = capture_queue
+        if capture_queue
             .format_iter()
             .find(|fmt| fmt.flags.contains(FormatFlags::COMPRESSED))
+            .is_none()
         {
             panic!("This is not an encoder: output formats are not compressed.");
         }
