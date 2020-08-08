@@ -5,19 +5,17 @@ use crate::ioctl;
 use crate::memory::*;
 use crate::Error;
 use std::cmp::Ordering;
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Debug};
+
+use thiserror::Error;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
 /// returns the plane handles back to the user.
+#[derive(Error)]
+#[error("{}", self.error)]
 pub struct QueueError<M: Memory> {
     pub error: Error,
     pub plane_handles: PlaneHandles<M>,
-}
-
-impl<M: Memory> Display for QueueError<M> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Display::fmt(&self.error, f)
-    }
 }
 
 impl<M: Memory> Debug for QueueError<M> {
@@ -25,8 +23,6 @@ impl<M: Memory> Debug for QueueError<M> {
         Debug::fmt(&self.error, f)
     }
 }
-
-impl<M: Memory> std::error::Error for QueueError<M> {}
 
 #[allow(type_alias_bounds)]
 pub type QueueResult<M: Memory, R> = std::result::Result<R, QueueError<M>>;
