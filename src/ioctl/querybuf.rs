@@ -1,8 +1,7 @@
 use super::{is_multi_planar, BufferFlags, PlaneData};
 use crate::bindings;
-use crate::memory::MemoryType;
 use crate::QueueType;
-use crate::{Error, Result};
+use crate::Result;
 
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -21,6 +20,9 @@ pub trait QueryBuf: Sized {
 
 #[derive(Debug)]
 pub struct QueryBufPlane {
+    /// Offset to pass to `mmap()` in order to obtain a mapping for this plane.
+    pub mem_offset: u32,
+    /// Length of this plane.
     pub length: u32,
 }
 
@@ -38,62 +40,20 @@ impl QueryBuf for QueryBuffer {
     ) -> Result<Self> {
         let planes = match v4l2_planes {
             None => vec![QueryBufPlane {
+                mem_offset: unsafe { v4l2_buf.m.offset },
                 length: v4l2_buf.length,
             }],
             Some(v4l2_planes) => v4l2_planes
                 .iter()
                 .take(v4l2_buf.length as usize)
                 .map(|v4l2_plane| QueryBufPlane {
+                    mem_offset: unsafe { v4l2_plane.m.mem_offset },
                     length: v4l2_plane.length,
                 })
                 .collect(),
         };
 
         Ok(QueryBuffer {
-            flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
-            planes,
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct QueryBufPlaneMMAP {
-    pub length: u32,
-    pub mem_offset: u32,
-}
-
-/// Contains all the information that makes sense when using `querybuf`.
-#[derive(Debug)]
-pub struct QueryBufferMMAP {
-    pub flags: BufferFlags,
-    pub planes: Vec<QueryBufPlaneMMAP>,
-}
-
-impl QueryBuf for QueryBufferMMAP {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        if v4l2_buf.memory != MemoryType::MMAP as u32 {
-            return Err(Error::WrongMemoryType);
-        }
-
-        let planes = match v4l2_planes {
-            None => vec![QueryBufPlaneMMAP {
-                length: v4l2_buf.length,
-                mem_offset: unsafe { v4l2_buf.m.offset },
-            }],
-            Some(v4l2_planes) => v4l2_planes
-                .iter()
-                .take(v4l2_buf.length as usize)
-                .map(|v4l2_plane| QueryBufPlaneMMAP {
-                    length: v4l2_plane.length,
-                    mem_offset: unsafe { v4l2_plane.m.mem_offset },
-                })
-                .collect(),
-        };
-
-        Ok(QueryBufferMMAP {
             flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
             planes,
         })
