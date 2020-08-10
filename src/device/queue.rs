@@ -451,8 +451,12 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 }
 
 impl<D: Direction> Queue<D, BuffersAllocated<MMAP>> {
+    // Map the plane `plane_index` from buffer `buffer_index` and return a
+    // mapping object.
+    // The mapping borrows a reference to the queue, meaning that all mappings
+    // must be released before e.g. buffers are deallocated.
     pub fn map_plane<'a>(
-        &self,
+        &'a self,
         buffer_index: usize,
         plane_index: usize,
     ) -> Result<PlaneMapping<'a>> {
