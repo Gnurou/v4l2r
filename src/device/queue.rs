@@ -210,7 +210,10 @@ impl<D: Direction> Queue<D, QueueInit> {
             ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
 
         // The buffers have been allocated, now let's get their features.
-        let querybuf: ioctl::QueryBuffer = ioctl::querybuf(&self.inner, self.inner.type_, 0)?;
+        let mut buffer_features = Vec::new();
+        for i in 0..num_buffers {
+            buffer_features.push(ioctl::querybuf(&self.inner, self.inner.type_, i)?);
+        }
 
         Ok(Queue {
             inner: self.inner,
@@ -219,7 +222,7 @@ impl<D: Direction> Queue<D, QueueInit> {
                 num_buffers,
                 num_queued_buffers: Default::default(),
                 buffers_state: Arc::new(Mutex::new(BuffersManager::new(num_buffers))),
-                buffer_features: querybuf,
+                buffer_features,
             },
         })
     }
@@ -351,7 +354,13 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             _ => return Err(Error::AlreadyBorrowed),
         };
 
-        let num_planes = self.state.buffer_features.planes.len();
+        let num_planes = self
+            .state
+            .buffer_features
+            .get(index)
+            .expect("Inconsistent queue state")
+            .planes
+            .len();
 
         // The buffer will remain in PreQueue state until it is queued
         // or the reference to it is lost.
@@ -381,7 +390,13 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             _ => panic!("Inconsistent buffer state: buffer not free"),
         }
 
-        let num_planes = self.state.buffer_features.planes.len();
+        let num_planes = self
+            .state
+            .buffer_features
+            .get(index)
+            .expect("Inconsistent buffer state")
+            .planes
+            .len();
 
         // The buffer remains will remain in PreQueue state until it is queued
         // or the reference to it is lost.

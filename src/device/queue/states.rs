@@ -84,6 +84,6 @@ pub struct BuffersAllocated<M: Memory> {
     pub(super) num_buffers: usize,
     pub(super) num_queued_buffers: Cell<usize>,
     pub(super) buffers_state: Arc<Mutex<BuffersManager<M>>>,
-    pub(super) buffer_features: ioctl::QueryBuffer,
+    pub(super) buffer_features: Vec<ioctl::QueryBuffer>,
 }
 impl<M: Memory> QueueState for BuffersAllocated<M> {}
