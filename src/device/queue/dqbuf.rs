@@ -17,7 +17,7 @@ pub struct DQBuffer<M: Memory> {
     drop_callback: Option<Box<dyn FnOnce(&mut Self) + Send>>,
     /// Fuse that will put the buffer back into the `Free` state when this
     /// object is destroyed.
-    _fuse: BufferStateFuse<M>,
+    fuse: BufferStateFuse<M>,
 }
 
 impl<M: Memory> DQBuffer<M> {
@@ -29,7 +29,7 @@ impl<M: Memory> DQBuffer<M> {
         DQBuffer {
             plane_handles,
             data,
-            _fuse: fuse,
+            fuse,
             drop_callback: None,
         }
     }
@@ -45,7 +45,7 @@ impl<M: Memory> Drop for DQBuffer<M> {
     fn drop(&mut self) {
         // Make sure the buffer is returned to the free state before we call
         // the callback.
-        self._fuse.trigger();
+        self.fuse.trigger();
         if let Some(callback) = self.drop_callback.take() {
             callback(self);
         }
