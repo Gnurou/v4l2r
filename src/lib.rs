@@ -49,10 +49,10 @@ pub enum Error {
     /// A non-zero data_offset has been specified for a plane while using the
     /// single-planar API, which does not support this parameter.
     DataOffsetNotSupported,
-    /// Buffer does not exist, either we have requested a buffer index that does
-    /// not exist, or we try to submit a buffer that has been deleted while we
-    /// were preparing it.
+    /// The mentioned buffer does not exist.
     InvalidBuffer,
+    /// The mentioned plane does not exist.
+    InvalidPlane,
     Nix(nix::Error),
     FfiNul(ffi::NulError),
     FfiInvalidString(ffi::FromBytesWithNulError),
@@ -68,6 +68,7 @@ impl Display for Error {
             Error::TooManyPlanes => write!(f, "Too many planes specified"),
             Error::DataOffsetNotSupported => write!(f, "Data offset not supported"),
             Error::InvalidBuffer => write!(f, "Invalid buffer"),
+            Error::InvalidPlane => write!(f, "Invalid plane"),
             Error::Nix(e) => Debug::fmt(e, f),
             Error::FfiNul(e) => Debug::fmt(e, f),
             Error::FfiInvalidString(e) => Debug::fmt(e, f),

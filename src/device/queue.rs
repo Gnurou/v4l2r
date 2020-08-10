@@ -9,6 +9,7 @@ use crate::memory::*;
 use crate::*;
 use direction::*;
 use dqbuf::*;
+use ioctl::PlaneMapping;
 use qbuf::*;
 use states::BufferState;
 use states::*;
@@ -446,6 +447,26 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             _d: std::marker::PhantomData,
             state: QueueInit {},
         })
+    }
+}
+
+impl<D: Direction> Queue<D, BuffersAllocated<MMAP>> {
+    pub fn map_plane<'a>(
+        &self,
+        buffer_index: usize,
+        plane_index: usize,
+    ) -> Result<PlaneMapping<'a>> {
+        let buffer_info = self
+            .state
+            .buffer_features
+            .get(buffer_index)
+            .ok_or(Error::InvalidBuffer)?;
+        let plane_info = buffer_info
+            .planes
+            .get(plane_index)
+            .ok_or(Error::InvalidPlane)?;
+
+        ioctl::mmap(&self.inner, plane_info.mem_offset, plane_info.length)
     }
 }
 
