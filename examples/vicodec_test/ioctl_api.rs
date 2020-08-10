@@ -16,11 +16,11 @@ use v4l2::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
-pub fn run(
+pub fn run<F: FnMut(&[u8])>(
     device_path: &Path,
     lets_quit: Arc<AtomicBool>,
     stop_after: Option<usize>,
-    mut output_file: Option<File>,
+    mut save_output: F,
 ) {
     let mut fd = unsafe {
         File::from_raw_fd(
@@ -217,11 +217,7 @@ pub fn run(
         );
         io::stdout().flush().unwrap();
 
-        if let Some(ref mut output) = output_file {
-            output
-                .write_all(&capture_mappings[cap_dqbuf.index as usize].as_slice()[0..bytes_used])
-                .expect("Error while writing output data");
-        }
+        save_output(&capture_mappings[cap_dqbuf.index as usize].as_slice()[0..bytes_used]);
 
         cpt = cpt.wrapping_add(1);
     }

@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::{fs::File, time::Instant};
+use std::time::Instant;
 
 use v4l2::device::queue::*;
 use v4l2::device::*;
@@ -11,11 +11,11 @@ use v4l2::memory::{UserPtr, MMAP};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
-pub fn run(
+pub fn run<F: FnMut(&[u8])>(
     device_path: &Path,
     lets_quit: Arc<AtomicBool>,
     stop_after: Option<usize>,
-    mut _output_file: Option<File>,
+    mut _save_output: F,
 ) {
     let device = Device::open(device_path, DeviceConfig::new()).expect("Failed to open device");
     let caps = &device.capability;
