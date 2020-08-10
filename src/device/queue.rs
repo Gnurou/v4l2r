@@ -28,18 +28,14 @@ pub type PlaneHandles<M: Memory> = Vec<M::DQBufType>;
 pub struct QueueBase {
     /// Reference to the device, so `fd` is kept valid and to let us mark the
     /// queue as free again upon destruction.
-    device: Arc<Mutex<Device>>,
-    /// Fd of the device, for faster access since it can be shared. This is
-    /// guaranteed to remain valid as long as the device is alive, and we are
-    /// keeping a refcounted reference to it.
-    fd: RawFd,
+    device: Arc<Device>,
     type_: QueueType,
     capabilities: ioctl::BufferCapabilities,
 }
 
 impl AsRawFd for QueueBase {
     fn as_raw_fd(&self) -> RawFd {
-        self.fd
+        self.device.as_raw_fd()
     }
 }
 
@@ -47,7 +43,7 @@ impl<'a> Drop for QueueBase {
     /// Make the queue available again.
     fn drop(&mut self) {
         assert_eq!(
-            self.device.lock().unwrap().used_queues.remove(&self.type_),
+            self.device.used_queues.lock().unwrap().remove(&self.type_),
             true
         );
     }
@@ -170,28 +166,25 @@ impl<D: Direction> Queue<D, QueueInit> {
     /// Not all devices support all kinds of queue. To test whether the queue is supported,
     /// a REQBUFS(0) is issued on the device. If it is not successful, the device is
     /// deemed to not support this kind of queue and this method will fail.
-    fn create(device: Arc<Mutex<Device>>, queue_type: QueueType) -> Result<Queue<D, QueueInit>> {
-        let mut device_lock = device.lock().unwrap();
+    fn create(device: Arc<Device>, queue_type: QueueType) -> Result<Queue<D, QueueInit>> {
+        let mut used_queues = device.used_queues.lock().unwrap();
 
-        if device_lock.used_queues.contains(&queue_type) {
+        if used_queues.contains(&queue_type) {
             return Err(Error::AlreadyBorrowed);
         }
 
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
         // Obtain its capacities while we are at it.
         let capabilities: ioctl::BufferCapabilities =
-            ioctl::reqbufs(&mut *device_lock, queue_type, MemoryType::MMAP, 0)?;
+            ioctl::reqbufs(&*device, queue_type, MemoryType::MMAP, 0)?;
 
-        assert_eq!(device_lock.used_queues.insert(queue_type), true);
+        used_queues.insert(queue_type);
 
-        let fd = device_lock.as_raw_fd();
-
-        drop(device_lock);
+        drop(used_queues);
 
         Ok(Queue::<D, QueueInit> {
             inner: QueueBase {
                 device,
-                fd,
                 type_: queue_type,
                 capabilities,
             },
@@ -234,7 +227,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
+    pub fn get_output_queue(device: Arc<Device>) -> Result<Self> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutput)
     }
 
@@ -242,7 +235,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_mplane_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
+    pub fn get_output_mplane_queue(device: Arc<Device>) -> Result<Self> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutputMplane)
     }
 }
@@ -252,7 +245,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
+    pub fn get_capture_queue(device: Arc<Device>) -> Result<Self> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCapture)
     }
 
@@ -260,7 +253,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_mplane_queue(device: Arc<Mutex<Device>>) -> Result<Self> {
+    pub fn get_capture_mplane_queue(device: Arc<Device>) -> Result<Self> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCaptureMplane)
     }
 }

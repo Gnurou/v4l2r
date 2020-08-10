@@ -67,7 +67,7 @@ mod ioctl {
 
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
 pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
-    fd: &mut F,
+    fd: &F,
     queue: QueueType,
     memory: MemoryType,
     count: u32,

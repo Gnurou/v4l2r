@@ -10,7 +10,7 @@ use std::os::unix::io::{AsRawFd, RawFd};
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use thiserror::Error;
 
@@ -60,7 +60,7 @@ impl EncoderState for ReadyToEncode {}
 
 struct EncoderInner {
     // Make sure to keep the device alive as long as we are.
-    _device: Arc<Mutex<Device>>,
+    _device: Arc<Device>,
     // Keep a cached copy of the device Fd. Since we are keeping the device
     // alive through an Arc reference, the Fd won't be inadvertently closed.
     device_fd: RawFd,
@@ -95,7 +95,7 @@ impl Encoder<AwaitingCaptureFormat> {
         let config = DeviceConfig::new().non_blocking_dqbuf();
         let device = Device::open(path, config)?;
         let device_fd = device.as_raw_fd();
-        let device = Arc::new(Mutex::new(device));
+        let device = Arc::new(device);
 
         // Check that the device is indeed an encoder.
         let capture_queue = Queue::get_capture_mplane_queue(device.clone())?;

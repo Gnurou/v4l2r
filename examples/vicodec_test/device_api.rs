@@ -2,7 +2,7 @@ use super::framegen;
 use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 
 use v4l2::device::queue::*;
@@ -30,7 +30,7 @@ pub fn run<F: FnMut(&[u8])>(
         );
     }
 
-    let device = Arc::new(Mutex::new(device));
+    let device = Arc::new(device);
 
     // Obtain the queues, depending on whether we are using the single or multi planar API.
     let (mut output_queue, mut capture_queue, use_multi_planar) = if let Ok(output_queue) =

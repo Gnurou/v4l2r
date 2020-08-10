@@ -24,7 +24,7 @@ use super::Result;
 use std::collections::BTreeSet;
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
-use std::path::Path;
+use std::{path::Path, sync::Mutex};
 
 pub mod queue;
 
@@ -50,7 +50,7 @@ impl DeviceConfig {
 pub struct Device {
     pub capability: Capability,
     fd: File,
-    used_queues: BTreeSet<QueueType>,
+    used_queues: Mutex<BTreeSet<QueueType>>,
 }
 
 impl Device {
@@ -58,7 +58,7 @@ impl Device {
         Ok(Device {
             capability: ioctl::querycap(&fd)?,
             fd,
-            used_queues: BTreeSet::new(),
+            used_queues: Mutex::new(BTreeSet::new()),
         })
     }
 
