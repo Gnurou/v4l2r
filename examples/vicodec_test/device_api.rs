@@ -15,7 +15,7 @@ pub fn run<F: FnMut(&[u8])>(
     device_path: &Path,
     lets_quit: Arc<AtomicBool>,
     stop_after: Option<usize>,
-    mut _save_output: F,
+    mut save_output: F,
 ) {
     let device = Device::open(device_path, DeviceConfig::new()).expect("Failed to open device");
     let caps = &device.capability;
@@ -187,20 +187,27 @@ pub fn run<F: FnMut(&[u8])>(
         let cap_dqbuf = capture_queue
             .dequeue()
             .expect("Failed to dequeue capture buffer");
+        let cap_index = cap_dqbuf.data.index as usize;
+        let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
 
-        total_size = total_size.wrapping_add(cap_dqbuf.data.planes[0].bytesused as usize);
+        total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
         let fps = cpt as f64 / elapsed.as_millis() as f64 * 1000.0;
         print!(
             "\rEncoded buffer {:#5}, {:#2} -> {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
             cap_dqbuf.data.sequence,
             out_dqbuf.data.index,
-            cap_dqbuf.data.index,
-            cap_dqbuf.data.planes[0].bytesused,
+            cap_index,
+            bytes_used,
             total_size,
             fps
         );
         io::stdout().flush().unwrap();
+
+        let cap_mapping = capture_queue
+            .map_plane(cap_index, 0)
+            .expect("Failed to map capture buffer");
+        save_output(&cap_mapping.as_slice()[0..bytes_used]);
 
         cpt = cpt.wrapping_add(1);
     }
