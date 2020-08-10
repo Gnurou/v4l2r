@@ -20,7 +20,7 @@ const FRAME_SIZE: (usize, usize) = (640, 480);
 fn main() {
     let matches = App::new("vicodec example")
         .arg(
-            Arg::with_name("num_buffers")
+            Arg::with_name("num_frames")
                 .long("stop_after")
                 .takes_value(true)
                 .help("Stop after encoding a given number of buffers"),
@@ -33,7 +33,7 @@ fn main() {
         .get_matches();
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
-    let mut stop_after = match clap::value_t!(matches.value_of("num_buffers"), usize) {
+    let mut stop_after = match clap::value_t!(matches.value_of("num_frames"), usize) {
         Ok(v) => Some(v),
         Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
         Err(e) => panic!("Invalid value for stop_after: {}", e),
