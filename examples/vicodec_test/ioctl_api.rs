@@ -46,9 +46,9 @@ pub fn run<F: FnMut(&[u8])>(
     // Check whether the driver uses the single or multi-planar API by
     // requesting 0 MMAP buffers on the OUTPUT queue. The working queue will
     // return a success.
-    let use_multi_planar = if reqbufs::<(), _>(&mut fd, VideoOutput, MemoryType::MMAP, 0).is_ok() {
+    let use_multi_planar = if reqbufs::<(), _>(&fd, VideoOutput, MemoryType::MMAP, 0).is_ok() {
         false
-    } else if reqbufs::<(), _>(&mut fd, VideoOutputMplane, MemoryType::MMAP, 0).is_ok() {
+    } else if reqbufs::<(), _>(&fd, VideoOutputMplane, MemoryType::MMAP, 0).is_ok() {
         true
     } else {
         panic!("Both single-planar and multi-planar queues are unusable.");
@@ -117,9 +117,9 @@ pub fn run<F: FnMut(&[u8])>(
     // We could run this with as little as one buffer, but let's cycle between
     // two for the sake of it.
     // For simplicity the OUTPUT buffers will use user memory.
-    let num_output_buffers: usize = reqbufs(&mut fd, output_queue, MemoryType::UserPtr, 2)
+    let num_output_buffers: usize = reqbufs(&fd, output_queue, MemoryType::UserPtr, 2)
         .expect("Failed to allocate output buffers");
-    let num_capture_buffers: usize = reqbufs(&mut fd, capture_queue, MemoryType::MMAP, 2)
+    let num_capture_buffers: usize = reqbufs(&fd, capture_queue, MemoryType::MMAP, 2)
         .expect("Failed to allocate capture buffers");
     println!(
         "Using {} output and {} capture buffers.",
@@ -230,9 +230,9 @@ pub fn run<F: FnMut(&[u8])>(
     drop(capture_mappings);
 
     // Free the buffers.
-    reqbufs::<(), _>(&mut fd, capture_queue, MemoryType::MMAP, 0)
+    reqbufs::<(), _>(&fd, capture_queue, MemoryType::MMAP, 0)
         .expect("Failed to release capture buffers");
-    reqbufs::<(), _>(&mut fd, output_queue, MemoryType::UserPtr, 0)
+    reqbufs::<(), _>(&fd, output_queue, MemoryType::UserPtr, 0)
         .expect("Failed to release output buffers");
 
     // The fd will be closed as the File instance gets out of scope.

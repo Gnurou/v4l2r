@@ -195,13 +195,10 @@ impl<D: Direction> Queue<D, QueueInit> {
 
     /// Allocate `count` buffers for this queue and make it transition to the
     /// `BuffersAllocated` state.
-    pub fn request_buffers<M: Memory>(
-        mut self,
-        count: u32,
-    ) -> Result<Queue<D, BuffersAllocated<M>>> {
+    pub fn request_buffers<M: Memory>(self, count: u32) -> Result<Queue<D, BuffersAllocated<M>>> {
         let type_ = self.inner.type_;
         let num_buffers: usize =
-            ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
+            ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
 
         // The buffers have been allocated, now let's get their features.
         let mut buffer_features = Vec::new();
@@ -431,9 +428,9 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     }
 
     /// Release all the allocated buffers and returns the queue to the `Init` state.
-    pub fn free_buffers(mut self) -> Result<Queue<D, QueueInit>> {
+    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>> {
         let type_ = self.inner.type_;
-        ioctl::reqbufs(&mut self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
+        ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
 
         Ok(Queue {
             inner: self.inner,
