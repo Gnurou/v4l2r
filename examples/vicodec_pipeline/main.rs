@@ -158,8 +158,8 @@ fn main() {
             match msg {
                 Message::InputBufferDone(buffer) => free_buffers.push_back(buffer),
                 Message::FrameEncoded(cap_dqbuf) => {
-                    total_size =
-                        total_size.wrapping_add(cap_dqbuf.data.planes[0].bytesused as usize);
+                    let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
+                    total_size = total_size.wrapping_add(bytes_used);
                     let frame_nb = cap_dqbuf.data.sequence + 1;
                     let elapsed = start_time.elapsed();
                     let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
@@ -168,7 +168,7 @@ fn main() {
                         "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2} ppf: {:#2.2}",
                         cap_dqbuf.data.sequence,
                         cap_dqbuf.data.index,
-                        cap_dqbuf.data.planes[0].bytesused,
+                        bytes_used,
                         total_size,
                         fps,
                         num_poll_wakeups as f32 / frame_nb as f32,
