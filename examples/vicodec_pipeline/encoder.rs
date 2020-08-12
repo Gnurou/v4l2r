@@ -6,7 +6,7 @@ use v4l2::ioctl::FormatFlags;
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
@@ -58,16 +58,9 @@ pub struct ReadyToEncode {
 }
 impl EncoderState for ReadyToEncode {}
 
-struct EncoderInner {
-    // Make sure to keep the device alive as long as we are.
-    _device: Arc<Device>,
-    // Keep a cached copy of the device Fd. Since we are keeping the device
-    // alive through an Arc reference, the Fd won't be inadvertently closed.
-    device_fd: RawFd,
-}
-
 pub struct Encoder<S: EncoderState> {
-    inner: EncoderInner,
+    // Make sure to keep the device alive as long as we are.
+    device: Arc<Device>,
     state: S,
 }
 
@@ -94,7 +87,6 @@ impl Encoder<AwaitingCaptureFormat> {
     pub fn open(path: &Path) -> v4l2::Result<Self> {
         let config = DeviceConfig::new().non_blocking_dqbuf();
         let device = Device::open(path, config)?;
-        let device_fd = device.as_raw_fd();
         let device = Arc::new(device);
 
         // Check that the device is indeed an encoder.
@@ -120,10 +112,7 @@ impl Encoder<AwaitingCaptureFormat> {
         }
 
         Ok(Encoder {
-            inner: EncoderInner {
-                _device: device,
-                device_fd,
-            },
+            device,
             state: AwaitingCaptureFormat {
                 output_queue,
                 capture_queue,
@@ -139,7 +128,7 @@ impl Encoder<AwaitingCaptureFormat> {
         f(builder)?;
 
         Ok(Encoder {
-            inner: self.inner,
+            device: self.device,
             state: AwaitingOutputFormat {
                 output_queue: self.state.output_queue,
                 capture_queue: self.state.capture_queue,
@@ -157,7 +146,7 @@ impl Encoder<AwaitingOutputFormat> {
         f(builder)?;
 
         Ok(Encoder {
-            inner: self.inner,
+            device: self.device,
             state: AwaitingBufferAllocation {
                 output_queue: self.state.output_queue,
                 capture_queue: self.state.capture_queue,
@@ -182,7 +171,7 @@ impl Encoder<AwaitingBufferAllocation> {
             .request_buffers::<MMAP>(num_capture as u32)?;
 
         Ok(Encoder {
-            inner: self.inner,
+            device: self.device,
             state: ReadyToEncode {
                 output_queue,
                 capture_queue,
@@ -264,7 +253,7 @@ impl Encoder<ReadyToEncode> {
         const DRIVER: Token = Token(1);
 
         let mut events = Events::with_capacity(4);
-        let device_fd = self.inner.device_fd;
+        let device_fd = self.device.as_raw_fd();
         let mut interest = Interest::READABLE;
         poll.registry()
             .register(&mut SourceFd(&device_fd), DRIVER, interest)
