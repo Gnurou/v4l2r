@@ -14,7 +14,7 @@ use qbuf::*;
 use states::BufferState;
 use states::*;
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 /// Contains the handles (pointers to user memory or DMABUFs) that are kept
 /// when a buffer is processed by the kernel and returned to the user upon
@@ -332,9 +332,11 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         ioctl::querybuf(&self.inner, self.inner.type_, id)
     }
 
-    // Take buffer `id` in order to prepare it for queueing, provided it is available.
-    pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
-        let mut buffers_state = self.state.buffers_state.lock().unwrap();
+    fn get_buffer_locked<'a>(
+        &'a self,
+        mut buffers_state: MutexGuard<BuffersManager<M>>,
+        index: usize,
+    ) -> Result<QBuffer<'a, D, M>> {
         let buffer_state = buffers_state
             .buffers_state
             .get_mut(index)
@@ -345,14 +347,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             _ => return Err(Error::AlreadyBorrowed),
         };
 
-        let num_planes = self
-            .state
-            .buffer_features
-            .get(index)
-            .expect("Inconsistent queue state")
-            .planes
-            .len();
-
         // The buffer will remain in PreQueue state until it is queued
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
@@ -360,43 +354,31 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         buffers_state.allocator.take_buffer(index);
         drop(buffers_state);
 
+        let buffer_features = self
+            .state
+            .buffer_features
+            .get(index)
+            .expect("Inconsistent queue state");
+
         let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
 
-        Ok(QBuffer::new(self, index, num_planes, fuse))
+        Ok(QBuffer::new(self, buffer_features, fuse))
+    }
+
+    // Take buffer `id` in order to prepare it for queueing, provided it is available.
+    pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
+        let buffers_state = self.state.buffers_state.lock().unwrap();
+        self.get_buffer_locked(buffers_state, index)
     }
 
     pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {
-        let mut buffers_state = self.state.buffers_state.lock().unwrap();
+        let buffers_state = self.state.buffers_state.lock().unwrap();
         let index = match buffers_state.allocator.get_free_buffer() {
             Some(index) => index,
             None => return None,
         };
 
-        let buffer_state = match buffers_state.buffers_state.get_mut(index) {
-            Some(state) => state,
-            None => panic!("Inconsistent buffer state: index not found"),
-        };
-        match buffer_state {
-            BufferState::Free => (),
-            _ => panic!("Inconsistent buffer state: buffer not free"),
-        }
-
-        let num_planes = self
-            .state
-            .buffer_features
-            .get(index)
-            .expect("Inconsistent buffer state")
-            .planes
-            .len();
-
-        // The buffer remains will remain in PreQueue state until it is queued
-        // or the reference to it is lost.
-        *buffer_state = BufferState::PreQueue;
-        drop(buffers_state);
-
-        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
-
-        Some(QBuffer::new(self, index, num_planes, fuse))
+        self.get_buffer_locked(buffers_state, index).ok()
     }
 
     /// Dequeue the next processed buffer and return it.

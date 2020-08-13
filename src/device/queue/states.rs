@@ -18,7 +18,7 @@ pub struct QueueInit;
 impl QueueState for QueueInit {}
 
 pub(super) trait BufferAllocator {
-    fn get_free_buffer(&mut self) -> Option<usize>;
+    fn get_free_buffer(&self) -> Option<usize>;
     fn take_buffer(&mut self, index: usize);
     fn return_buffer(&mut self, index: usize);
 }
@@ -36,8 +36,8 @@ impl FifoBufferAllocator {
 }
 
 impl BufferAllocator for FifoBufferAllocator {
-    fn get_free_buffer(&mut self) -> Option<usize> {
-        self.queue.pop_front()
+    fn get_free_buffer(&self) -> Option<usize> {
+        self.queue.front().copied()
     }
 
     fn take_buffer(&mut self, index: usize) {

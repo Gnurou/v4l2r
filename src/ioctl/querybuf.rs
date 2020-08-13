@@ -29,6 +29,7 @@ pub struct QueryBufPlane {
 /// Contains all the information that makes sense when using `querybuf`.
 #[derive(Debug)]
 pub struct QueryBuffer {
+    pub index: usize,
     pub flags: BufferFlags,
     pub planes: Vec<QueryBufPlane>,
 }
@@ -54,6 +55,7 @@ impl QueryBuf for QueryBuffer {
         };
 
         Ok(QueryBuffer {
+            index: v4l2_buf.index as usize,
             flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
             planes,
         })

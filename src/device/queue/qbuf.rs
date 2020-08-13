@@ -7,6 +7,7 @@ use crate::Error;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 
+use ioctl::QueryBuffer;
 use thiserror::Error;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
@@ -67,14 +68,13 @@ pub struct QBuffer<'a, D: Direction, M: Memory> {
 impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     pub(super) fn new(
         queue: &'a Queue<D, BuffersAllocated<M>>,
-        index: usize,
-        num_planes: usize,
+        buffer: &QueryBuffer,
         fuse: BufferStateFuse<M>,
     ) -> Self {
         QBuffer {
             queue,
-            index,
-            num_planes,
+            index: buffer.index,
+            num_planes: buffer.planes.len(),
             qbuffer: Default::default(),
             plane_handles: Vec::new(),
             fuse,
