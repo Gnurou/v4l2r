@@ -1,6 +1,6 @@
 pub mod client;
 
-use v4l2::device::queue::{direction, dqbuf, qbuf, states, FormatBuilder, Queue};
+use v4l2::device::queue::{direction, dqbuf, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
 use v4l2::ioctl::FormatFlags;
 use v4l2::memory::{UserPtr, MMAP};
@@ -200,10 +200,7 @@ impl Encoder<ReadyToEncode> {
     fn enqueue_output_buffer(&mut self, buffer_data: Vec<u8>) {
         let buffer = self.state.output_queue.get_free_buffer().unwrap();
         let bytes_used = buffer_data.len();
-        buffer
-            .add_plane(qbuf::Plane::out(buffer_data, bytes_used))
-            .queue()
-            .unwrap();
+        buffer.add_plane(buffer_data, bytes_used).queue().unwrap();
     }
 
     fn try_dequeue_output_buffers(&mut self, msg_send: &Sender<Message>) {

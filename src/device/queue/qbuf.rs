@@ -98,9 +98,11 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     }
 
     /// Specify the next plane of this buffer.
-    pub fn add_plane(mut self, plane: Plane<D, M>) -> Self {
+    /// TODO do capture and output versions in their own impl block.
+    pub fn add_plane(mut self, handle: M::HandleType, bytes_used: usize) -> Self {
+        let plane = Plane::<Output, M>::out(&handle, bytes_used);
         self.qbuffer.planes.push(plane.plane);
-        self.plane_handles.push(M::build_dqbuftype(plane.backing));
+        self.plane_handles.push(handle);
         self
     }
 
@@ -165,7 +167,8 @@ impl<'a> QBuffer<'a, Capture, MMAP> {
     /// methods allows to queue them as soon as they are obtained.
     pub fn auto_queue(mut self) -> QueueResult<MMAP, ()> {
         while self.num_set_planes() < self.num_expected_planes() {
-            self = self.add_plane(Plane::<Capture, MMAP>::cap(()));
+            let handle = MMAPHandle::new(self.index() as u32);
+            self = self.add_plane(handle, 0);
         }
         self.queue()
     }
@@ -175,28 +178,20 @@ impl<'a> QBuffer<'a, Capture, MMAP> {
 /// struct is specialized on direction and buffer type to only the relevant
 /// data can be set according to the current context.
 pub struct Plane<D: Direction, M: Memory> {
-    backing: M::QBufType,
-    plane: ioctl::QBufPlane<M::HandleType>,
+    plane: ioctl::QBufPlane,
     _d: std::marker::PhantomData<D>,
+    _m: std::marker::PhantomData<M>,
 }
 
 impl<M: Memory> Plane<Capture, M> {
     /// Creates a new plane builder suitable for a capture queue.
     /// Mandatory information is just a valid memory handle for the driver to
     /// write into.
-    pub fn cap(backing: M::QBufType) -> Self {
-        // Safe because we are storing `backing` at least until the buffer is
-        // dequeued.
-        let handle = unsafe { M::build_handle(&backing) };
-
+    pub fn cap(backing: &M::HandleType) -> Self {
         Self {
-            backing,
-            plane: ioctl::QBufPlane {
-                bytesused: 0,
-                data_offset: 0,
-                handle,
-            },
+            plane: ioctl::QBufPlane::new(backing, 0),
             _d: std::marker::PhantomData,
+            _m: std::marker::PhantomData,
         }
     }
 }
@@ -205,27 +200,11 @@ impl<M: Memory> Plane<Output, M> {
     /// Creates a new plane builder suitable for an output queue.
     /// Mandatory information include a memory handle, and the number of bytes
     /// used within it.
-    pub fn out(backing: M::QBufType, bytes_used: usize) -> Self {
-        // Safe because we are storing `backing` at least until the buffer is
-        // dequeued.
-        let handle = unsafe { M::build_handle(&backing) };
-
+    pub fn out(backing: &M::HandleType, bytes_used: usize) -> Self {
         Self {
-            backing,
-            plane: ioctl::QBufPlane {
-                bytesused: bytes_used as u32,
-                data_offset: 0,
-                handle,
-            },
+            plane: ioctl::QBufPlane::new(backing, bytes_used),
             _d: std::marker::PhantomData,
+            _m: std::marker::PhantomData,
         }
-    }
-
-    /// Set the data offset in the handle at which the actual data starts.
-    ///
-    /// This parameter is valid only when using the multi-planar API.
-    pub fn set_data_offset(mut self, data_offset: usize) -> Self {
-        self.plane.data_offset = data_offset as u32;
-        self
     }
 }

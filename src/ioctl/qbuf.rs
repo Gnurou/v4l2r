@@ -47,21 +47,28 @@ pub trait QBuf {
 }
 
 /// Representation of a single plane of a V4L2 buffer.
-#[derive(Debug, Default)]
-pub struct QBufPlane<H: PlaneHandle> {
-    pub bytesused: u32,
-    // This is only valid for MPlane queues. SPlanes don't have an equivalent.
-    pub data_offset: u32,
-    pub handle: H,
-}
+#[derive(Default)]
+pub struct QBufPlane(bindings::v4l2_plane);
 
-impl<H: PlaneHandle> QBufPlane<H> {
-    pub fn new(handle: H, bytes_used: usize) -> Self {
-        QBufPlane {
+impl QBufPlane {
+    pub fn new<H: PlaneHandle>(handle: &H, bytes_used: usize) -> Self {
+        let mut plane = QBufPlane(bindings::v4l2_plane {
             bytesused: bytes_used as u32,
             data_offset: 0,
-            handle,
-        }
+            ..unsafe { mem::zeroed() }
+        });
+
+        handle.fill_v4l2_plane(&mut plane.0);
+        plane
+    }
+}
+
+impl Debug for QBufPlane {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("QBufPlane")
+            .field("bytesused", &self.0.bytesused)
+            .field("data_offset", &self.0.data_offset)
+            .finish()
     }
 }
 
@@ -71,7 +78,8 @@ pub struct QBuffer<H: PlaneHandle> {
     pub flags: BufferFlags,
     pub field: u32,
     pub sequence: u32,
-    pub planes: Vec<QBufPlane<H>>,
+    pub planes: Vec<QBufPlane>,
+    pub _h: std::marker::PhantomData<H>,
 }
 
 impl<H: PlaneHandle> Default for QBuffer<H> {
@@ -81,6 +89,7 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
             field: Default::default(),
             sequence: Default::default(),
             planes: Vec::new(),
+            _h: std::marker::PhantomData,
         }
     }
 }
@@ -94,12 +103,12 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         };
 
         let plane = &self.planes[0];
-        if plane.data_offset != 0 {
+        if plane.0.data_offset != 0 {
             return Err(Error::DataOffsetNotSupported);
         }
         v4l2_buf.memory = H::MEMORY_TYPE as u32;
-        v4l2_buf.bytesused = plane.bytesused;
-        H::fill_v4l2_buffer(&plane.handle, v4l2_buf);
+        v4l2_buf.bytesused = plane.0.bytesused;
+        H::fill_v4l2_buffer(&plane.0, v4l2_buf);
 
         Ok(())
     }
@@ -122,9 +131,7 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
             .iter_mut()
             .zip(self.planes.into_iter())
             .for_each(|(v4l2_plane, plane)| {
-                v4l2_plane.bytesused = plane.bytesused;
-                v4l2_plane.data_offset = plane.data_offset;
-                H::fill_v4l2_plane(&plane.handle, v4l2_plane);
+                *v4l2_plane = plane.0;
             });
 
         Ok(())

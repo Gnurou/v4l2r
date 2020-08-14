@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use v4l2::ioctl::*;
-use v4l2::memory::{MMAPHandle, MemoryType, UserPtrHandle};
+use v4l2::memory::{MMAPHandle, MemoryType};
 use v4l2::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
@@ -177,21 +177,18 @@ pub fn run<F: FnMut(&[u8])>(
         );
 
         // Queue the work to be encoded.
-        let out_qbuf = QBuffer::<UserPtrHandle> {
-            planes: vec![QBufPlane::new(
-                // Safe because we are keeping output_buffer until we dequeue.
-                unsafe { UserPtrHandle::new(&output_buffer) },
-                output_buffer.len(),
-            )],
+        let out_qbuf = QBuffer::<Vec<u8>> {
+            planes: vec![QBufPlane::new(output_buffer, output_buffer.len())],
             ..Default::default()
         };
         qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
             .expect("Error queueing output buffer");
 
         let cap_qbuf = QBuffer::<MMAPHandle> {
-            planes: vec![QBufPlane {
-                ..Default::default()
-            }],
+            planes: vec![QBufPlane::new(
+                &MMAPHandle::new(capture_buffer_index as u32),
+                0,
+            )],
             ..Default::default()
         };
         qbuf(&fd, capture_queue, capture_buffer_index, cap_qbuf)

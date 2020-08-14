@@ -111,7 +111,7 @@ pub fn run<F: FnMut(&[u8])>(
 
     // Move the queues into their "allocated" state.
     let output_queue = output_queue
-        .request_buffers::<UserPtr<_>>(2)
+        .request_buffers::<UserPtr<Vec<u8>>>(2)
         .expect("Failed to allocate output buffers");
     let capture_queue = capture_queue
         .request_buffers::<MMAP>(2)
@@ -167,7 +167,7 @@ pub fn run<F: FnMut(&[u8])>(
         output_queue
             .get_free_buffer()
             .expect("Failed to obtain output buffer")
-            .add_plane(qbuf::Plane::out(output_buffer_data, bytes_used))
+            .add_plane(output_buffer_data, bytes_used)
             .queue()
             .expect("Failed to queue output buffer");
 
