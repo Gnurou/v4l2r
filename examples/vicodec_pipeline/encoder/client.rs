@@ -9,16 +9,16 @@ use std::thread::JoinHandle;
 use thiserror::Error;
 
 pub struct Client {
-    pub(super) handle: JoinHandle<Encoder<ReadyToEncode>>,
-    pub(super) send: Sender<Command>,
+    handle: JoinHandle<Encoder<ReadyToEncode>>,
+    send: Sender<Command>,
     /// Inform the encoder thread that we have sent a message through `send`.
-    pub(super) waker: Arc<Waker>,
+    waker: Arc<Waker>,
     pub recv: Receiver<Message>,
-    pub(super) jobs_in_progress: Arc<AtomicUsize>,
+    jobs_in_progress: Arc<AtomicUsize>,
     /// The client will start rejecting new encode jobs if the number of encode
     /// requests goes beyond this number. Set to the number of output buffers.
-    pub(super) max_jobs: usize,
-    pub num_poll_wakeups: Arc<AtomicUsize>,
+    max_jobs: usize,
+    num_poll_wakeups: Arc<AtomicUsize>,
 }
 
 #[derive(Error)]
@@ -61,6 +61,26 @@ pub enum SendError {
 pub type SendResult<T> = std::result::Result<T, SendError>;
 
 impl Client {
+    pub(super) fn new(
+        handle: JoinHandle<Encoder<ReadyToEncode>>,
+        send: Sender<Command>,
+        waker: Arc<Waker>,
+        recv: Receiver<Message>,
+        jobs_in_progress: Arc<AtomicUsize>,
+        max_jobs: usize,
+        num_poll_wakeups: Arc<AtomicUsize>,
+    ) -> Self {
+        Client {
+            handle,
+            send,
+            waker,
+            recv,
+            jobs_in_progress,
+            max_jobs,
+            num_poll_wakeups,
+        }
+    }
+
     fn send(&self, command: Command) -> SendResult<()> {
         if self.send.send(command).is_err() {
             return Err(SendError::ChannelSendError);
@@ -106,5 +126,9 @@ impl Client {
         self.send(Command::EncodeFrame(frame))?;
 
         Ok(())
+    }
+
+    pub fn get_num_poll_wakeups(&self) -> usize {
+        self.num_poll_wakeups.load(Ordering::SeqCst)
     }
 }

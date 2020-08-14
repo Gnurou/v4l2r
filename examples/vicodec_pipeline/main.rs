@@ -163,7 +163,7 @@ fn main() {
                     let frame_nb = cap_dqbuf.data.sequence + 1;
                     let elapsed = start_time.elapsed();
                     let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
-                    let num_poll_wakeups = client.num_poll_wakeups.load(Ordering::SeqCst);
+                    let num_poll_wakeups = client.get_num_poll_wakeups();
                     print!(
                         "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2} ppf: {:#2.2}",
                         cap_dqbuf.data.sequence,

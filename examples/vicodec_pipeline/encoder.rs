@@ -355,15 +355,15 @@ impl Encoder<ReadyToEncode> {
             .spawn(move || self.encoder_thread(cmd_recv, msg_send, poll, thread_waker))
             .unwrap();
 
-        Ok(client::Client {
+        Ok(client::Client::new(
             handle,
-            send: cmd_send,
+            cmd_send,
             waker,
-            recv: msg_recv,
+            msg_recv,
             jobs_in_progress,
             max_jobs,
             num_poll_wakeups,
-        })
+        ))
     }
 }
 
