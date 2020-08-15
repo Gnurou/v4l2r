@@ -72,6 +72,10 @@ impl Debug for QBufPlane {
 }
 
 /// Contains all the information that can be passed to the `qbuf` ioctl.
+// TODO Change this to contain a v4l2_buffer, and create constructors/methods
+// to change it? Then during qbuf we just need to set m.planes to planes
+// (after resizing it to 8) and we are good to use it as-is.
+// We could even turn the trait into AsRef<v4l2_buffer> for good measure.
 #[derive(Debug)]
 pub struct QBuffer<H: PlaneHandle> {
     pub flags: BufferFlags,
