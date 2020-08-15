@@ -7,14 +7,11 @@ use std::fmt::{self, Debug};
 /// thus we don't need to attach any extra handle information to them. We
 /// still need to pass an mmap offset to user-space so it can read/write the
 /// data.
-#[derive(Default)]
 pub struct MMAPHandle(u32);
 
 impl Debug for MMAPHandle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("MMAPHandle")
-            .field(&format!("{:#010x}", self.0))
-            .finish()
+        f.debug_tuple("MMAPHandle").field(&self.0).finish()
     }
 }
 
