@@ -5,6 +5,7 @@ use encoder::client;
 use encoder::*;
 use framegen::FrameGenerator;
 
+use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -30,6 +31,13 @@ fn main() {
                 .required(true)
                 .help("Path to the vicodec device file"),
         )
+        .arg(
+            Arg::with_name("output_file")
+                .long("save")
+                .required(false)
+                .takes_value(true)
+                .help("Save the encoded stream to a file"),
+        )
         .get_matches();
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
@@ -39,8 +47,13 @@ fn main() {
         Err(e) => panic!("Invalid value for stop_after: {}", e),
     };
 
-    let lets_quit = Arc::new(AtomicBool::new(false));
+    let mut output_file: Option<File> = if let Some(path) = matches.value_of("output_file") {
+        Some(File::create(path).expect("Invalid output file specified."))
+    } else {
+        None
+    };
 
+    let lets_quit = Arc::new(AtomicBool::new(false));
     // Setup the Ctrl+c handler.
     {
         let lets_quit_handler = lets_quit.clone();
@@ -174,6 +187,15 @@ fn main() {
                         num_poll_wakeups as f32 / frame_nb as f32,
                     );
                     io::stdout().flush().unwrap();
+
+                    if let Some(ref mut output) = output_file {
+                        let mapping = cap_dqbuf
+                            .get_plane_mapping(0)
+                            .expect("Failed to map capture buffer");
+                        output
+                            .write_all(&mapping.as_ref()[0..bytes_used])
+                            .expect("Error while writing output data");
+                    }
 
                     if let Some(max_cpt) = &mut stop_after {
                         if *max_cpt <= 1 {
