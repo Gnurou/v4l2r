@@ -47,7 +47,6 @@ pub trait QBuf {
 }
 
 /// Representation of a single plane of a V4L2 buffer.
-#[derive(Default)]
 pub struct QBufPlane(bindings::v4l2_plane);
 
 impl QBufPlane {
