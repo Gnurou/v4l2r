@@ -7,7 +7,7 @@ use crate::Error;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 
-use ioctl::QueryBuffer;
+use ioctl::{PlaneMapping, QueryBuffer};
 use thiserror::Error;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
@@ -62,6 +62,7 @@ pub struct QBuffer<'a, D: Direction, M: Memory> {
     num_planes: usize,
     qbuffer: ioctl::QBuffer<M::HandleType>,
     plane_handles: PlaneHandles<M>,
+    plane_maps: Vec<M::MapperType>,
     fuse: BufferStateFuse<M>,
 }
 
@@ -71,12 +72,19 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         buffer: &QueryBuffer,
         fuse: BufferStateFuse<M>,
     ) -> Self {
+        let plane_maps = buffer
+            .planes
+            .iter()
+            .map(|p| M::MapperType::new(&queue.inner.device, p.mem_offset, p.length))
+            .collect();
+
         QBuffer {
             queue,
             index: buffer.index,
             num_planes: buffer.planes.len(),
             qbuffer: Default::default(),
             plane_handles: Vec::new(),
+            plane_maps,
             fuse,
         }
     }
@@ -98,7 +106,7 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     }
 
     /// Specify the next plane of this buffer.
-    /// TODO do capture and output versions in their own impl block.
+    /// TODO Take a Plane as argument, build using dedicated constructors for Output and Capture queues.
     pub fn add_plane(mut self, handle: M::HandleType, bytes_used: usize) -> Self {
         let plane = Plane::<Output, M>::out(&handle, bytes_used);
         self.qbuffer.planes.push(plane.plane);
@@ -158,6 +166,14 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
             .set(num_queued_buffers + 1);
 
         Ok(())
+    }
+}
+
+impl<'a, M: Memory<Type = Fixed>> QBuffer<'a, Output, M> {
+    // TODO check that the returned PlaneMapping cannot outlive this queue!
+    pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
+        let mapper = self.plane_maps.get(plane)?;
+        mapper.map()
     }
 }
 
