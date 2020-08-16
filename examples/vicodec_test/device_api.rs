@@ -207,7 +207,7 @@ pub fn run<F: FnMut(&[u8])>(
         let cap_mapping = capture_queue
             .map_plane(cap_index, 0)
             .expect("Failed to map capture buffer");
-        save_output(&cap_mapping.as_slice()[0..bytes_used]);
+        save_output(&cap_mapping.as_ref()[0..bytes_used]);
 
         cpt = cpt.wrapping_add(1);
     }

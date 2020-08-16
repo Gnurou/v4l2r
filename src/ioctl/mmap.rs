@@ -1,7 +1,7 @@
 use crate::Result;
 use std::os::unix::io::AsRawFd;
 use std::{
-    ops::{Index, IndexMut},
+    ops::{Deref, Index, IndexMut},
     slice,
 };
 
@@ -14,16 +14,17 @@ pub struct PlaneMapping<'a> {
     pub data: &'a mut [u8],
 }
 
-impl<'a> PlaneMapping<'a> {
-    pub fn len(&self) -> usize {
-        self.data.len()
+impl<'a> AsRef<[u8]> for PlaneMapping<'a> {
+    fn as_ref(&self) -> &[u8] {
+        self.data
     }
+}
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
+/// To provide len() and is_empty().
+impl<'a> Deref for PlaneMapping<'a> {
+    type Target = [u8];
 
-    pub fn as_slice(&'a self) -> &'a [u8] {
+    fn deref(&self) -> &Self::Target {
         self.data
     }
 }

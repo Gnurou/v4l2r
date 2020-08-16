@@ -214,7 +214,7 @@ pub fn run<F: FnMut(&[u8])>(
         );
         io::stdout().flush().unwrap();
 
-        save_output(&capture_mappings[cap_dqbuf.index as usize].as_slice()[0..bytes_used]);
+        save_output(&capture_mappings[cap_dqbuf.index as usize].as_ref()[0..bytes_used]);
 
         cpt = cpt.wrapping_add(1);
     }
