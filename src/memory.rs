@@ -8,8 +8,8 @@ pub use dmabuf::*;
 pub use mmap::*;
 pub use userptr::*;
 
-use crate::bindings;
-use std::fmt::Debug;
+use crate::{bindings, device::Device, ioctl::PlaneMapping};
+use std::{fmt::Debug, sync::Arc};
 
 #[derive(Debug, Clone, Copy)]
 pub enum MemoryType {
@@ -31,12 +31,39 @@ pub trait PlaneHandle: Sized + Debug {
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane);
 }
 
+// ANYTHING BELOW THIS BELONGS TO device/ ?
+// Upper part into ioctl/memory.rs, lower into device/memory.rs? Or even module itself?
+
+pub trait Type {}
+pub struct Fixed;
+impl Type for Fixed {}
+
+pub struct Dynamic;
+impl Type for Dynamic {}
+
+pub trait PlaneMapper: Sized {
+    fn new(device: &Arc<Device>, mem_offset: u32, length: u32) -> Self;
+    fn map(&self) -> Option<PlaneMapping>;
+}
+
+impl PlaneMapper for () {
+    fn new(_device: &Arc<Device>, _mem_offset: u32, _length: u32) -> Self {}
+
+    fn map(&self) -> Option<PlaneMapping> {
+        None
+    }
+}
+
 /// Trait for a memory type to be used with the `device` module. There are three
 /// memory types: `MMAP`, `UserPtr`, and `DMABuf`, which all implement this
 /// trait in order to abstract their differences. Methods and structures dealing
 /// with buffers are also generally typed after this trait.
 pub trait Memory {
-    /// The type of handle produced by this memory type, for use with the
-    /// `ioctl` module.
+    // A type that can be applied into a v4l2_plane or v4l2_buffer.
     type HandleType: PlaneHandle;
+
+    type Type: Type;
+    // If the type is fixed, a way to get access to the buffer memory. Dynamic
+    // types must set this to ().
+    type MapperType: PlaneMapper;
 }
