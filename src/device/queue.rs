@@ -388,7 +388,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// be moved into a `Rc` or `Arc` if you need to pass it to several clients.
     ///
     /// The data in the `DQBuffer` is read-only.
-    pub fn dequeue(&self) -> Result<DQBuffer<M>> {
+    pub fn dequeue(&self) -> Result<DQBuffer<D, M>> {
         let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 
@@ -406,7 +406,13 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        Ok(DQBuffer::new(plane_handles, dqbuf, fuse))
+        let buffer_info = self
+            .state
+            .buffer_features
+            .get(dqbuf.index as usize)
+            .expect("Inconsistent buffer state");
+
+        Ok(DQBuffer::new(self, buffer_info, plane_handles, dqbuf, fuse))
     }
 
     /// Release all the allocated buffers and returns the queue to the `Init` state.

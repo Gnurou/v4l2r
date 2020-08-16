@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::sync::Arc;
 
+use direction::Capture;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]
@@ -22,7 +23,7 @@ enum Command {
 
 pub enum Message {
     InputBufferDone(Vec<u8>),
-    FrameEncoded(dqbuf::DQBuffer<MMAP>),
+    FrameEncoded(dqbuf::DQBuffer<Capture, MMAP>),
 }
 
 /// Trait implemented by all states of the encoder.
