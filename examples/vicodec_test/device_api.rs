@@ -204,8 +204,8 @@ pub fn run<F: FnMut(&[u8])>(
         );
         io::stdout().flush().unwrap();
 
-        let cap_mapping = capture_queue
-            .map_plane(cap_index, 0)
+        let cap_mapping = cap_dqbuf
+            .get_plane_mapping(0)
             .expect("Failed to map capture buffer");
         save_output(&cap_mapping.as_ref()[0..bytes_used]);
 
