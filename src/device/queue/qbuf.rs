@@ -155,9 +155,17 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         // We got this now.
         self.fuse.disarm();
 
-        let mut buffers_state = self.queue.state.buffers_state.lock().unwrap();
-        buffers_state.buffers_state[self.index] = BufferState::Queued(plane_handles);
-        drop(buffers_state);
+        let mut buffer_state = self
+            .queue
+            .state
+            .buffer_info
+            .get(self.index)
+            .expect("Inconsistent buffer state!")
+            .state
+            .lock()
+            .unwrap();
+        *buffer_state = BufferState::Queued(plane_handles);
+        drop(buffer_state);
 
         let num_queued_buffers = self.queue.state.num_queued_buffers.take();
         self.queue

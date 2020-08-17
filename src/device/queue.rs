@@ -13,7 +13,7 @@ use qbuf::*;
 use states::BufferState;
 use states::*;
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::sync::{Arc, Mutex, Weak};
 
 /// Contains the handles (pointers to user memory or DMABUFs) that are kept
 /// when a buffer is processed by the kernel and returned to the user upon
@@ -200,6 +200,8 @@ impl<D: Direction> Queue<D, QueueInit> {
             ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
 
         // The buffers have been allocated, now let's get their features.
+        // We cannot use functional programming here because we need to return
+        // the error from ioctl::querybuf(), if any.
         let mut buffer_features = Vec::new();
         for i in 0..num_buffers {
             buffer_features.push(ioctl::querybuf(&self.inner, self.inner.type_, i)?);
@@ -211,8 +213,14 @@ impl<D: Direction> Queue<D, QueueInit> {
             state: BuffersAllocated {
                 num_buffers,
                 num_queued_buffers: Default::default(),
-                buffers_state: Arc::new(Mutex::new(BuffersManager::new(num_buffers))),
-                buffer_features,
+                allocator: Arc::new(FifoBufferAllocator::new(num_buffers)),
+                buffer_info: buffer_features
+                    .into_iter()
+                    .map(|features| BufferInfo {
+                        state: Arc::new(Mutex::new(BufferState::Free)),
+                        features,
+                    })
+                    .collect(),
             },
         })
     }
@@ -289,13 +297,13 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let type_ = self.inner.type_;
         ioctl::streamoff(&self.inner, type_)?;
 
-        let mut buffers_state = self.state.buffers_state.lock().unwrap();
-
-        let canceled_buffers: Vec<_> = buffers_state
-            .buffers_state
-            .iter_mut()
-            .enumerate()
-            .filter_map(|(i, state)| {
+        let canceled_buffers: Vec<_> = self
+            .state
+            .buffer_info
+            .iter()
+            .filter_map(|buffer_info| {
+                let buffer_index = buffer_info.features.index;
+                let mut state = buffer_info.state.lock().unwrap();
                 // Filter entries not in queued state.
                 match *state {
                     BufferState::Queued(_) => (),
@@ -303,9 +311,11 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
                 };
 
                 // Set entry to Free state and steal its handles.
-                let old_state = std::mem::replace(state, BufferState::Free);
+                let old_state = std::mem::replace(&mut (*state), BufferState::Free);
+                self.state.allocator.return_buffer(buffer_index);
+
                 Some(CanceledBuffer::<M> {
-                    index: i as u32,
+                    index: buffer_index as u32,
                     plane_handles: match old_state {
                         // We have already tested for this state above, so this
                         // branch is guaranteed.
@@ -316,13 +326,12 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             })
             .collect();
 
+        // TODO racy! We leave the default value in num_queued_buffers for some time.
+        // But num_queued_buffers can probably be removed?
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state
             .num_queued_buffers
             .set(num_queued_buffers - canceled_buffers.len());
-        for buffer in &canceled_buffers {
-            buffers_state.allocator.return_buffer(buffer.index as usize);
-        }
 
         Ok(canceled_buffers)
     }
@@ -331,17 +340,17 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         ioctl::querybuf(&self.inner, self.inner.type_, id)
     }
 
-    fn get_buffer_locked<'a>(
-        &'a self,
-        mut buffers_state: MutexGuard<BuffersManager<M>>,
-        index: usize,
-    ) -> Result<QBuffer<'a, D, M>> {
-        let buffer_state = buffers_state
-            .buffers_state
-            .get_mut(index)
+    // Take buffer `id` in order to prepare it for queueing, provided it is available.
+    pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
+        let buffer_info = self
+            .state
+            .buffer_info
+            .get(index)
             .ok_or(Error::InvalidBuffer)?;
 
-        match buffer_state {
+        let mut buffer_state = buffer_info.state.lock().unwrap();
+
+        match *buffer_state {
             BufferState::Free => (),
             _ => return Err(Error::AlreadyBorrowed),
         };
@@ -350,34 +359,25 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         // or the reference to it is lost.
         *buffer_state = BufferState::PreQueue;
 
-        buffers_state.allocator.take_buffer(index);
-        drop(buffers_state);
+        self.state.allocator.take_buffer(index);
+        drop(buffer_state);
 
-        let buffer_features = self
-            .state
-            .buffer_features
-            .get(index)
-            .expect("Inconsistent queue state");
+        let fuse = BufferStateFuse::new(
+            Arc::downgrade(&buffer_info.state),
+            Arc::clone(&self.state.allocator),
+            index,
+        );
 
-        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), index);
-
-        Ok(QBuffer::new(self, buffer_features, fuse))
-    }
-
-    // Take buffer `id` in order to prepare it for queueing, provided it is available.
-    pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
-        let buffers_state = self.state.buffers_state.lock().unwrap();
-        self.get_buffer_locked(buffers_state, index)
+        Ok(QBuffer::new(self, &buffer_info.features, fuse))
     }
 
     pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {
-        let buffers_state = self.state.buffers_state.lock().unwrap();
-        let index = match buffers_state.allocator.get_free_buffer() {
+        let index = match self.state.allocator.get_free_buffer() {
             Some(index) => index,
             None => return None,
         };
 
-        self.get_buffer_locked(buffers_state, index).ok()
+        self.get_buffer(index).ok()
     }
 
     /// Dequeue the next processed buffer and return it.
@@ -391,27 +391,35 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 
-        let mut buffers_state = self.state.buffers_state.lock().unwrap();
-        let buffer_state = &mut buffers_state.buffers_state[id];
+        let buffer_info = self
+            .state
+            .buffer_info
+            .get(id)
+            .expect("Inconsistent buffer state!");
+        let mut buffer_state = buffer_info.state.lock().unwrap();
 
         // The buffer will remain Dequeued until our reference to it is destroyed.
-        let state = std::mem::replace(buffer_state, BufferState::Dequeued);
+        let state = std::mem::replace(&mut (*buffer_state), BufferState::Dequeued);
         let plane_handles = match state {
             BufferState::Queued(plane_handles) => plane_handles,
             _ => unreachable!("Inconsistent buffer state"),
         };
-        let fuse = BufferStateFuse::new(Arc::downgrade(&self.state.buffers_state), id);
+        let fuse = BufferStateFuse::new(
+            Arc::downgrade(&buffer_info.state),
+            Arc::clone(&self.state.allocator),
+            id,
+        );
 
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        let buffer_info = self
-            .state
-            .buffer_features
-            .get(dqbuf.index as usize)
-            .expect("Inconsistent buffer state");
-
-        Ok(DQBuffer::new(self, buffer_info, plane_handles, dqbuf, fuse))
+        Ok(DQBuffer::new(
+            self,
+            &buffer_info.features,
+            plane_handles,
+            dqbuf,
+            fuse,
+        ))
     }
 
     /// Release all the allocated buffers and returns the queue to the `Init` state.
@@ -430,16 +438,22 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 /// A fuse that will return the buffer to the Free state when destroyed, unless
 /// it has been disarmed.
 struct BufferStateFuse<M: Memory> {
-    buffers_manager: Weak<Mutex<BuffersManager<M>>>,
+    buffer_state: Weak<Mutex<BufferState<M>>>,
+    allocator: Arc<FifoBufferAllocator>,
     index: usize,
 }
 
 impl<M: Memory> BufferStateFuse<M> {
     /// Create a new fuse that will set `state` to `BufferState::Free` if
     /// destroyed before `disarm()` has been called.
-    fn new(buffers_manager: Weak<Mutex<BuffersManager<M>>>, index: usize) -> Self {
+    fn new(
+        buffer_state: Weak<Mutex<BufferState<M>>>,
+        allocator: Arc<FifoBufferAllocator>,
+        index: usize,
+    ) -> Self {
         BufferStateFuse {
-            buffers_manager,
+            buffer_state,
+            allocator,
             index,
         }
     }
@@ -448,7 +462,7 @@ impl<M: Memory> BufferStateFuse<M> {
     /// the fuse is destroyed.
     fn disarm(&mut self) {
         // Drop our weak reference.
-        self.buffers_manager = Weak::new();
+        self.buffer_state = Weak::new();
     }
 
     /// Trigger the fuse, i.e. make the buffer return to the Free state, unless
@@ -456,13 +470,13 @@ impl<M: Memory> BufferStateFuse<M> {
     /// the buffer is being dropped, otherwise inconsistent state may ensue.
     /// The fuse will be disarmed after this call.
     fn trigger(&mut self) {
-        match self.buffers_manager.upgrade() {
+        match self.buffer_state.upgrade() {
             None => (),
-            Some(buffers_manager) => {
-                let mut buffers_manager = buffers_manager.lock().unwrap();
-                buffers_manager.buffers_state[self.index] = BufferState::Free;
-                buffers_manager.allocator.return_buffer(self.index);
-                self.buffers_manager = Weak::new();
+            Some(buffer_state_unlocked) => {
+                let mut buffer_state = buffer_state_unlocked.lock().unwrap();
+                *buffer_state = BufferState::Free;
+                self.allocator.return_buffer(self.index);
+                self.buffer_state = Weak::new();
             }
         };
     }

@@ -19,33 +19,33 @@ impl QueueState for QueueInit {}
 
 pub(super) trait BufferAllocator {
     fn get_free_buffer(&self) -> Option<usize>;
-    fn take_buffer(&mut self, index: usize);
-    fn return_buffer(&mut self, index: usize);
+    fn take_buffer(&self, index: usize);
+    fn return_buffer(&self, index: usize);
 }
 
 pub(super) struct FifoBufferAllocator {
-    queue: VecDeque<usize>,
+    queue: Mutex<VecDeque<usize>>,
 }
 
 impl FifoBufferAllocator {
-    fn new(nb_buffers: usize) -> Self {
+    pub(super) fn new(nb_buffers: usize) -> Self {
         FifoBufferAllocator {
-            queue: (0..nb_buffers).collect(),
+            queue: Mutex::new((0..nb_buffers).collect()),
         }
     }
 }
 
 impl BufferAllocator for FifoBufferAllocator {
     fn get_free_buffer(&self) -> Option<usize> {
-        self.queue.front().copied()
+        self.queue.lock().unwrap().front().copied()
     }
 
-    fn take_buffer(&mut self, index: usize) {
-        self.queue.retain(|i| *i != index);
+    fn take_buffer(&self, index: usize) {
+        self.queue.lock().unwrap().retain(|i| *i != index);
     }
 
-    fn return_buffer(&mut self, index: usize) {
-        self.queue.push_back(index);
+    fn return_buffer(&self, index: usize) {
+        self.queue.lock().unwrap().push_back(index);
     }
 }
 
@@ -62,20 +62,9 @@ pub(super) enum BufferState<M: Memory> {
     Dequeued,
 }
 
-pub(super) struct BuffersManager<M: Memory> {
-    pub(super) allocator: FifoBufferAllocator,
-    pub(super) buffers_state: Vec<BufferState<M>>,
-}
-
-impl<M: Memory> BuffersManager<M> {
-    pub(super) fn new(num_buffers: usize) -> Self {
-        BuffersManager {
-            allocator: FifoBufferAllocator::new(num_buffers),
-            buffers_state: std::iter::repeat_with(|| BufferState::Free)
-                .take(num_buffers)
-                .collect(),
-        }
-    }
+pub(super) struct BufferInfo<M: Memory> {
+    pub(super) state: Arc<Mutex<BufferState<M>>>,
+    pub(super) features: ioctl::QueryBuffer,
 }
 
 /// Allocated state for a queue. A queue with its buffers allocated can be
@@ -83,7 +72,7 @@ impl<M: Memory> BuffersManager<M> {
 pub struct BuffersAllocated<M: Memory> {
     pub(super) num_buffers: usize,
     pub(super) num_queued_buffers: Cell<usize>,
-    pub(super) buffers_state: Arc<Mutex<BuffersManager<M>>>,
-    pub(super) buffer_features: Vec<ioctl::QueryBuffer>,
+    pub(super) allocator: Arc<FifoBufferAllocator>,
+    pub(super) buffer_info: Vec<BufferInfo<M>>,
 }
 impl<M: Memory> QueueState for BuffersAllocated<M> {}
