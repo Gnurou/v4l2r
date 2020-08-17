@@ -435,7 +435,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 /// it has been disarmed.
 struct BufferStateFuse<M: Memory> {
     buffer_state: Weak<Mutex<BufferState<M>>>,
-    allocator: Arc<FifoBufferAllocator>,
+    allocator: Arc<dyn BufferAllocator>,
     index: usize,
 }
 
@@ -444,7 +444,7 @@ impl<M: Memory> BufferStateFuse<M> {
     /// destroyed before `disarm()` has been called.
     fn new(
         buffer_state: Weak<Mutex<BufferState<M>>>,
-        allocator: Arc<FifoBufferAllocator>,
+        allocator: Arc<dyn BufferAllocator>,
         index: usize,
     ) -> Self {
         BufferStateFuse {

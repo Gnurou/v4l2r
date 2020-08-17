@@ -17,7 +17,7 @@ pub trait QueueState {}
 pub struct QueueInit;
 impl QueueState for QueueInit {}
 
-pub(super) trait BufferAllocator {
+pub(super) trait BufferAllocator: Send + Sync {
     fn get_free_buffer(&self) -> Option<usize>;
     fn take_buffer(&self, index: usize);
     fn return_buffer(&self, index: usize);
@@ -72,7 +72,7 @@ pub(super) struct BufferInfo<M: Memory> {
 pub struct BuffersAllocated<M: Memory> {
     pub(super) num_buffers: usize,
     pub(super) num_queued_buffers: Cell<usize>,
-    pub(super) allocator: Arc<FifoBufferAllocator>,
+    pub(super) allocator: Arc<dyn BufferAllocator>,
     pub(super) buffer_info: Vec<BufferInfo<M>>,
 }
 impl<M: Memory> QueueState for BuffersAllocated<M> {}
