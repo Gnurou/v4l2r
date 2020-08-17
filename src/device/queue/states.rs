@@ -64,13 +64,12 @@ pub(super) enum BufferState<M: Memory> {
 
 pub(super) struct BufferInfo<M: Memory> {
     pub(super) state: Arc<Mutex<BufferState<M>>>,
-    pub(super) features: ioctl::QueryBuffer,
+    pub(super) features: Arc<ioctl::QueryBuffer>,
 }
 
 /// Allocated state for a queue. A queue with its buffers allocated can be
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<M: Memory> {
-    pub(super) num_buffers: usize,
     pub(super) num_queued_buffers: Cell<usize>,
     pub(super) allocator: Arc<dyn BufferAllocator>,
     pub(super) buffer_info: Vec<BufferInfo<M>>,

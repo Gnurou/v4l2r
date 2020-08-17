@@ -6,8 +6,12 @@ use super::{
 };
 use crate::ioctl;
 use crate::memory::Memory;
-use crate::memory::{Fixed, PlaneMapper};
+use crate::{
+    device::Device,
+    memory::{Fixed, PlaneMapper},
+};
 use ioctl::{PlaneMapping, QueryBuffer};
+use std::sync::{Arc, Weak};
 
 /// Represents the information of a dequeued buffer. This is basically the same
 /// information as what the `ioctl` interface provides, but it also includes
@@ -19,10 +23,10 @@ pub struct DQBuffer<D: Direction, M: Memory> {
     pub plane_handles: PlaneHandles<M>,
     /// Dequeued buffer information as reported by V4L2.
     pub data: ioctl::DQBuffer,
+    device: Weak<Device>,
+    buffer_info: Weak<QueryBuffer>,
     /// Callback to be run when the object is dropped.
     drop_callback: Option<Box<dyn FnOnce(&mut Self) + Send>>,
-    /// Mapper objects for fixed memory types.
-    plane_maps: Vec<M::MapperType>,
     /// Fuse that will put the buffer back into the `Free` state when this
     /// object is destroyed.
     fuse: BufferStateFuse<M>,
@@ -32,23 +36,18 @@ pub struct DQBuffer<D: Direction, M: Memory> {
 impl<D: Direction, M: Memory> DQBuffer<D, M> {
     pub(super) fn new(
         queue: &Queue<D, BuffersAllocated<M>>,
-        buffer: &QueryBuffer,
+        buffer: &Arc<QueryBuffer>,
         plane_handles: PlaneHandles<M>,
         data: ioctl::DQBuffer,
         fuse: BufferStateFuse<M>,
     ) -> Self {
-        let plane_maps = buffer
-            .planes
-            .iter()
-            .map(|p| M::MapperType::new(&queue.inner.device, p.mem_offset, p.length))
-            .collect();
-
         DQBuffer {
             plane_handles,
             data,
+            device: Arc::downgrade(&queue.inner.device),
+            buffer_info: Arc::downgrade(buffer),
             fuse,
             drop_callback: None,
-            plane_maps,
             _d: std::marker::PhantomData,
         }
     }
@@ -64,8 +63,13 @@ impl<M: Memory<Type = Fixed>> DQBuffer<Capture, M> {
     // TODO returned mapping should be read-only!
     // TODO only return a bytes_used slice?
     pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
-        let mapper = self.plane_maps.get(plane)?;
-        mapper.map()
+        // We can only obtain a mapping if this buffer has not been deleted.
+        let buffer_info = self.buffer_info.upgrade()?;
+        let plane = buffer_info.planes.get(plane)?;
+        // If the buffer info was alive, then the device must also be.
+        let device = self.device.upgrade()?;
+
+        M::MapperType::map(device.as_ref(), plane)
     }
 }
 

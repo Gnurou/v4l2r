@@ -1,10 +1,7 @@
 //! Operations specific to MMAP-type buffers.
 use super::*;
 use crate::{bindings, ioctl};
-use std::{
-    fmt::{self, Debug},
-    sync::Weak,
-};
+use std::fmt::{self, Debug};
 
 /// Handle for a MMAP buffer. These buffers are backed by V4L2 itself, and
 /// thus we don't need to attach any extra handle information to them. We
@@ -32,25 +29,11 @@ impl PlaneHandle for MMAPHandle {
     fn fill_v4l2_plane(&self, _plane: &mut bindings::v4l2_plane) {}
 }
 
-pub struct MMAPMapper {
-    device: Weak<Device>,
-    mem_offset: u32,
-    length: u32,
-}
+pub struct MMAPMapper {}
 
 impl PlaneMapper for MMAPMapper {
-    fn new(device: &Arc<Device>, mem_offset: u32, length: u32) -> Self {
-        MMAPMapper {
-            device: Arc::downgrade(&device),
-            mem_offset,
-            length,
-        }
-    }
-
-    fn map(&self) -> Option<PlaneMapping> {
-        // TODO create appropriate error. And return Result<>?
-        let device = self.device.upgrade()?;
-        Some(ioctl::mmap(&*device, self.mem_offset, self.length).ok()?)
+    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>> {
+        Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
     }
 }
 

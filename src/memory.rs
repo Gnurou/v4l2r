@@ -8,8 +8,12 @@ pub use dmabuf::*;
 pub use mmap::*;
 pub use userptr::*;
 
-use crate::{bindings, device::Device, ioctl::PlaneMapping};
-use std::{fmt::Debug, sync::Arc};
+use crate::{
+    bindings,
+    device::Device,
+    ioctl::{PlaneMapping, QueryBufPlane},
+};
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, Copy)]
 pub enum MemoryType {
@@ -42,14 +46,11 @@ pub struct Dynamic;
 impl Type for Dynamic {}
 
 pub trait PlaneMapper: Sized {
-    fn new(device: &Arc<Device>, mem_offset: u32, length: u32) -> Self;
-    fn map(&self) -> Option<PlaneMapping>;
+    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>>;
 }
 
 impl PlaneMapper for () {
-    fn new(_device: &Arc<Device>, _mem_offset: u32, _length: u32) -> Self {}
-
-    fn map(&self) -> Option<PlaneMapping> {
+    fn map(_device: &Device, _plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>> {
         None
     }
 }

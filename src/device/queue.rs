@@ -9,6 +9,7 @@ use crate::memory::*;
 use crate::*;
 use direction::*;
 use dqbuf::*;
+use ioctl::QueryBuffer;
 use qbuf::*;
 use states::BufferState;
 use states::*;
@@ -207,20 +208,21 @@ impl<D: Direction> Queue<D, QueueInit> {
             buffer_features.push(ioctl::querybuf(&self.inner, self.inner.type_, i)?);
         }
 
+        let buffer_info = buffer_features
+            .into_iter()
+            .map(|features: QueryBuffer| BufferInfo {
+                state: Arc::new(Mutex::new(BufferState::Free)),
+                features: Arc::new(features),
+            })
+            .collect();
+
         Ok(Queue {
             inner: self.inner,
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
-                num_buffers,
                 num_queued_buffers: Default::default(),
                 allocator: Arc::new(FifoBufferAllocator::new(num_buffers)),
-                buffer_info: buffer_features
-                    .into_iter()
-                    .map(|features| BufferInfo {
-                        state: Arc::new(Mutex::new(BufferState::Free)),
-                        features,
-                    })
-                    .collect(),
+                buffer_info,
             },
         })
     }
@@ -274,7 +276,7 @@ pub struct CanceledBuffer<M: Memory> {
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// Returns the total number of buffers allocated for this queue.
     pub fn num_buffers(&self) -> usize {
-        self.state.num_buffers
+        self.state.buffer_info.len()
     }
 
     /// Returns the number of buffers currently queued (i.e. being processed
