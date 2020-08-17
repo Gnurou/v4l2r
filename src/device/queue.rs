@@ -336,10 +336,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         Ok(canceled_buffers)
     }
 
-    pub fn query_buffer(&self, id: usize) -> Result<ioctl::QueryBuffer> {
-        ioctl::querybuf(&self.inner, self.inner.type_, id)
-    }
-
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
         let buffer_info = self
