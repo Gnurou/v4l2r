@@ -193,7 +193,7 @@ fn main() {
                             .get_plane_mapping(0)
                             .expect("Failed to map capture buffer");
                         output
-                            .write_all(&mapping.as_ref()[0..bytes_used])
+                            .write_all(mapping.as_ref())
                             .expect("Error while writing output data");
                     }
 

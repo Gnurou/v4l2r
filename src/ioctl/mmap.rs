@@ -1,6 +1,10 @@
 use crate::Result;
 use std::os::unix::io::AsRawFd;
-use std::{ops::Deref, slice};
+use std::{
+    cmp::{max, min},
+    ops::Deref,
+    slice,
+};
 
 use nix::{
     libc::{c_void, off_t, size_t},
@@ -11,11 +15,23 @@ pub struct PlaneMapping {
     // A mapping remains valid until we munmap it, that is, until the
     // PlaneMapping object is deleted. Hence the static lifetime.
     pub data: &'static mut [u8],
+
+    start: usize,
+    end: usize,
+}
+
+impl PlaneMapping {
+    pub fn restrict(mut self, start: usize, end: usize) -> Self {
+        self.start = max(self.start, start);
+        self.end = min(self.end, end);
+
+        self
+    }
 }
 
 impl AsRef<[u8]> for PlaneMapping {
     fn as_ref(&self) -> &[u8] {
-        self.data
+        &self.data[self.start..self.end]
     }
 }
 
@@ -24,7 +40,7 @@ impl Deref for PlaneMapping {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
-        self.data
+        &self.data[self.start..self.end]
     }
 }
 
@@ -57,5 +73,7 @@ pub fn mmap<F: AsRawFd>(fd: &F, mem_offset: u32, length: u32) -> Result<PlaneMap
         // Safe because we know the pointer is valid and has enough data mapped
         // to cover the length.
         data: unsafe { slice::from_raw_parts_mut(data as *mut u8, length as usize) },
+        start: 0,
+        end: length as usize,
     })
 }

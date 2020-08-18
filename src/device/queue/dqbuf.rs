@@ -58,15 +58,18 @@ impl<D: Direction, M: Memory> DQBuffer<D, M> {
 
 impl<M: Memory + Mappable> DQBuffer<Capture, M> {
     // TODO returned mapping should be read-only!
-    // TODO only return a bytes_used slice?
-    pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
+    pub fn get_plane_mapping(&self, plane_index: usize) -> Option<PlaneMapping> {
         // We can only obtain a mapping if this buffer has not been deleted.
         let buffer_info = self.buffer_info.upgrade()?;
-        let plane = buffer_info.planes.get(plane)?;
+        let plane = buffer_info.planes.get(plane_index)?;
+        let plane_data = self.data.planes.get(plane_index)?;
         // If the buffer info was alive, then the device must also be.
         let device = self.device.upgrade()?;
 
-        M::map(device.as_ref(), plane)
+        let start = plane_data.data_offset as usize;
+        let end = start + plane_data.bytesused as usize;
+
+        Some(M::map(device.as_ref(), plane)?.restrict(start, end))
     }
 }
 
