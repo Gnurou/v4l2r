@@ -10,18 +10,20 @@ use nix::{
     sys::mman,
 };
 
-pub struct PlaneMapping<'a> {
-    pub data: &'a mut [u8],
+pub struct PlaneMapping {
+    // A mapping remains valid until we munmap it, that is, until the
+    // PlaneMapping object is deleted. Hence the static lifetime.
+    pub data: &'static mut [u8],
 }
 
-impl<'a> AsRef<[u8]> for PlaneMapping<'a> {
+impl AsRef<[u8]> for PlaneMapping {
     fn as_ref(&self) -> &[u8] {
         self.data
     }
 }
 
 /// To provide len() and is_empty().
-impl<'a> Deref for PlaneMapping<'a> {
+impl Deref for PlaneMapping {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
@@ -29,7 +31,7 @@ impl<'a> Deref for PlaneMapping<'a> {
     }
 }
 
-impl<'a> Drop for PlaneMapping<'a> {
+impl Drop for PlaneMapping {
     fn drop(&mut self) {
         // Safe because the pointer and length were constructed in mmap() and
         // are always valid.
@@ -40,14 +42,14 @@ impl<'a> Drop for PlaneMapping<'a> {
     }
 }
 
-impl<'a> Index<usize> for PlaneMapping<'a> {
+impl Index<usize> for PlaneMapping {
     type Output = u8;
     fn index(&self, index: usize) -> &Self::Output {
         &self.data[index]
     }
 }
 
-impl<'a> IndexMut<usize> for PlaneMapping<'a> {
+impl IndexMut<usize> for PlaneMapping {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.data[index]
     }
@@ -55,7 +57,7 @@ impl<'a> IndexMut<usize> for PlaneMapping<'a> {
 
 // TODO should be unsafe because the mapping can be used after a buffer is queued?
 // Or not, since this cannot cause a crash...
-pub fn mmap<'a, F: AsRawFd>(fd: &F, mem_offset: u32, length: u32) -> Result<PlaneMapping<'a>> {
+pub fn mmap<F: AsRawFd>(fd: &F, mem_offset: u32, length: u32) -> Result<PlaneMapping> {
     let data = unsafe {
         mman::mmap(
             std::ptr::null_mut::<c_void>(),

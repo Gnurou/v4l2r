@@ -40,7 +40,7 @@ impl Memory for MMAP {
 }
 
 impl Mappable for MMAP {
-    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>> {
+    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping> {
         Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
     }
 }

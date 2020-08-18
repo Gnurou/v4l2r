@@ -39,7 +39,7 @@ pub trait PlaneHandle: Sized + Debug {
 // Upper part into ioctl/memory.rs, lower into device/memory.rs? Or even module itself?
 
 pub trait Mappable: Sized {
-    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>>;
+    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
 }
 
 /// Trait for a memory type to be used with the `device` module. There are three
