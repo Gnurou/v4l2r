@@ -29,6 +29,4 @@ pub struct DMABuf;
 /// in the kernel, so maybe some binding or other affinity should be done?
 impl Memory for DMABuf {
     type HandleType = Fd;
-    type Type = Dynamic;
-    type MapperType = ();
 }

@@ -38,21 +38,8 @@ pub trait PlaneHandle: Sized + Debug {
 // ANYTHING BELOW THIS BELONGS TO device/ ?
 // Upper part into ioctl/memory.rs, lower into device/memory.rs? Or even module itself?
 
-pub trait Type {}
-pub struct Fixed;
-impl Type for Fixed {}
-
-pub struct Dynamic;
-impl Type for Dynamic {}
-
-pub trait PlaneMapper: Sized {
+pub trait Mappable: Sized {
     fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>>;
-}
-
-impl PlaneMapper for () {
-    fn map(_device: &Device, _plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>> {
-        None
-    }
 }
 
 /// Trait for a memory type to be used with the `device` module. There are three
@@ -62,9 +49,4 @@ impl PlaneMapper for () {
 pub trait Memory {
     // A type that can be applied into a v4l2_plane or v4l2_buffer.
     type HandleType: PlaneHandle;
-
-    type Type: Type;
-    // If the type is fixed, a way to get access to the buffer memory. Dynamic
-    // types must set this to ().
-    type MapperType: PlaneMapper;
 }

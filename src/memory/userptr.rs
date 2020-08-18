@@ -38,6 +38,4 @@ pub struct UserPtr<T: AsRef<[u8]>> {
 /// and return it when the buffer is dequeued or the queue is stopped.
 impl<T: AsRef<[u8]>> Memory for UserPtr<T> {
     type HandleType = Vec<u8>;
-    type Type = Dynamic;
-    type MapperType = ();
 }

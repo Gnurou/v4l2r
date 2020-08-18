@@ -6,10 +6,7 @@ use super::{
 };
 use crate::ioctl;
 use crate::memory::Memory;
-use crate::{
-    device::Device,
-    memory::{Fixed, PlaneMapper},
-};
+use crate::{device::Device, memory::Mappable};
 use ioctl::{PlaneMapping, QueryBuffer};
 use std::sync::{Arc, Weak};
 
@@ -59,7 +56,7 @@ impl<D: Direction, M: Memory> DQBuffer<D, M> {
     }
 }
 
-impl<M: Memory<Type = Fixed>> DQBuffer<Capture, M> {
+impl<M: Memory + Mappable> DQBuffer<Capture, M> {
     // TODO returned mapping should be read-only!
     // TODO only return a bytes_used slice?
     pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
@@ -69,7 +66,7 @@ impl<M: Memory<Type = Fixed>> DQBuffer<Capture, M> {
         // If the buffer info was alive, then the device must also be.
         let device = self.device.upgrade()?;
 
-        M::MapperType::map(device.as_ref(), plane)
+        M::map(device.as_ref(), plane)
     }
 }
 

@@ -29,14 +29,6 @@ impl PlaneHandle for MMAPHandle {
     fn fill_v4l2_plane(&self, _plane: &mut bindings::v4l2_plane) {}
 }
 
-pub struct MMAPMapper {}
-
-impl PlaneMapper for MMAPMapper {
-    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>> {
-        Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
-    }
-}
-
 pub struct MMAP;
 
 /// MMAP buffers support for queues. These buffers are the easiest to support
@@ -45,6 +37,10 @@ pub struct MMAP;
 /// buffer is being processed by the kernel.
 impl Memory for MMAP {
     type HandleType = MMAPHandle;
-    type Type = Fixed;
-    type MapperType = MMAPMapper;
+}
+
+impl Mappable for MMAP {
+    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping<'static>> {
+        Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
+    }
 }

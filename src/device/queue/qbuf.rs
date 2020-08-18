@@ -169,11 +169,11 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     }
 }
 
-impl<'a, M: Memory<Type = Fixed>> QBuffer<'a, Output, M> {
+impl<'a, M: Memory + Mappable> QBuffer<'a, Output, M> {
     pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
         let buffer_info = self.queue.state.buffer_info.get(self.index)?;
         let plane_info = buffer_info.features.planes.get(plane)?;
-        M::MapperType::map(self.queue.inner.device.as_ref(), plane_info)
+        M::map(self.queue.inner.device.as_ref(), plane_info)
     }
 }
 
