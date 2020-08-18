@@ -1,9 +1,6 @@
 use crate::Result;
 use std::os::unix::io::AsRawFd;
-use std::{
-    ops::{Deref, Index, IndexMut},
-    slice,
-};
+use std::{ops::Deref, slice};
 
 use nix::{
     libc::{c_void, off_t, size_t},
@@ -39,19 +36,6 @@ impl Drop for PlaneMapping {
             .unwrap_or_else(|e| {
                 eprintln!("Error while unmapping plane: {}", e);
             });
-    }
-}
-
-impl Index<usize> for PlaneMapping {
-    type Output = u8;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.data[index]
-    }
-}
-
-impl IndexMut<usize> for PlaneMapping {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.data[index]
     }
 }
 
