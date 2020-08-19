@@ -1,4 +1,4 @@
-use v4l2::device::queue::{direction, dqbuf, states, FormatBuilder, Queue};
+use v4l2::device::queue::{direction, dqbuf, qbuf::QBuffer, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
 use v4l2::ioctl::{DQBufError, FormatFlags};
 use v4l2::memory::{UserPtr, MMAP};
@@ -8,20 +8,18 @@ use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
-use std::{fmt, sync::Arc, thread::JoinHandle};
+use std::{sync::Arc, thread::JoinHandle};
 
-use direction::Capture;
-use mpsc::{RecvError, TryIter};
+use direction::{Capture, Output};
+use mpsc::TryIter;
 use thiserror::Error;
 
 #[derive(Debug, PartialEq)]
 enum Command {
     Stop,
-    EncodeFrame(Vec<u8>),
 }
 
 pub enum Message {
-    InputBufferDone(Vec<u8>),
     FrameEncoded(dqbuf::DQBuffer<Capture, MMAP>),
 }
 
@@ -58,40 +56,19 @@ pub struct ReadyToEncode {
 }
 impl EncoderState for ReadyToEncode {}
 
-pub struct Encoding {
+pub struct Encoding<'a> {
+    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
+    input_done_cb: Box<dyn Fn(&mut Vec<Vec<u8>>) + 'a>,
+
     handle: JoinHandle<EncoderThread>,
     send: Sender<Command>,
     /// Inform the encoder thread that we have sent a message through `send`.
     waker: Arc<Waker>,
     pub recv: Receiver<Message>,
     jobs_in_progress: Arc<AtomicUsize>,
-    /// The client will start rejecting new encode jobs if the number of encode
-    /// requests goes beyond this number. Set to the number of output buffers.
-    max_jobs: usize,
     num_poll_wakeups: Arc<AtomicUsize>,
 }
-impl EncoderState for Encoding {}
-
-#[derive(Error)]
-pub enum EncodeError {
-    #[error("queue is currently full")]
-    QueueFull(Vec<u8>),
-    #[error("error sending command")]
-    SendError(#[from] SendError),
-}
-
-// Without this custom implementation the whole input buffer would be dumped
-// in the debug print.
-impl fmt::Debug for EncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            EncodeError::QueueFull(_) => write!(f, "EncodeError::QueueFull"),
-            EncodeError::SendError(e) => write!(f, "EncodeError::SendError: {:?}", e),
-        }
-    }
-}
-
-pub type EncodeResult<T> = std::result::Result<T, EncodeError>;
+impl<'a> EncoderState for Encoding<'a> {}
 
 #[derive(Debug, Error)]
 pub enum StopError {
@@ -244,7 +221,10 @@ impl Encoder<AwaitingBufferAllocation> {
 }
 
 impl Encoder<ReadyToEncode> {
-    pub fn start_encoding(self) -> v4l2::Result<Encoder<Encoding>> {
+    pub fn start_encoding<'a>(
+        self,
+        input_done_cb: impl Fn(&mut Vec<Vec<u8>>) + 'a,
+    ) -> v4l2::Result<Encoder<Encoding<'a>>> {
         let (cmd_send, cmd_recv) = channel();
         let (msg_send, msg_recv) = channel();
 
@@ -252,16 +232,12 @@ impl Encoder<ReadyToEncode> {
         let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
         let thread_waker = waker.clone();
 
-        let max_jobs = self.state.output_queue.num_buffers();
-
         self.state.output_queue.streamon().unwrap();
         self.state.capture_queue.streamon().unwrap();
 
         let encoder_thread = EncoderThread {
             device: self.device.clone(),
-            output_queue: self.state.output_queue,
             capture_queue: self.state.capture_queue,
-            jobs_in_progress: self.state.jobs_in_progress.clone(),
             num_poll_wakeups: self.state.num_poll_wakeups.clone(),
         };
 
@@ -273,19 +249,20 @@ impl Encoder<ReadyToEncode> {
         Ok(Encoder {
             device: self.device,
             state: Encoding {
+                output_queue: self.state.output_queue,
+                input_done_cb: Box::new(input_done_cb),
                 handle,
                 send: cmd_send,
                 waker,
                 recv: msg_recv,
                 jobs_in_progress: self.state.jobs_in_progress,
-                max_jobs,
                 num_poll_wakeups: self.state.num_poll_wakeups,
             },
         })
     }
 }
 
-impl Encoder<Encoding> {
+impl<'a> Encoder<Encoding<'a>> {
     fn send(&self, command: Command) -> SendResult<()> {
         if self.state.send.send(command).is_err() {
             return Err(SendError::ChannelSendError);
@@ -322,12 +299,12 @@ impl Encoder<Encoding> {
         let encoding_thread = self.state.handle.join().unwrap();
 
         encoding_thread.capture_queue.streamoff().unwrap();
-        encoding_thread.output_queue.streamoff().unwrap();
+        self.state.output_queue.streamoff().unwrap();
 
         Ok(Encoder {
             device: self.device,
             state: ReadyToEncode {
-                output_queue: encoding_thread.output_queue,
+                output_queue: self.state.output_queue,
                 capture_queue: encoding_thread.capture_queue,
                 jobs_in_progress: self.state.jobs_in_progress,
                 num_poll_wakeups: encoding_thread.num_poll_wakeups,
@@ -335,24 +312,29 @@ impl Encoder<Encoding> {
         })
     }
 
-    pub fn encode(&self, frame: Vec<u8>) -> EncodeResult<()> {
-        let num_jobs = self.state.jobs_in_progress.fetch_add(1, Ordering::SeqCst);
-        if num_jobs >= self.state.max_jobs {
-            self.state.jobs_in_progress.fetch_sub(1, Ordering::SeqCst);
-            return Err(EncodeError::QueueFull(frame));
+    // TODO shall we take the return handles callback here to let us remove the
+    // RefCell in main.rs? In this case we need another callback each time the
+    // encoder may return input buffers, e.g. in stop().
+    pub fn get_input_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
+        let output_queue = &self.state.output_queue;
+
+        // If have more than half of our buffers queued, attempt to dequeue some.
+        while output_queue.num_queued_buffers() >= output_queue.num_buffers() / 2 {
+            match output_queue.dequeue() {
+                Ok(mut buf) => {
+                    (*self.state.input_done_cb)(&mut buf.plane_handles);
+                }
+                Err(DQBufError::NotReady) => break,
+                // TODO this should return a Result<>.
+                Err(e) => panic!(e),
+            }
         }
 
-        self.send(Command::EncodeFrame(frame))?;
-
-        Ok(())
+        self.state.output_queue.get_free_buffer()
     }
 
     pub fn get_num_poll_wakeups(&self) -> usize {
         self.state.num_poll_wakeups.load(Ordering::SeqCst)
-    }
-
-    pub fn recv(&self) -> core::result::Result<Message, RecvError> {
-        self.state.recv.recv()
     }
 
     pub fn try_iter(&self) -> TryIter<Message> {
@@ -362,12 +344,7 @@ impl Encoder<Encoding> {
 
 struct EncoderThread {
     device: Arc<Device>,
-    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
-    // The number of encoding jobs currently in progress, i.e. the number of
-    // OUTPUT buffers we are currently using. The client increases it before
-    // submitting a job, and the encode decreases it when a job completes.
-    jobs_in_progress: Arc<AtomicUsize>,
     // Number of times we have awaken from a poll, for stats purposes.
     num_poll_wakeups: Arc<AtomicUsize>,
 }
@@ -386,7 +363,7 @@ impl EncoderThread {
 
         let mut events = Events::with_capacity(4);
         let device_fd = self.device.as_raw_fd();
-        let mut interest = Interest::READABLE;
+        let interest = Interest::READABLE;
         poll.registry()
             .register(&mut SourceFd(&device_fd), DRIVER, interest)
             .unwrap();
@@ -396,6 +373,7 @@ impl EncoderThread {
         'poll_loop: loop {
             // Stop polling on writable if not all output buffers are queued, or
             // start polling on writable if all output buffers are queued.
+            /*
             if interest.is_writable()
                 && self.output_queue.num_queued_buffers() < self.output_queue.num_buffers()
             {
@@ -411,6 +389,7 @@ impl EncoderThread {
                     .reregister(&mut SourceFd(&device_fd), DRIVER, interest)
                     .unwrap();
             };
+            */
 
             poll.poll(&mut events, None).unwrap();
             self.num_poll_wakeups.fetch_add(1, Ordering::SeqCst);
@@ -447,11 +426,6 @@ impl EncoderThread {
                                 });
                                 msg_send.send(Message::FrameEncoded(cap_buf)).unwrap();
                             }
-                            self.try_dequeue_output_buffers(&msg_send);
-                        }
-
-                        if event.is_writable() {
-                            self.try_dequeue_output_buffers(&msg_send);
                         }
                     }
                     _ => unreachable!(),
@@ -468,46 +442,25 @@ impl EncoderThread {
         }
     }
 
-    fn enqueue_output_buffer(&mut self, buffer_data: Vec<u8>) {
-        let buffer = self.output_queue.get_free_buffer().unwrap();
-        let bytes_used = buffer_data.len();
-        buffer.add_plane(buffer_data, bytes_used).queue().unwrap();
-    }
-
-    fn try_dequeue_output_buffers(&mut self, msg_send: &Sender<Message>) {
-        loop {
-            match self.output_queue.dequeue() {
-                Ok(mut out_buf) => {
-                    let handles = out_buf.plane_handles.remove(0);
-                    drop(out_buf);
-                    self.jobs_in_progress.fetch_sub(1, Ordering::SeqCst);
-                    msg_send.send(Message::InputBufferDone(handles)).unwrap();
-                }
-                Err(DQBufError::NotReady) => break,
-                _ => panic!("Unrecoverable error"),
-            }
-        }
-    }
-
-    fn process_command(&mut self, cmd: Command, msg_send: &Sender<Message>) -> ProcessResult<bool> {
+    fn process_command(
+        &mut self,
+        cmd: Command,
+        _msg_send: &Sender<Message>,
+    ) -> ProcessResult<bool> {
         match cmd {
             Command::Stop => {
                 // Stop the CAPTURE queue and lose all buffers.
                 self.capture_queue.streamoff()?;
 
                 // Stop the OUTPUT queue and return all handles to client.
+                /*
                 let canceled_buffers = self.output_queue.streamoff()?;
                 for mut buffer in canceled_buffers {
                     msg_send.send(Message::InputBufferDone(buffer.plane_handles.remove(0)))?;
                 }
-                return Ok(false);
-            }
-            Command::EncodeFrame(frame) => {
-                self.try_dequeue_output_buffers(msg_send);
-                self.enqueue_output_buffer(frame);
+                */
+                Ok(false)
             }
         }
-
-        Ok(true)
     }
 }

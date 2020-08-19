@@ -9,7 +9,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::Instant;
+use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
 use anyhow::ensure;
 
@@ -121,54 +121,40 @@ fn main() {
 
     const NUM_BUFFERS: usize = 2;
 
+    let free_buffers: VecDeque<_> =
+        std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
+            .take(NUM_BUFFERS)
+            .collect();
+    let free_buffers = RefCell::new(free_buffers);
+
+    let input_done_cb = |handles: &mut Vec<Vec<u8>>| {
+        free_buffers.borrow_mut().push_back(handles.remove(0));
+    };
+
     let encoder = encoder
         .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
         .expect("Failed to allocate encoder buffers");
-    let encoder = encoder.start_encoding().expect("Failed to start encoder");
-
-    use std::collections::VecDeque;
-
-    let mut free_buffers = VecDeque::new();
-    for _ in 0..NUM_BUFFERS {
-        free_buffers.push_back(vec![0u8; output_format.plane_fmt[0].sizeimage as usize]);
-    }
+    let encoder = encoder
+        .start_encoding(input_done_cb)
+        .expect("Failed to start encoder");
 
     let mut total_size = 0usize;
-    let mut next_buffer: Option<Vec<u8>> = None;
     let start_time = Instant::now();
     while !lets_quit.load(Ordering::SeqCst) {
-        // Generate the next buffer to encode if there is none yet.
-        if next_buffer.is_none() {
-            if let Some(mut buffer) = free_buffers.pop_front() {
+        if let Some(v4l2_buffer) = encoder.get_input_buffer() {
+            if let Some(mut buffer) = free_buffers.borrow_mut().pop_front() {
                 frame_gen
                     .next_frame(&mut buffer[..])
                     .expect("Failed to generate frame");
-                next_buffer = Some(buffer);
+                let bytes_used = buffer.len();
+                // TODO handle the QueueError?
+                v4l2_buffer.add_plane(buffer, bytes_used).queue().unwrap();
             }
         }
 
-        // Try to queue the next buffer and wait for a message from the encoder.
-        let msg = if let Some(buffer) = next_buffer.take() {
-            match encoder.encode(buffer) {
-                // Queue succeeded, try to process one encoder message or keep
-                // queueing new buffers if there is none.
-                Ok(()) => None,
-                // V4L2 queue is full, replace the buffer and wait for a message
-                // from the encoder.
-                Err(EncodeError::QueueFull(buffer)) => {
-                    next_buffer = Some(buffer);
-                    Some(encoder.recv().unwrap())
-                }
-                _ => panic!("Fatal error"),
-            }
-        } else {
-            Some(encoder.recv().unwrap())
-        };
-
         // TODO detect channel closing as a platform error.
-        for msg in msg.into_iter().chain(encoder.try_iter()) {
+        for msg in encoder.try_iter() {
             match msg {
-                Message::InputBufferDone(buffer) => free_buffers.push_back(buffer),
                 Message::FrameEncoded(cap_dqbuf) => {
                     let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
                     total_size = total_size.wrapping_add(bytes_used);
