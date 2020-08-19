@@ -254,6 +254,9 @@ impl Encoder<ReadyToEncode> {
 
         let max_jobs = self.state.output_queue.num_buffers();
 
+        self.state.output_queue.streamon().unwrap();
+        self.state.capture_queue.streamon().unwrap();
+
         let encoder_thread = EncoderThread {
             device: self.device.clone(),
             output_queue: self.state.output_queue,
@@ -317,6 +320,9 @@ impl Encoder<Encoding> {
         }
 
         let encoding_thread = self.state.handle.join().unwrap();
+
+        encoding_thread.capture_queue.streamoff().unwrap();
+        encoding_thread.output_queue.streamoff().unwrap();
 
         Ok(Encoder {
             device: self.device,
@@ -385,9 +391,6 @@ impl EncoderThread {
             .register(&mut SourceFd(&device_fd), DRIVER, interest)
             .unwrap();
 
-        self.output_queue.streamon().unwrap();
-        self.capture_queue.streamon().unwrap();
-
         self.enqueue_capture_buffers();
 
         'poll_loop: loop {
@@ -455,9 +458,6 @@ impl EncoderThread {
                 }
             }
         }
-
-        self.capture_queue.streamoff().unwrap();
-        self.output_queue.streamoff().unwrap();
 
         self
     }
