@@ -1,7 +1,6 @@
 mod encoder;
 mod framegen;
 
-use encoder::client;
 use encoder::*;
 use framegen::FrameGenerator;
 
@@ -125,7 +124,7 @@ fn main() {
     let encoder = encoder
         .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
         .expect("Failed to allocate encoder buffers");
-    let client = encoder.start_encoding().expect("Failed to start encoder");
+    let encoder = encoder.start_encoding().expect("Failed to start encoder");
 
     use std::collections::VecDeque;
 
@@ -150,24 +149,24 @@ fn main() {
 
         // Try to queue the next buffer and wait for a message from the encoder.
         let msg = if let Some(buffer) = next_buffer.take() {
-            match client.encode(buffer) {
+            match encoder.encode(buffer) {
                 // Queue succeeded, try to process one encoder message or keep
                 // queueing new buffers if there is none.
                 Ok(()) => None,
                 // V4L2 queue is full, replace the buffer and wait for a message
                 // from the encoder.
-                Err(client::EncodeError::QueueFull(buffer)) => {
+                Err(EncodeError::QueueFull(buffer)) => {
                     next_buffer = Some(buffer);
-                    Some(client.recv.recv().unwrap())
+                    Some(encoder.recv().unwrap())
                 }
                 _ => panic!("Fatal error"),
             }
         } else {
-            Some(client.recv.recv().unwrap())
+            Some(encoder.recv().unwrap())
         };
 
         // TODO detect channel closing as a platform error.
-        for msg in msg.into_iter().chain(client.recv.try_iter()) {
+        for msg in msg.into_iter().chain(encoder.try_iter()) {
             match msg {
                 Message::InputBufferDone(buffer) => free_buffers.push_back(buffer),
                 Message::FrameEncoded(cap_dqbuf) => {
@@ -176,7 +175,7 @@ fn main() {
                     let frame_nb = cap_dqbuf.data.sequence + 1;
                     let elapsed = start_time.elapsed();
                     let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
-                    let num_poll_wakeups = client.get_num_poll_wakeups();
+                    let num_poll_wakeups = encoder.get_num_poll_wakeups();
                     print!(
                         "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2} ppf: {:#2.2}",
                         cap_dqbuf.data.sequence,
@@ -211,5 +210,5 @@ fn main() {
     // Insert new line since we were overwriting the same one
     println!();
 
-    client.stop().unwrap();
+    encoder.stop().unwrap();
 }
