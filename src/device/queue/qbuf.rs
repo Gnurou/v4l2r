@@ -3,11 +3,10 @@ use super::{BufferState, BufferStateFuse, BuffersAllocated, PlaneHandles, Queue}
 use super::{Capture, Direction, Output};
 use crate::ioctl;
 use crate::memory::*;
-use crate::Error;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 
-use ioctl::{PlaneMapping, QueryBuffer};
+use ioctl::{PlaneMapping, QBufError, QueryBuffer};
 use thiserror::Error;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
@@ -15,7 +14,7 @@ use thiserror::Error;
 #[derive(Error)]
 #[error("{}", self.error)]
 pub struct QueueError<M: Memory> {
-    pub error: Error,
+    pub error: QBufError,
     pub plane_handles: PlaneHandles<M>,
 }
 
@@ -116,13 +115,13 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         match self.qbuffer.planes.len().cmp(&self.num_planes) {
             Ordering::Less => {
                 return Err(QueueError {
-                    error: Error::NotEnoughPlanes,
+                    error: QBufError::NotEnoughPlanes,
                     plane_handles,
                 })
             }
             Ordering::Greater => {
                 return Err(QueueError {
-                    error: Error::TooManyPlanes,
+                    error: QBufError::TooManyPlanes,
                     plane_handles,
                 })
             }

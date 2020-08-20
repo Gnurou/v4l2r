@@ -1,13 +1,15 @@
 //! Safe wrapper for the VIDIOC_(D)QBUF and VIDIOC_QUERYBUF ioctls.
 use super::{is_multi_planar, PlaneData};
 use crate::memory::PlaneHandle;
-use crate::{bindings, Error, QueueType, Result};
+use crate::{bindings, QueueType};
 
 use bitflags::bitflags;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use std::result::Result;
+use thiserror::Error;
 
 /// For simple initialization of `PlaneData`.
 impl Default for bindings::v4l2_plane {
@@ -31,11 +33,30 @@ bitflags! {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum QBufError {
+    #[error("Not enough planes specified for the buffer")]
+    NotEnoughPlanes,
+    #[error("Too many planes specified for the buffer")]
+    TooManyPlanes,
+    #[error("Data offset specified while using the single-planar API")]
+    DataOffsetNotSupported,
+    #[error("Driver error: {0}")]
+    DriverError(nix::Error),
+}
+
+impl From<nix::Error> for QBufError {
+    fn from(error: nix::Error) -> Self {
+        Self::DriverError(error)
+    }
+}
+
 /// Implementors can pass buffer data to the `qbuf` ioctl.
 pub trait QBuf {
     /// Fill the buffer information into the single-planar `v4l2_buf`. Fail if
     /// the number of planes is different from 1.
-    fn fill_splane_v4l2_buffer(self, v4l2_buf: &mut bindings::v4l2_buffer) -> Result<()>;
+    fn fill_splane_v4l2_buffer(self, v4l2_buf: &mut bindings::v4l2_buffer)
+        -> Result<(), QBufError>;
     /// Fill the buffer information into the multi-planar `v4l2_buf`, using
     /// `v4l2_planes` to store the plane data. Fail if the number of planes is
     /// not between 1 and `VIDEO_MAX_PLANES` included.
@@ -43,7 +64,7 @@ pub trait QBuf {
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut PlaneData,
-    ) -> Result<()>;
+    ) -> Result<(), QBufError>;
 }
 
 /// Representation of a single plane of a V4L2 buffer.
@@ -98,16 +119,19 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
 }
 
 impl<H: PlaneHandle> QBuf for QBuffer<H> {
-    fn fill_splane_v4l2_buffer(self, v4l2_buf: &mut bindings::v4l2_buffer) -> Result<()> {
+    fn fill_splane_v4l2_buffer(
+        self,
+        v4l2_buf: &mut bindings::v4l2_buffer,
+    ) -> Result<(), QBufError> {
         match self.planes.len().cmp(&1) {
-            Ordering::Less => return Err(Error::NotEnoughPlanes),
-            Ordering::Greater => return Err(Error::TooManyPlanes),
+            Ordering::Less => return Err(QBufError::NotEnoughPlanes),
+            Ordering::Greater => return Err(QBufError::TooManyPlanes),
             Ordering::Equal => (),
         };
 
         let plane = &self.planes[0];
         if plane.0.data_offset != 0 {
-            return Err(Error::DataOffsetNotSupported);
+            return Err(QBufError::DataOffsetNotSupported);
         }
         v4l2_buf.memory = H::MEMORY_TYPE as u32;
         v4l2_buf.bytesused = plane.0.bytesused;
@@ -120,12 +144,12 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut PlaneData,
-    ) -> Result<()> {
+    ) -> Result<(), QBufError> {
         if self.planes.is_empty() {
-            return Err(Error::NotEnoughPlanes);
+            return Err(QBufError::NotEnoughPlanes);
         }
         if self.planes.len() > v4l2_planes.len() {
-            return Err(Error::TooManyPlanes);
+            return Err(QBufError::TooManyPlanes);
         }
 
         v4l2_buf.memory = H::MEMORY_TYPE as u32;
@@ -168,7 +192,7 @@ pub fn qbuf<T: QBuf, F: AsRawFd>(
     queue: QueueType,
     index: usize,
     buf_data: T,
-) -> Result<()> {
+) -> Result<(), QBufError> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         index: index as u32,
         type_: queue as u32,

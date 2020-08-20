@@ -40,15 +40,9 @@ pub enum Error {
     /// A v4l2_format cannot be converted to the desired format type because its
     /// type member does not match.
     InvalidBufferType,
-    /// A request to queue buffers has been done, but it did not contain enough
-    /// plane descriptors.
-    NotEnoughPlanes,
     /// A v4l2_format pretends it has more planes that it can possibly contain,
     /// or too many planes provided when queing buffer.
     TooManyPlanes,
-    /// A non-zero data_offset has been specified for a plane while using the
-    /// single-planar API, which does not support this parameter.
-    DataOffsetNotSupported,
     /// The mentioned buffer does not exist.
     InvalidBuffer,
     /// The mentioned plane does not exist.
@@ -64,9 +58,7 @@ impl Display for Error {
             Error::AlreadyBorrowed => write!(f, "Already in use"),
             Error::WrongMemoryType => write!(f, "Wrong memory type"),
             Error::InvalidBufferType => write!(f, "Invalid buffer type"),
-            Error::NotEnoughPlanes => write!(f, "Not enough planes specified"),
             Error::TooManyPlanes => write!(f, "Too many planes specified"),
-            Error::DataOffsetNotSupported => write!(f, "Data offset not supported"),
             Error::InvalidBuffer => write!(f, "Invalid buffer"),
             Error::InvalidPlane => write!(f, "Invalid plane"),
             Error::Nix(e) => Debug::fmt(e, f),
