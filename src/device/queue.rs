@@ -9,7 +9,7 @@ use crate::memory::*;
 use crate::*;
 use direction::*;
 use dqbuf::*;
-use ioctl::QueryBuffer;
+use ioctl::{DQBufError, QueryBuffer};
 use qbuf::*;
 use states::BufferState;
 use states::*;
@@ -383,7 +383,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// be moved into a `Rc` or `Arc` if you need to pass it to several clients.
     ///
     /// The data in the `DQBuffer` is read-only.
-    pub fn dequeue(&self) -> Result<DQBuffer<D, M>> {
+    pub fn dequeue(&self) -> std::result::Result<DQBuffer<D, M>, DQBufError> {
         let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
         let id = dqbuf.index as usize;
 

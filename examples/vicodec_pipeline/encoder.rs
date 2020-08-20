@@ -1,6 +1,6 @@
 use v4l2::device::queue::{direction, dqbuf, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
-use v4l2::ioctl::FormatFlags;
+use v4l2::ioctl::{DQBufError, FormatFlags};
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
@@ -483,7 +483,7 @@ impl EncoderThread {
                     self.jobs_in_progress.fetch_sub(1, Ordering::SeqCst);
                     msg_send.send(Message::InputBufferDone(handles)).unwrap();
                 }
-                Err(v4l2::Error::Nix(nix::Error::Sys(nix::errno::Errno::EAGAIN))) => break,
+                Err(DQBufError::NotReady) => break,
                 _ => panic!("Unrecoverable error"),
             }
         }

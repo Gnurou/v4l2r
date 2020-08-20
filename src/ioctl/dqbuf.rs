@@ -1,10 +1,12 @@
 use super::{is_multi_planar, BufferFlags, PlaneData};
 use crate::bindings;
 use crate::QueueType;
-use crate::Result;
 
+use nix::{self, errno::Errno};
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use std::result::Result;
+use thiserror::Error;
 
 /// Implementors can receive the result from the `dqbuf` ioctl.
 pub trait DQBuf: Sized {
@@ -12,10 +14,7 @@ pub trait DQBuf: Sized {
     /// then the buffer is single-planar. If it has data, the buffer is
     /// multi-planar and the array of `struct v4l2_plane` shall be used to
     /// retrieve the plane data.
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self>;
+    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self;
 }
 
 /// Allows to dequeue a buffer without caring for any of its data.
@@ -23,8 +22,7 @@ impl DQBuf for () {
     fn from_v4l2_buffer(
         _v4l2_buf: &bindings::v4l2_buffer,
         _v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        Ok(())
+    ) -> Self {
     }
 }
 
@@ -34,8 +32,8 @@ impl DQBuf for u32 {
     fn from_v4l2_buffer(
         v4l2_buf: &bindings::v4l2_buffer,
         _v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
-        Ok(v4l2_buf.index)
+    ) -> Self {
+        v4l2_buf.index
     }
 }
 
@@ -58,10 +56,7 @@ pub struct DQBuffer {
 }
 
 impl DQBuf for DQBuffer {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
+    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self {
         let planes = match v4l2_planes {
             None => vec![DQBufPlane {
                 length: v4l2_buf.length,
@@ -79,13 +74,13 @@ impl DQBuf for DQBuffer {
                 .collect(),
         };
 
-        Ok(DQBuffer {
+        DQBuffer {
             index: v4l2_buf.index as u32,
             flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
             field: v4l2_buf.field,
             sequence: v4l2_buf.sequence,
             planes,
-        })
+        }
     }
 }
 
@@ -95,8 +90,30 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_dqbuf, b'V', 17, v4l2_buffer);
 }
 
+#[derive(Debug, Error)]
+pub enum DQBufError {
+    #[error("End-of-stream reached")]
+    EOS,
+    #[error("No buffer ready for dequeue")]
+    NotReady,
+    // TODO add an error type for when we dequeue a buffer with the ERROR flag set?
+    // This would force the user to handle these cases.
+    #[error("Driver error: {0}")]
+    DriverError(nix::Error),
+}
+
+impl From<nix::Error> for DQBufError {
+    fn from(error: nix::Error) -> Self {
+        match error {
+            nix::Error::Sys(Errno::EAGAIN) => Self::NotReady,
+            nix::Error::Sys(Errno::EPIPE) => Self::EOS,
+            error => Self::DriverError(error),
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T> {
+pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T, DQBufError> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
@@ -108,9 +125,9 @@ pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T> {
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))?)
+        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data)))
     } else {
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
+        Ok(T::from_v4l2_buffer(&v4l2_buf, None))
     }
 }
