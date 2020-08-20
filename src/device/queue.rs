@@ -328,8 +328,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             })
             .collect();
 
-        // TODO racy! We leave the default value in num_queued_buffers for some time.
-        // But num_queued_buffers can probably be removed?
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state
             .num_queued_buffers
