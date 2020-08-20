@@ -8,14 +8,21 @@ use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
-use std::{sync::Arc, thread::JoinHandle};
+use std::{
+    sync::{Arc, Barrier},
+    thread::JoinHandle,
+};
 
 use direction::{Capture, Output};
 use mpsc::TryIter;
 use thiserror::Error;
 
-#[derive(Debug, PartialEq)]
 enum Command {
+    /// Ask the encoder thread to also poll the availability of buffers to
+    /// dequeue on the OUTPUT queue, and to run the callback when one
+    /// becomes available. Once the callback is run, the encoder thread will
+    /// stop monitoring the OUTPUT queue until this command is sent again.
+    WatchOutputQueue(Box<dyn FnOnce() + Send>),
     Stop,
 }
 
@@ -110,8 +117,6 @@ impl<T> From<mpsc::SendError<T>> for ProcessError {
         ProcessError::SendError
     }
 }
-
-type ProcessResult<T> = std::result::Result<T, ProcessError>;
 
 impl Encoder<AwaitingCaptureFormat> {
     pub fn open(path: &Path) -> v4l2::Result<Self> {
@@ -239,6 +244,7 @@ impl Encoder<ReadyToEncode> {
             device: self.device.clone(),
             capture_queue: self.state.capture_queue,
             num_poll_wakeups: self.state.num_poll_wakeups.clone(),
+            watch_output_cb: None,
         };
 
         let handle = std::thread::Builder::new()
@@ -312,14 +318,11 @@ impl<'a> Encoder<Encoding<'a>> {
         })
     }
 
-    // TODO shall we take the return handles callback here to let us remove the
-    // RefCell in main.rs? In this case we need another callback each time the
-    // encoder may return input buffers, e.g. in stop().
-    pub fn get_input_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
+    fn dequeue_output_buffers(&self) {
         let output_queue = &self.state.output_queue;
 
         // If have more than half of our buffers queued, attempt to dequeue some.
-        while output_queue.num_queued_buffers() >= output_queue.num_buffers() / 2 {
+        while output_queue.num_queued_buffers() >= (output_queue.num_buffers() + 1) / 2 {
             match output_queue.dequeue() {
                 Ok(mut buf) => {
                     (*self.state.input_done_cb)(&mut buf.plane_handles);
@@ -329,8 +332,41 @@ impl<'a> Encoder<Encoding<'a>> {
                 Err(e) => panic!(e),
             }
         }
+    }
 
+    /// Returns a V4L2 buffer to be filled with a frame to encode if one
+    /// is available.
+    ///
+    /// This method will return None immediately if all the allocated buffers
+    /// are currently queued.
+    ///
+    /// TODO return a Result<> with proper errors.
+    pub fn try_get_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
+        self.dequeue_output_buffers();
         self.state.output_queue.get_free_buffer()
+    }
+
+    /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
+    /// one to be available if needed.
+    ///
+    /// If all allocated buffers are currently queued, this methods will wait
+    /// for one to be available.
+    pub fn get_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
+        if let Some(buffer) = self.try_get_buffer() {
+            Some(buffer)
+        } else {
+            let barrier = Arc::new(Barrier::new(2));
+            let barrier_poll = barrier.clone();
+            self.send(Command::WatchOutputQueue(Box::new(move || {
+                barrier_poll.wait();
+            })))
+            .unwrap();
+            // This may make the encoder thread block if it processes our request first,
+            // which is unlikely but not optimal if it happens.
+            barrier.wait();
+            // Now we should definitely be able to dequeue at least one input buffer.
+            self.try_get_buffer()
+        }
     }
 
     pub fn get_num_poll_wakeups(&self) -> usize {
@@ -347,6 +383,7 @@ struct EncoderThread {
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
     // Number of times we have awaken from a poll, for stats purposes.
     num_poll_wakeups: Arc<AtomicUsize>,
+    watch_output_cb: Option<Box<dyn FnOnce() + Send>>,
 }
 
 const WAKER: Token = Token(1000);
@@ -363,48 +400,49 @@ impl EncoderThread {
 
         let mut events = Events::with_capacity(4);
         let device_fd = self.device.as_raw_fd();
-        let interest = Interest::READABLE;
         poll.registry()
-            .register(&mut SourceFd(&device_fd), DRIVER, interest)
+            .register(&mut SourceFd(&device_fd), DRIVER, Interest::READABLE)
             .unwrap();
 
         self.enqueue_capture_buffers();
 
         'poll_loop: loop {
-            // Stop polling on writable if not all output buffers are queued, or
-            // start polling on writable if all output buffers are queued.
-            /*
-            if interest.is_writable()
-                && self.output_queue.num_queued_buffers() < self.output_queue.num_buffers()
-            {
-                interest = Interest::READABLE;
-                poll.registry()
-                    .reregister(&mut SourceFd(&device_fd), DRIVER, interest)
-                    .unwrap();
-            } else if !interest.is_writable()
-                && self.output_queue.num_queued_buffers() >= self.output_queue.num_buffers()
-            {
-                interest = Interest::READABLE | Interest::WRITABLE;
-                poll.registry()
-                    .reregister(&mut SourceFd(&device_fd), DRIVER, interest)
-                    .unwrap();
-            };
-            */
-
             poll.poll(&mut events, None).unwrap();
             self.num_poll_wakeups.fetch_add(1, Ordering::SeqCst);
             for event in &events {
                 match event.token() {
                     WAKER => {
                         // First possible source: we received a new command.
+                        // TODO move into own method?
                         while let Ok(cmd) = cmd_recv.try_recv() {
-                            match self.process_command(cmd, &msg_send) {
-                                Ok(true) => (),
-                                Ok(false) => {
+                            match cmd {
+                                Command::WatchOutputQueue(cb) => {
+                                    self.watch_output_cb = Some(cb);
+                                    poll.registry()
+                                        .reregister(
+                                            &mut SourceFd(&device_fd),
+                                            DRIVER,
+                                            Interest::READABLE | Interest::WRITABLE,
+                                        )
+                                        .unwrap();
+                                }
+                                Command::Stop => {
+                                    // Stop the CAPTURE queue and lose all buffers.
+                                    // TODO handle errors properly.
+                                    self.capture_queue.streamoff().unwrap();
+
+                                    // Stop the OUTPUT queue and return all handles to client.
+                                    /*
+                                    // TODO we need to move this into the client thread so it
+                                    // retrieves all the handles.
+                                    let canceled_buffers = self.output_queue.streamoff()?;
+                                    for mut buffer in canceled_buffers {
+                                        msg_send.send(Message::InputBufferDone(buffer.plane_handles.remove(0)))?;
+                                    }
+                                    */
                                     drop(msg_send);
                                     break 'poll_loop;
                                 }
-                                Err(e) => panic!("Platform error: {}", e),
                             }
                         }
 
@@ -427,6 +465,22 @@ impl EncoderThread {
                                 msg_send.send(Message::FrameEncoded(cap_buf)).unwrap();
                             }
                         }
+
+                        if event.is_writable() {
+                            // If we are here we must have a closure ready to call. Otherwise that's
+                            // and error.
+                            let closure = self
+                                .watch_output_cb
+                                .take()
+                                .expect("Output buffer ready signaled but no closure to call");
+                            closure();
+
+                            // Signal the client thread that it can now get an OUTPUT buffer,
+                            // and go back to our business.
+                            poll.registry()
+                                .reregister(&mut SourceFd(&device_fd), DRIVER, Interest::READABLE)
+                                .unwrap();
+                        }
                     }
                     _ => unreachable!(),
                 }
@@ -439,28 +493,6 @@ impl EncoderThread {
     fn enqueue_capture_buffers(&mut self) {
         while let Some(buffer) = self.capture_queue.get_free_buffer() {
             buffer.auto_queue().unwrap();
-        }
-    }
-
-    fn process_command(
-        &mut self,
-        cmd: Command,
-        _msg_send: &Sender<Message>,
-    ) -> ProcessResult<bool> {
-        match cmd {
-            Command::Stop => {
-                // Stop the CAPTURE queue and lose all buffers.
-                self.capture_queue.streamoff()?;
-
-                // Stop the OUTPUT queue and return all handles to client.
-                /*
-                let canceled_buffers = self.output_queue.streamoff()?;
-                for mut buffer in canceled_buffers {
-                    msg_send.send(Message::InputBufferDone(buffer.plane_handles.remove(0)))?;
-                }
-                */
-                Ok(false)
-            }
         }
     }
 }
