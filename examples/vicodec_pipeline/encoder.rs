@@ -6,7 +6,7 @@ use v4l2::memory::{UserPtr, MMAP};
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
-use std::sync::mpsc::{self, channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -90,20 +90,6 @@ pub struct Encoder<S: EncoderState> {
 
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
-
-#[derive(Debug, Error)]
-enum ProcessError {
-    #[error("V4L2 error: {0}")]
-    V4L2Error(#[from] v4l2::Error),
-    #[error("send error")]
-    SendError,
-}
-
-impl<T> From<mpsc::SendError<T>> for ProcessError {
-    fn from(_e: mpsc::SendError<T>) -> Self {
-        ProcessError::SendError
-    }
-}
 
 impl Encoder<AwaitingCaptureFormat> {
     pub fn open(path: &Path) -> v4l2::Result<Self> {
