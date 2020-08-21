@@ -223,7 +223,6 @@ pub enum StopError {
     #[error("error sending stop command: {0}")]
     SendError(#[from] SendError),
 }
-pub type StopResult<T> = std::result::Result<T, StopError>;
 
 #[derive(Debug, Error)]
 pub enum SendError {
@@ -232,13 +231,12 @@ pub enum SendError {
     #[error("io error: {0}")]
     IoError(std::io::Error),
 }
-pub type SendResult<T> = std::result::Result<T, SendError>;
 
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
 impl<'a> Encoder<Encoding<'a>> {
-    fn send(&self, command: Command) -> SendResult<()> {
+    fn send(&self, command: Command) -> Result<(), SendError> {
         if self.state.send.send(command).is_err() {
             return Err(SendError::ChannelSendError);
         }
@@ -251,7 +249,7 @@ impl<'a> Encoder<Encoding<'a>> {
 
     /// Stop the encoder, and return the thread handle we can wait on if we are
     /// interested in getting it back.
-    pub fn stop(self) -> StopResult<Encoder<ReadyToEncode>> {
+    pub fn stop(self) -> Result<Encoder<ReadyToEncode>, StopError> {
         self.send(Command::Stop)?;
 
         let encoding_thread = self.state.handle.join().unwrap();
