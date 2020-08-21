@@ -31,65 +31,17 @@ enum Command {
 /// Trait implemented by all states of the encoder.
 pub trait EncoderState {}
 
-pub struct AwaitingCaptureFormat {
-    output_queue: Queue<direction::Output, states::QueueInit>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
-}
-impl EncoderState for AwaitingCaptureFormat {}
-
-pub struct AwaitingOutputFormat {
-    output_queue: Queue<direction::Output, states::QueueInit>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
-}
-impl EncoderState for AwaitingOutputFormat {}
-
-pub struct AwaitingBufferAllocation {
-    output_queue: Queue<direction::Output, states::QueueInit>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
-}
-impl EncoderState for AwaitingBufferAllocation {}
-
-pub struct ReadyToEncode {
-    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
-    capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
-}
-impl EncoderState for ReadyToEncode {}
-
-pub struct Encoding<'a> {
-    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
-    input_done_cb: Box<dyn Fn(&mut Vec<Vec<u8>>) + 'a>,
-
-    handle: JoinHandle<EncoderThread>,
-    send: Sender<Command>,
-    /// Inform the encoder thread that we have sent a message through `send`.
-    waker: Arc<Waker>,
-}
-impl<'a> EncoderState for Encoding<'a> {}
-
-#[derive(Debug, Error)]
-pub enum StopError {
-    #[error("error sending stop command: {0}")]
-    SendError(#[from] SendError),
-}
-pub type StopResult<T> = std::result::Result<T, StopError>;
-
-#[derive(Debug, Error)]
-pub enum SendError {
-    #[error("channel send error")]
-    ChannelSendError,
-    #[error("io error: {0}")]
-    IoError(std::io::Error),
-}
-pub type SendResult<T> = std::result::Result<T, SendError>;
-
 pub struct Encoder<S: EncoderState> {
     // Make sure to keep the device alive as long as we are.
     device: Arc<Device>,
     state: S,
 }
 
-// Safe because all Rcs are internal and never leaked outside of the struct.
-unsafe impl<S: EncoderState> Send for Encoder<S> {}
+pub struct AwaitingCaptureFormat {
+    output_queue: Queue<direction::Output, states::QueueInit>,
+    capture_queue: Queue<direction::Capture, states::QueueInit>,
+}
+impl EncoderState for AwaitingCaptureFormat {}
 
 impl Encoder<AwaitingCaptureFormat> {
     pub fn open(path: &Path) -> v4l2::Result<Self> {
@@ -145,6 +97,12 @@ impl Encoder<AwaitingCaptureFormat> {
     }
 }
 
+pub struct AwaitingOutputFormat {
+    output_queue: Queue<direction::Output, states::QueueInit>,
+    capture_queue: Queue<direction::Capture, states::QueueInit>,
+}
+impl EncoderState for AwaitingOutputFormat {}
+
 impl Encoder<AwaitingOutputFormat> {
     pub fn set_output_format(
         mut self,
@@ -162,6 +120,12 @@ impl Encoder<AwaitingOutputFormat> {
         })
     }
 }
+
+pub struct AwaitingBufferAllocation {
+    output_queue: Queue<direction::Output, states::QueueInit>,
+    capture_queue: Queue<direction::Capture, states::QueueInit>,
+}
+impl EncoderState for AwaitingBufferAllocation {}
 
 impl Encoder<AwaitingBufferAllocation> {
     pub fn allocate_buffers(
@@ -195,6 +159,12 @@ impl Encoder<AwaitingBufferAllocation> {
         self.state.capture_queue.get_format()
     }
 }
+
+pub struct ReadyToEncode {
+    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
+    capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
+}
+impl EncoderState for ReadyToEncode {}
 
 impl Encoder<ReadyToEncode> {
     pub fn start_encoding<'a>(
@@ -236,6 +206,36 @@ impl Encoder<ReadyToEncode> {
         })
     }
 }
+
+pub struct Encoding<'a> {
+    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
+    input_done_cb: Box<dyn Fn(&mut Vec<Vec<u8>>) + 'a>,
+
+    handle: JoinHandle<EncoderThread>,
+    send: Sender<Command>,
+    /// Inform the encoder thread that we have sent a message through `send`.
+    waker: Arc<Waker>,
+}
+impl<'a> EncoderState for Encoding<'a> {}
+
+#[derive(Debug, Error)]
+pub enum StopError {
+    #[error("error sending stop command: {0}")]
+    SendError(#[from] SendError),
+}
+pub type StopResult<T> = std::result::Result<T, StopError>;
+
+#[derive(Debug, Error)]
+pub enum SendError {
+    #[error("channel send error")]
+    ChannelSendError,
+    #[error("io error: {0}")]
+    IoError(std::io::Error),
+}
+pub type SendResult<T> = std::result::Result<T, SendError>;
+
+// Safe because all Rcs are internal and never leaked outside of the struct.
+unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
 impl<'a> Encoder<Encoding<'a>> {
     fn send(&self, command: Command) -> SendResult<()> {
