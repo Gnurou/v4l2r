@@ -1,6 +1,6 @@
 use v4l2::device::queue::{direction, dqbuf, qbuf::QBuffer, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
-use v4l2::ioctl::{DQBufError, FormatFlags};
+use v4l2::ioctl::{BufferFlags, DQBufError, FormatFlags};
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
@@ -391,12 +391,18 @@ impl EncoderThread {
                         if event.is_readable() {
                             // Get the encoded buffer
                             if let Ok(mut cap_buf) = self.capture_queue.dequeue() {
+                                let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
+
                                 let cap_waker = waker.clone();
                                 cap_buf.set_drop_callback(move |_dqbuf| {
                                     // Intentionally ignore the result here.
                                     let _ = cap_waker.wake();
                                 });
                                 (self.output_ready_cb)(cap_buf);
+
+                                if is_last {
+                                    break 'poll_loop;
+                                }
                             } else {
                                 eprintln!("Poll awaken but no capture buffer available. This is a driver bug.");
                             }
