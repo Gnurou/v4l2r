@@ -6,15 +6,17 @@ use v4l2::memory::{UserPtr, MMAP};
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::{
-    sync::{Arc, Barrier},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Barrier,
+    },
     thread::JoinHandle,
 };
 
 use direction::{Capture, Output};
-use mpsc::TryIter;
+use dqbuf::DQBuffer;
 use thiserror::Error;
 
 enum Command {
@@ -24,10 +26,6 @@ enum Command {
     /// stop monitoring the OUTPUT queue until this command is sent again.
     WatchOutputQueue(Box<dyn FnOnce() + Send>),
     Stop,
-}
-
-pub enum Message {
-    FrameEncoded(dqbuf::DQBuffer<Capture, MMAP>),
 }
 
 /// Trait implemented by all states of the encoder.
@@ -54,12 +52,6 @@ impl EncoderState for AwaitingBufferAllocation {}
 pub struct ReadyToEncode {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
-    // The number of encoding jobs currently in progress, i.e. the number of
-    // OUTPUT buffers we are currently using. The client increases it before
-    // submitting a job, and the encode decreases it when a job completes.
-    jobs_in_progress: Arc<AtomicUsize>,
-    // Number of times we have awaken from a poll, for stats purposes.
-    num_poll_wakeups: Arc<AtomicUsize>,
 }
 impl EncoderState for ReadyToEncode {}
 
@@ -71,9 +63,6 @@ pub struct Encoding<'a> {
     send: Sender<Command>,
     /// Inform the encoder thread that we have sent a message through `send`.
     waker: Arc<Waker>,
-    pub recv: Receiver<Message>,
-    jobs_in_progress: Arc<AtomicUsize>,
-    num_poll_wakeups: Arc<AtomicUsize>,
 }
 impl<'a> EncoderState for Encoding<'a> {}
 
@@ -81,8 +70,6 @@ impl<'a> EncoderState for Encoding<'a> {}
 pub enum StopError {
     #[error("error sending stop command: {0}")]
     SendError(#[from] SendError),
-    #[error("thread not responding")]
-    ThreadBlocked,
 }
 pub type StopResult<T> = std::result::Result<T, StopError>;
 
@@ -210,8 +197,6 @@ impl Encoder<AwaitingBufferAllocation> {
             state: ReadyToEncode {
                 output_queue,
                 capture_queue,
-                jobs_in_progress: Arc::new(AtomicUsize::new(0)),
-                num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
             },
         })
     }
@@ -229,9 +214,9 @@ impl Encoder<ReadyToEncode> {
     pub fn start_encoding<'a>(
         self,
         input_done_cb: impl Fn(&mut Vec<Vec<u8>>) + 'a,
+        output_ready_cb: impl FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
     ) -> v4l2::Result<Encoder<Encoding<'a>>> {
         let (cmd_send, cmd_recv) = channel();
-        let (msg_send, msg_recv) = channel();
 
         let poll = Poll::new().unwrap();
         let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
@@ -243,13 +228,14 @@ impl Encoder<ReadyToEncode> {
         let encoder_thread = EncoderThread {
             device: self.device.clone(),
             capture_queue: self.state.capture_queue,
-            num_poll_wakeups: self.state.num_poll_wakeups.clone(),
+            num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
             watch_output_cb: None,
+            output_ready_cb: Box::new(output_ready_cb),
         };
 
         let handle = std::thread::Builder::new()
             .name("V4L2 Encoder".into())
-            .spawn(move || encoder_thread.run(cmd_recv, msg_send, poll, thread_waker))
+            .spawn(move || encoder_thread.run(cmd_recv, poll, thread_waker))
             .unwrap();
 
         Ok(Encoder {
@@ -260,9 +246,6 @@ impl Encoder<ReadyToEncode> {
                 handle,
                 send: cmd_send,
                 waker,
-                recv: msg_recv,
-                jobs_in_progress: self.state.jobs_in_progress,
-                num_poll_wakeups: self.state.num_poll_wakeups,
             },
         })
     }
@@ -285,23 +268,6 @@ impl<'a> Encoder<Encoding<'a>> {
     pub fn stop(self) -> StopResult<Encoder<ReadyToEncode>> {
         self.send(Command::Stop)?;
 
-        // Wait for the thread to close the connection, to indicate it has
-        // acknowledged the stop command.
-        loop {
-            match self
-                .state
-                .recv
-                .recv_timeout(std::time::Duration::from_millis(1000))
-            {
-                Err(mpsc::RecvTimeoutError::Timeout) => return Err(StopError::ThreadBlocked),
-                Err(mpsc::RecvTimeoutError::Disconnected) => break,
-                Ok(_) => {
-                    // TODO get buffers that were pending, as well as those that
-                    // were streamed off and return then to the client.
-                }
-            }
-        }
-
         let encoding_thread = self.state.handle.join().unwrap();
 
         encoding_thread.capture_queue.streamoff().unwrap();
@@ -312,8 +278,6 @@ impl<'a> Encoder<Encoding<'a>> {
             state: ReadyToEncode {
                 output_queue: self.state.output_queue,
                 capture_queue: encoding_thread.capture_queue,
-                jobs_in_progress: self.state.jobs_in_progress,
-                num_poll_wakeups: encoding_thread.num_poll_wakeups,
             },
         })
     }
@@ -368,34 +332,21 @@ impl<'a> Encoder<Encoding<'a>> {
             self.try_get_buffer()
         }
     }
-
-    pub fn get_num_poll_wakeups(&self) -> usize {
-        self.state.num_poll_wakeups.load(Ordering::SeqCst)
-    }
-
-    pub fn try_iter(&self) -> TryIter<Message> {
-        self.state.recv.try_iter()
-    }
 }
 
 struct EncoderThread {
     device: Arc<Device>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
+    watch_output_cb: Option<Box<dyn FnOnce() + Send>>,
+    output_ready_cb: Box<dyn FnMut(DQBuffer<Capture, MMAP>) + Send>,
     // Number of times we have awaken from a poll, for stats purposes.
     num_poll_wakeups: Arc<AtomicUsize>,
-    watch_output_cb: Option<Box<dyn FnOnce() + Send>>,
 }
 
 const WAKER: Token = Token(1000);
 
 impl EncoderThread {
-    fn run(
-        mut self,
-        cmd_recv: Receiver<Command>,
-        msg_send: Sender<Message>,
-        mut poll: Poll,
-        waker: Arc<Waker>,
-    ) -> Self {
+    fn run(mut self, cmd_recv: Receiver<Command>, mut poll: Poll, waker: Arc<Waker>) -> Self {
         const DRIVER: Token = Token(1);
 
         let mut events = Events::with_capacity(4);
@@ -440,7 +391,6 @@ impl EncoderThread {
                                         msg_send.send(Message::InputBufferDone(buffer.plane_handles.remove(0)))?;
                                     }
                                     */
-                                    drop(msg_send);
                                     break 'poll_loop;
                                 }
                             }
@@ -462,7 +412,7 @@ impl EncoderThread {
                                     // Intentionally ignore the result here.
                                     let _ = cap_waker.wake();
                                 });
-                                msg_send.send(Message::FrameEncoded(cap_buf)).unwrap();
+                                (self.output_ready_cb)(cap_buf);
                             }
                         }
 

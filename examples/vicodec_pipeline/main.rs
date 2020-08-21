@@ -14,6 +14,10 @@ use std::{cell::RefCell, collections::VecDeque, time::Instant};
 use anyhow::ensure;
 
 use clap::{App, Arg};
+use v4l2::{
+    device::queue::{direction::Capture, dqbuf::DQBuffer},
+    memory::MMAP,
+};
 
 const FRAME_SIZE: (usize, usize) = (640, 480);
 
@@ -40,6 +44,7 @@ fn main() {
         .get_matches();
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
+
     let mut stop_after = match clap::value_t!(matches.value_of("num_frames"), usize) {
         Ok(v) => Some(v),
         Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
@@ -131,17 +136,44 @@ fn main() {
         free_buffers.borrow_mut().push_back(handles.remove(0));
     };
 
+    let mut total_size = 0usize;
+    let start_time = Instant::now();
+    let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, MMAP>| {
+        let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
+        total_size = total_size.wrapping_add(bytes_used);
+        let elapsed = start_time.elapsed();
+        let frame_nb = cap_dqbuf.data.sequence + 1;
+        let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
+        //let num_poll_wakeups = encoder.get_num_poll_wakeups();
+        print!(
+            "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
+            cap_dqbuf.data.sequence,
+            cap_dqbuf.data.index,
+            bytes_used,
+            total_size,
+            fps,
+        );
+        io::stdout().flush().unwrap();
+
+        if let Some(ref mut output) = output_file {
+            let mapping = cap_dqbuf
+                .get_plane_mapping(0)
+                .expect("Failed to map capture buffer");
+            output
+                .write_all(mapping.as_ref())
+                .expect("Error while writing output data");
+        }
+    };
+
     let encoder = encoder
         .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
         .expect("Failed to allocate encoder buffers");
     let encoder = encoder
-        .start_encoding(input_done_cb)
+        .start_encoding(input_done_cb, output_ready_cb)
         .expect("Failed to start encoder");
 
-    let mut total_size = 0usize;
-    let start_time = Instant::now();
     while !lets_quit.load(Ordering::SeqCst) {
-        if let Some(v4l2_buffer) = encoder.get_input_buffer() {
+        if let Some(v4l2_buffer) = encoder.get_buffer() {
             if let Some(mut buffer) = free_buffers.borrow_mut().pop_front() {
                 frame_gen
                     .next_frame(&mut buffer[..])
@@ -152,49 +184,17 @@ fn main() {
             }
         }
 
-        // TODO detect channel closing as a platform error.
-        for msg in encoder.try_iter() {
-            match msg {
-                Message::FrameEncoded(cap_dqbuf) => {
-                    let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
-                    total_size = total_size.wrapping_add(bytes_used);
-                    let frame_nb = cap_dqbuf.data.sequence + 1;
-                    let elapsed = start_time.elapsed();
-                    let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
-                    let num_poll_wakeups = encoder.get_num_poll_wakeups();
-                    print!(
-                        "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2} ppf: {:#2.2}",
-                        cap_dqbuf.data.sequence,
-                        cap_dqbuf.data.index,
-                        bytes_used,
-                        total_size,
-                        fps,
-                        num_poll_wakeups as f32 / frame_nb as f32,
-                    );
-                    io::stdout().flush().unwrap();
-
-                    if let Some(ref mut output) = output_file {
-                        let mapping = cap_dqbuf
-                            .get_plane_mapping(0)
-                            .expect("Failed to map capture buffer");
-                        output
-                            .write_all(mapping.as_ref())
-                            .expect("Error while writing output data");
-                    }
-
-                    if let Some(max_cpt) = &mut stop_after {
-                        if *max_cpt <= 1 {
-                            lets_quit.store(true, Ordering::SeqCst);
-                            break;
-                        }
-                        *max_cpt -= 1;
-                    }
-                }
+        if let Some(max_cpt) = &mut stop_after {
+            if *max_cpt <= 1 {
+                lets_quit.store(true, Ordering::SeqCst);
+                break;
             }
+            *max_cpt -= 1;
         }
     }
-    // Insert new line since we were overwriting the same one
-    println!();
 
     encoder.stop().unwrap();
+
+    // Insert new line since we were overwriting the same one
+    println!();
 }
