@@ -397,6 +397,8 @@ impl EncoderThread {
                                     let _ = cap_waker.wake();
                                 });
                                 (self.output_ready_cb)(cap_buf);
+                            } else {
+                                eprintln!("Poll awaken but no capture buffer available. This is a driver bug.");
                             }
                         }
 
