@@ -8,7 +8,6 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
-use std::result::Result;
 use thiserror::Error;
 
 /// For simple initialization of `PlaneData`.

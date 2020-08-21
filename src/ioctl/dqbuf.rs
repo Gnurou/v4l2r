@@ -5,7 +5,6 @@ use crate::QueueType;
 use nix::{self, errno::Errno};
 use std::mem;
 use std::os::unix::io::AsRawFd;
-use std::result::Result;
 use thiserror::Error;
 
 /// Implementors can receive the result from the `dqbuf` ioctl.
