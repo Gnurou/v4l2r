@@ -167,11 +167,14 @@ pub struct ReadyToEncode {
 impl EncoderState for ReadyToEncode {}
 
 impl Encoder<ReadyToEncode> {
-    pub fn start_encoding<'a>(
+    pub fn start_encoding<'a, OutputReadyCb>(
         self,
         input_done_cb: impl Fn(&mut Vec<Vec<u8>>) + 'a,
-        output_ready_cb: impl FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
-    ) -> v4l2::Result<Encoder<Encoding<'a>>> {
+        output_ready_cb: OutputReadyCb,
+    ) -> v4l2::Result<Encoder<Encoding<'a, OutputReadyCb>>>
+    where
+        OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
+    {
         let (cmd_send, cmd_recv) = channel();
 
         let poll = Poll::new().unwrap();
@@ -186,7 +189,7 @@ impl Encoder<ReadyToEncode> {
             capture_queue: self.state.capture_queue,
             num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
             watch_output_cb: None,
-            output_ready_cb: Box::new(output_ready_cb),
+            output_ready_cb,
         };
 
         let handle = std::thread::Builder::new()
@@ -207,16 +210,22 @@ impl Encoder<ReadyToEncode> {
     }
 }
 
-pub struct Encoding<'a> {
+pub struct Encoding<'a, OutputReadyCb>
+where
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+{
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     input_done_cb: Box<dyn Fn(&mut Vec<Vec<u8>>) + 'a>,
 
-    handle: JoinHandle<EncoderThread>,
+    handle: JoinHandle<EncoderThread<OutputReadyCb>>,
     send: Sender<Command>,
     /// Inform the encoder thread that we have sent a message through `send`.
     waker: Arc<Waker>,
 }
-impl<'a> EncoderState for Encoding<'a> {}
+impl<'a, OutputReadyCb> EncoderState for Encoding<'a, OutputReadyCb> where
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send
+{
+}
 
 #[derive(Debug, Error)]
 pub enum StopError {
@@ -235,7 +244,10 @@ pub enum SendError {
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
-impl<'a> Encoder<Encoding<'a>> {
+impl<'a, OutputReadyCb> Encoder<Encoding<'a, OutputReadyCb>>
+where
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+{
     fn send(&self, command: Command) -> Result<(), SendError> {
         if self.state.send.send(command).is_err() {
             return Err(SendError::ChannelSendError);
@@ -318,18 +330,24 @@ impl<'a> Encoder<Encoding<'a>> {
     }
 }
 
-struct EncoderThread {
+struct EncoderThread<OutputReadyCb>
+where
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+{
     device: Arc<Device>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
     watch_output_cb: Option<Box<dyn FnOnce() + Send>>,
-    output_ready_cb: Box<dyn FnMut(DQBuffer<Capture, MMAP>) + Send>,
+    output_ready_cb: OutputReadyCb,
     // Number of times we have awaken from a poll, for stats purposes.
     num_poll_wakeups: Arc<AtomicUsize>,
 }
 
 const WAKER: Token = Token(1000);
 
-impl EncoderThread {
+impl<OutputReadyCb> EncoderThread<OutputReadyCb>
+where
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+{
     fn run(mut self, cmd_recv: Receiver<Command>, mut poll: Poll, waker: Arc<Waker>) -> Self {
         const DRIVER: Token = Token(1);
 
