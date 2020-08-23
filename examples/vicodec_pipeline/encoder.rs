@@ -167,12 +167,13 @@ pub struct ReadyToEncode {
 impl EncoderState for ReadyToEncode {}
 
 impl Encoder<ReadyToEncode> {
-    pub fn start_encoding<'a, OutputReadyCb>(
+    pub fn start_encoding<InputDoneCb, OutputReadyCb>(
         self,
-        input_done_cb: impl Fn(&mut Vec<Vec<u8>>) + 'a,
+        input_done_cb: InputDoneCb,
         output_ready_cb: OutputReadyCb,
-    ) -> v4l2::Result<Encoder<Encoding<'a, OutputReadyCb>>>
+    ) -> v4l2::Result<Encoder<Encoding<InputDoneCb, OutputReadyCb>>>
     where
+        InputDoneCb: Fn(&mut Vec<Vec<u8>>),
         OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
     {
         let (cmd_send, cmd_recv) = channel();
@@ -201,7 +202,7 @@ impl Encoder<ReadyToEncode> {
             device: self.device,
             state: Encoding {
                 output_queue: self.state.output_queue,
-                input_done_cb: Box::new(input_done_cb),
+                input_done_cb,
                 handle,
                 send: cmd_send,
                 waker,
@@ -210,20 +211,23 @@ impl Encoder<ReadyToEncode> {
     }
 }
 
-pub struct Encoding<'a, OutputReadyCb>
+pub struct Encoding<InputDoneCb, OutputReadyCb>
 where
+    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
-    input_done_cb: Box<dyn Fn(&mut Vec<Vec<u8>>) + 'a>,
+    input_done_cb: InputDoneCb,
 
     handle: JoinHandle<EncoderThread<OutputReadyCb>>,
     send: Sender<Command>,
     /// Inform the encoder thread that we have sent a message through `send`.
     waker: Arc<Waker>,
 }
-impl<'a, OutputReadyCb> EncoderState for Encoding<'a, OutputReadyCb> where
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send
+impl<InputDoneCb, OutputReadyCb> EncoderState for Encoding<InputDoneCb, OutputReadyCb>
+where
+    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
 }
 
@@ -244,8 +248,9 @@ pub enum SendError {
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
-impl<'a, OutputReadyCb> Encoder<Encoding<'a, OutputReadyCb>>
+impl<InputDoneCb, OutputReadyCb> Encoder<Encoding<InputDoneCb, OutputReadyCb>>
 where
+    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     fn send(&self, command: Command) -> Result<(), SendError> {
@@ -285,7 +290,7 @@ where
         while output_queue.num_queued_buffers() >= (output_queue.num_buffers() + 1) / 2 {
             match output_queue.dequeue() {
                 Ok(mut buf) => {
-                    (*self.state.input_done_cb)(&mut buf.plane_handles);
+                    (self.state.input_done_cb)(&mut buf.plane_handles);
                 }
                 Err(DQBufError::NotReady) => break,
                 // TODO this should return a Result<>.
