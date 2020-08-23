@@ -40,13 +40,13 @@ pub enum QBufError {
     TooManyPlanes,
     #[error("Data offset specified while using the single-planar API")]
     DataOffsetNotSupported,
-    #[error("Driver error: {0}")]
-    DriverError(nix::Error),
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
 }
 
 impl From<nix::Error> for QBufError {
     fn from(error: nix::Error) -> Self {
-        Self::DriverError(error)
+        Self::IoctlError(error)
     }
 }
 

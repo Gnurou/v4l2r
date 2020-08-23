@@ -97,8 +97,8 @@ pub enum DQBufError {
     NotReady,
     // TODO add an error type for when we dequeue a buffer with the ERROR flag set?
     // This would force the user to handle these cases.
-    #[error("Driver error: {0}")]
-    DriverError(nix::Error),
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
 }
 
 impl From<nix::Error> for DQBufError {
@@ -106,7 +106,7 @@ impl From<nix::Error> for DQBufError {
         match error {
             nix::Error::Sys(Errno::EAGAIN) => Self::NotReady,
             nix::Error::Sys(Errno::EPIPE) => Self::EOS,
-            error => Self::DriverError(error),
+            error => Self::IoctlError(error),
         }
     }
 }
