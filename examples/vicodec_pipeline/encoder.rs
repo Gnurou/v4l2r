@@ -1,4 +1,7 @@
-use v4l2::device::queue::{direction, dqbuf, qbuf::QBuffer, states, FormatBuilder, Queue};
+use v4l2::device::queue::{
+    direction, dqbuf, qbuf::QBuffer, states, CreateQueueError, FormatBuilder, Queue,
+    RequestBuffersError,
+};
 use v4l2::device::{Device, DeviceConfig, DeviceOpenError};
 use v4l2::ioctl::{BufferFlags, DQBufError, FormatFlags, GFmtError};
 use v4l2::memory::{UserPtr, MMAP};
@@ -48,7 +51,7 @@ pub enum EncoderOpenError {
     #[error("Error while opening device")]
     DeviceOpenError(#[from] DeviceOpenError),
     #[error("Error while creating queue")]
-    CreateQueueError(#[from] v4l2::Error),
+    CreateQueueError(#[from] CreateQueueError),
 }
 
 impl Encoder<AwaitingCaptureFormat> {
@@ -140,7 +143,7 @@ impl Encoder<AwaitingBufferAllocation> {
         self,
         num_output: usize,
         num_capture: usize,
-    ) -> v4l2::Result<Encoder<ReadyToEncode>> {
+    ) -> Result<Encoder<ReadyToEncode>, RequestBuffersError> {
         let output_queue = self
             .state
             .output_queue

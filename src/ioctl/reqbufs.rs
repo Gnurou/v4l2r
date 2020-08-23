@@ -2,10 +2,10 @@
 use crate::bindings;
 use crate::memory::MemoryType;
 use crate::QueueType;
-use crate::Result;
 use bitflags::bitflags;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use thiserror::Error;
 
 /// Implementors can receive the result from the `reqbufs` ioctl.
 pub trait ReqBufs {
@@ -65,20 +65,31 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_reqbufs, b'V', 8, v4l2_requestbuffers);
 }
 
+#[derive(Debug, Error)]
+pub enum ReqbufsError {
+    #[error("Invalid buffer or memory type requested")]
+    InvalidBufferType,
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
+
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
 pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
     fd: &F,
     queue: QueueType,
     memory: MemoryType,
     count: u32,
-) -> Result<T> {
+) -> Result<T, ReqbufsError> {
     let mut reqbufs = bindings::v4l2_requestbuffers {
         count,
         type_: queue as u32,
         memory: memory as u32,
         ..unsafe { mem::zeroed() }
     };
-    unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) }?;
 
-    Ok(T::from(reqbufs))
+    match unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) } {
+        Ok(_) => Ok(T::from(reqbufs)),
+        Err(nix::Error::Sys(nix::errno::Errno::EINVAL)) => Err(ReqbufsError::InvalidBufferType),
+        Err(e) => Err(ReqbufsError::IoctlError(e)),
+    }
 }

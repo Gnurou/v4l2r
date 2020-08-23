@@ -15,6 +15,7 @@ use states::BufferState;
 use states::*;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::{Arc, Mutex, Weak};
+use thiserror::Error;
 
 /// Contains the handles (pointers to user memory or DMABUFs) that are kept
 /// when a buffer is processed by the kernel and returned to the user upon
@@ -159,6 +160,22 @@ impl<'a> FormatBuilder<'a> {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum CreateQueueError {
+    #[error("Queue is already in use")]
+    AlreadyBorrowed,
+    #[error("Error while querying queue capabilities")]
+    ReqbufsError(#[from] ioctl::ReqbufsError),
+}
+
+#[derive(Debug, Error)]
+pub enum RequestBuffersError {
+    #[error("Error while requesting buffers")]
+    ReqbufsError(#[from] ioctl::ReqbufsError),
+    #[error("Error while querying buffer")]
+    QueryBufferError(#[from] crate::Error),
+}
+
 impl<D: Direction> Queue<D, QueueInit> {
     /// Create a queue for type `queue_type` on `device`. A queue of a specific type
     /// can be requested only once.
@@ -166,11 +183,14 @@ impl<D: Direction> Queue<D, QueueInit> {
     /// Not all devices support all kinds of queue. To test whether the queue is supported,
     /// a REQBUFS(0) is issued on the device. If it is not successful, the device is
     /// deemed to not support this kind of queue and this method will fail.
-    fn create(device: Arc<Device>, queue_type: QueueType) -> crate::Result<Queue<D, QueueInit>> {
+    fn create(
+        device: Arc<Device>,
+        queue_type: QueueType,
+    ) -> Result<Queue<D, QueueInit>, CreateQueueError> {
         let mut used_queues = device.used_queues.lock().unwrap();
 
         if used_queues.contains(&queue_type) {
-            return Err(crate::Error::AlreadyBorrowed);
+            return Err(CreateQueueError::AlreadyBorrowed);
         }
 
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
@@ -198,7 +218,7 @@ impl<D: Direction> Queue<D, QueueInit> {
     pub fn request_buffers<M: Memory>(
         self,
         count: u32,
-    ) -> crate::Result<Queue<D, BuffersAllocated<M>>> {
+    ) -> Result<Queue<D, BuffersAllocated<M>>, RequestBuffersError> {
         let type_ = self.inner.type_;
         let num_buffers: usize =
             ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
@@ -236,7 +256,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_queue(device: Arc<Device>) -> crate::Result<Self> {
+    pub fn get_output_queue(device: Arc<Device>) -> Result<Self, CreateQueueError> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutput)
     }
 
@@ -244,7 +264,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_mplane_queue(device: Arc<Device>) -> crate::Result<Self> {
+    pub fn get_output_mplane_queue(device: Arc<Device>) -> Result<Self, CreateQueueError> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutputMplane)
     }
 }
@@ -254,7 +274,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_queue(device: Arc<Device>) -> crate::Result<Self> {
+    pub fn get_capture_queue(device: Arc<Device>) -> Result<Self, CreateQueueError> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCapture)
     }
 
@@ -262,7 +282,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_mplane_queue(device: Arc<Device>) -> crate::Result<Self> {
+    pub fn get_capture_mplane_queue(device: Arc<Device>) -> Result<Self, CreateQueueError> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCaptureMplane)
     }
 }
@@ -422,7 +442,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     }
 
     /// Release all the allocated buffers and returns the queue to the `Init` state.
-    pub fn free_buffers(self) -> crate::Result<Queue<D, QueueInit>> {
+    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError> {
         let type_ = self.inner.type_;
         ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
 
