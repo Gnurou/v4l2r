@@ -8,6 +8,7 @@
 //! although the return types look similar to the kernel structures, they are
 //! not strictly identical.
 mod dqbuf;
+mod encoder_cmd;
 mod enum_fmt;
 mod g_fmt;
 mod mmap;
@@ -18,6 +19,7 @@ mod reqbufs;
 mod streamon;
 
 pub use dqbuf::*;
+pub use encoder_cmd::*;
 pub use enum_fmt::*;
 pub use g_fmt::*;
 pub use mmap::*;
