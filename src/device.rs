@@ -20,11 +20,11 @@
 use super::ioctl;
 use super::ioctl::Capability;
 use super::QueueType;
-use super::Result;
 use std::collections::BTreeSet;
 use std::fs::File;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::{path::Path, sync::Mutex};
+use thiserror::Error;
 
 pub mod queue;
 
@@ -53,8 +53,16 @@ pub struct Device {
     used_queues: Mutex<BTreeSet<QueueType>>,
 }
 
+#[derive(Debug, Error)]
+pub enum DeviceOpenError {
+    #[error("Error while opening device")]
+    OpenError(#[from] nix::Error),
+    #[error("Error while querying capabilities")]
+    QueryCapError(#[from] ioctl::QueryCapError),
+}
+
 impl Device {
-    fn new(fd: File) -> Result<Self> {
+    fn new(fd: File) -> Result<Self, ioctl::QueryCapError> {
         Ok(Device {
             capability: ioctl::querycap(&fd)?,
             fd,
@@ -62,7 +70,7 @@ impl Device {
         })
     }
 
-    pub fn open(path: &Path, config: DeviceConfig) -> Result<Self> {
+    pub fn open(path: &Path, config: DeviceConfig) -> Result<Self, DeviceOpenError> {
         use nix::fcntl::{open, OFlag};
         use nix::sys::stat::Mode;
 
@@ -77,7 +85,7 @@ impl Device {
         let fd = open(path, flags, Mode::empty())?;
 
         // Safe because we are constructing a file from Fd we just opened.
-        Device::new(unsafe { File::from_raw_fd(fd) })
+        Ok(Device::new(unsafe { File::from_raw_fd(fd) })?)
     }
 }
 

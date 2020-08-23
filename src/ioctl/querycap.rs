@@ -1,11 +1,11 @@
 //! Safe wrapper for the `VIDIOC_QUERYCAP` ioctl.
 use super::string_from_cstr;
 use crate::bindings;
-use crate::Result;
 use bitflags::bitflags;
 use std::fmt;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use thiserror::Error;
 
 /// Implementors can receive the result from the `querycap` ioctl.
 pub trait QueryCap {
@@ -101,10 +101,18 @@ mod ioctl {
     nix::ioctl_read!(vidioc_querycap, b'V', 0, v4l2_capability);
 }
 
-/// Safe wrapper around the `VIDIOC_QUERYCAP` ioctl.
-pub fn querycap<T: QueryCap>(fd: &impl AsRawFd) -> Result<T> {
-    let mut qcap: bindings::v4l2_capability = unsafe { mem::zeroed() };
-    unsafe { ioctl::vidioc_querycap(fd.as_raw_fd(), &mut qcap) }?;
+#[derive(Debug, Error)]
+pub enum QueryCapError {
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
 
-    Ok(T::from(qcap))
+/// Safe wrapper around the `VIDIOC_QUERYCAP` ioctl.
+pub fn querycap<T: QueryCap>(fd: &impl AsRawFd) -> Result<T, QueryCapError> {
+    let mut qcap: bindings::v4l2_capability = unsafe { mem::zeroed() };
+
+    match unsafe { ioctl::vidioc_querycap(fd.as_raw_fd(), &mut qcap) } {
+        Ok(_) => Ok(T::from(qcap)),
+        Err(e) => Err(QueryCapError::IoctlError(e)),
+    }
 }

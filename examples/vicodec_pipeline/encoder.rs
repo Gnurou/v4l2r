@@ -1,5 +1,5 @@
 use v4l2::device::queue::{direction, dqbuf, qbuf::QBuffer, states, FormatBuilder, Queue};
-use v4l2::device::{Device, DeviceConfig};
+use v4l2::device::{Device, DeviceConfig, DeviceOpenError};
 use v4l2::ioctl::{BufferFlags, DQBufError, FormatFlags, GFmtError};
 use v4l2::memory::{UserPtr, MMAP};
 
@@ -43,8 +43,16 @@ pub struct AwaitingCaptureFormat {
 }
 impl EncoderState for AwaitingCaptureFormat {}
 
+#[derive(Debug, Error)]
+pub enum EncoderOpenError {
+    #[error("Error while opening device")]
+    DeviceOpenError(#[from] DeviceOpenError),
+    #[error("Error while creating queue")]
+    CreateQueueError(#[from] v4l2::Error),
+}
+
 impl Encoder<AwaitingCaptureFormat> {
-    pub fn open(path: &Path) -> v4l2::Result<Self> {
+    pub fn open(path: &Path) -> Result<Self, EncoderOpenError> {
         let config = DeviceConfig::new().non_blocking_dqbuf();
         let device = Device::open(path, config)?;
         let device = Arc::new(device);
