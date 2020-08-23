@@ -95,8 +95,6 @@ pub enum DQBufError {
     EOS,
     #[error("No buffer ready for dequeue")]
     NotReady,
-    // TODO add an error type for when we dequeue a buffer with the ERROR flag set?
-    // This would force the user to handle these cases.
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(nix::Error),
 }
@@ -118,15 +116,17 @@ pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T, DQBufE
         ..unsafe { mem::zeroed() }
     };
 
-    if is_multi_planar(queue) {
+    let dequeued_buffer = if is_multi_planar(queue) {
         let mut plane_data: PlaneData = Default::default();
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data)))
+        T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))
     } else {
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, None))
-    }
+        T::from_v4l2_buffer(&v4l2_buf, None)
+    };
+
+    Ok(dequeued_buffer)
 }
