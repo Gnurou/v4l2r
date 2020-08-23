@@ -10,10 +10,10 @@ pub use userptr::*;
 
 use crate::{
     bindings,
-    device::Device,
     ioctl::{PlaneMapping, QueryBufPlane},
 };
 use std::fmt::Debug;
+use std::os::unix::io::AsRawFd;
 
 #[derive(Debug, Clone, Copy)]
 pub enum MemoryType {
@@ -35,17 +35,11 @@ pub trait PlaneHandle: Sized + Debug {
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane);
 }
 
-// ANYTHING BELOW THIS BELONGS TO device/ ?
-// Upper part into ioctl/memory.rs, lower into device/memory.rs? Or even module itself?
-
 pub trait Mappable: Sized {
-    fn map(device: &Device, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
+    fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
 }
 
-/// Trait for a memory type to be used with the `device` module. There are three
-/// memory types: `MMAP`, `UserPtr`, and `DMABuf`, which all implement this
-/// trait in order to abstract their differences. Methods and structures dealing
-/// with buffers are also generally typed after this trait.
+/// Trait describing a memory type that can be used to back V4L2 buffers.
 pub trait Memory {
     // A type that can be applied into a v4l2_plane or v4l2_buffer.
     type HandleType: PlaneHandle;
