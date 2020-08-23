@@ -1,20 +1,29 @@
 //! Safe wrapper for the `VIDIOC_(G|S|TRY)_FMT` ioctls.
 use crate::bindings;
-use crate::{Error, Result};
 use crate::{Format, PixelFormat, PlanePixFormat, QueueType};
 use std::convert::{From, Into, TryFrom, TryInto};
 use std::default::Default;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 
+use thiserror::Error;
+
+#[derive(Debug, Error, PartialEq)]
+pub enum FormatConversionError {
+    #[error("Too many planes specified")]
+    TooManyPlanes,
+    #[error("Invalid buffer type requested")]
+    InvalidBufferType,
+}
+
 /// Implementors can receive the result from the `g_fmt`, `s_fmt` and `try_fmt`
 /// ioctls.
-pub trait Fmt: TryFrom<bindings::v4l2_format, Error = Error> {}
+pub trait Fmt: TryFrom<bindings::v4l2_format, Error = FormatConversionError> {}
 
 impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
-    type Error = Error;
+    type Error = FormatConversionError;
 
-    fn try_from((format, queue): (Format, QueueType)) -> Result<Self> {
+    fn try_from((format, queue): (Format, QueueType)) -> Result<Self, Self::Error> {
         Ok(bindings::v4l2_format {
             type_: queue as u32,
             fmt: match queue {
@@ -22,7 +31,7 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
                     bindings::v4l2_format__bindgen_ty_1 {
                         pix_mp: {
                             if format.plane_fmt.len() > bindings::VIDEO_MAX_PLANES as usize {
-                                return Err(Error::TooManyPlanes);
+                                return Err(Self::Error::TooManyPlanes);
                             }
 
                             let mut pix_mp = bindings::v4l2_pix_format_mplane {
@@ -49,7 +58,7 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
                 _ => bindings::v4l2_format__bindgen_ty_1 {
                     pix: {
                         if format.plane_fmt.len() > 1 {
-                            return Err(Error::TooManyPlanes);
+                            return Err(Self::Error::TooManyPlanes);
                         }
 
                         let (bytesperline, sizeimage) = if !format.plane_fmt.is_empty() {
@@ -77,8 +86,9 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
 }
 
 impl TryFrom<bindings::v4l2_format> for Format {
-    type Error = Error;
-    fn try_from(fmt: bindings::v4l2_format) -> Result<Self> {
+    type Error = FormatConversionError;
+
+    fn try_from(fmt: bindings::v4l2_format) -> Result<Self, Self::Error> {
         match fmt.type_ {
             bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE
             | bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT => {
@@ -99,7 +109,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
 
                 // Can only happen if we passed a malformed v4l2_format.
                 if pix_mp.num_planes as usize > pix_mp.plane_fmt.len() {
-                    return Err(Error::TooManyPlanes);
+                    return Err(Self::Error::TooManyPlanes);
                 }
 
                 let mut plane_fmt = Vec::new();
@@ -118,7 +128,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
                     plane_fmt,
                 })
             }
-            _ => Err(Error::InvalidBufferType),
+            _ => Err(Self::Error::InvalidBufferType),
         }
     }
 }
@@ -153,34 +163,89 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_try_fmt, b'V', 64, v4l2_format);
 }
 
+#[derive(Debug, Error)]
+pub enum GFmtError {
+    #[error("Error while converting from V4L2 format")]
+    FromV4L2FormatConversionError(#[from] FormatConversionError),
+    #[error("Invalid buffer type requested")]
+    InvalidBufferType,
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
+
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
-pub fn g_fmt<T: Fmt, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T> {
+pub fn g_fmt<T: Fmt, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T, GFmtError> {
     let mut fmt = bindings::v4l2_format {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };
 
-    unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) }?;
+    match unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) } {
+        Ok(_) => Ok(fmt.try_into()?),
+        Err(nix::Error::Sys(nix::errno::Errno::EINVAL)) => Err(GFmtError::InvalidBufferType),
+        Err(e) => Err(GFmtError::IoctlError(e)),
+    }
+}
 
-    fmt.try_into()
+#[derive(Debug, Error)]
+pub enum SFmtError {
+    #[error("Error while converting from V4L2 format")]
+    FromV4L2FormatConversionError(#[from] FormatConversionError),
+    #[error("Error while converting to V4L2 format")]
+    ToV4L2FormatConversionError(FormatConversionError),
+    #[error("Invalid buffer type requested")]
+    InvalidBufferType,
+    #[error("Device currently busy")]
+    DeviceBusy,
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
 }
 
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
-pub fn s_fmt<T: Fmt, F: AsRawFd>(fd: &mut F, queue: QueueType, fmt: Format) -> Result<T> {
-    let mut fmt: bindings::v4l2_format = (fmt, queue).try_into()?;
+pub fn s_fmt<T: Fmt, F: AsRawFd>(
+    fd: &mut F,
+    queue: QueueType,
+    fmt: Format,
+) -> Result<T, SFmtError> {
+    let mut fmt: bindings::v4l2_format = (fmt, queue)
+        .try_into()
+        .map_err(SFmtError::ToV4L2FormatConversionError)?;
 
-    unsafe { ioctl::vidioc_s_fmt(fd.as_raw_fd(), &mut fmt) }?;
+    match unsafe { ioctl::vidioc_s_fmt(fd.as_raw_fd(), &mut fmt) } {
+        Ok(_) => Ok(fmt.try_into()?),
+        Err(nix::Error::Sys(nix::errno::Errno::EINVAL)) => Err(SFmtError::InvalidBufferType),
+        Err(nix::Error::Sys(nix::errno::Errno::EBUSY)) => Err(SFmtError::DeviceBusy),
+        Err(e) => Err(SFmtError::IoctlError(e)),
+    }
+}
 
-    fmt.try_into()
+#[derive(Debug, Error)]
+pub enum TryFmtError {
+    #[error("Error while converting from V4L2 format")]
+    FromV4L2FormatConversionError(#[from] FormatConversionError),
+    #[error("Error while converting to V4L2 format")]
+    ToV4L2FormatConversionError(FormatConversionError),
+    #[error("Invalid buffer type requested")]
+    InvalidBufferType,
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
-pub fn try_fmt<T: Fmt, F: AsRawFd>(fd: &F, queue: QueueType, fmt: Format) -> Result<T> {
-    let mut fmt: bindings::v4l2_format = (fmt, queue).try_into()?;
+pub fn try_fmt<T: Fmt, F: AsRawFd>(
+    fd: &F,
+    queue: QueueType,
+    fmt: Format,
+) -> Result<T, TryFmtError> {
+    let mut fmt: bindings::v4l2_format = (fmt, queue)
+        .try_into()
+        .map_err(TryFmtError::ToV4L2FormatConversionError)?;
 
-    unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) }?;
-
-    fmt.try_into()
+    match unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) } {
+        Ok(_) => Ok(fmt.try_into()?),
+        Err(nix::Error::Sys(nix::errno::Errno::EINVAL)) => Err(TryFmtError::InvalidBufferType),
+        Err(e) => Err(TryFmtError::IoctlError(e)),
+    }
 }
 
 #[cfg(test)]
@@ -266,7 +331,7 @@ mod test {
         };
         assert_eq!(
             TryInto::<bindings::v4l2_format>::try_into((mplane, QueueType::VideoCapture)).err(),
-            Some(Error::TooManyPlanes)
+            Some(FormatConversionError::TooManyPlanes)
         );
     }
 }

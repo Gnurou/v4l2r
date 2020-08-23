@@ -1,6 +1,6 @@
 use v4l2::device::queue::{direction, dqbuf, qbuf::QBuffer, states, FormatBuilder, Queue};
 use v4l2::device::{Device, DeviceConfig};
-use v4l2::ioctl::{BufferFlags, DQBufError, FormatFlags};
+use v4l2::ioctl::{BufferFlags, DQBufError, FormatFlags, GFmtError};
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
@@ -151,11 +151,11 @@ impl Encoder<AwaitingBufferAllocation> {
         })
     }
 
-    pub fn get_output_format(&self) -> v4l2::Result<v4l2::Format> {
+    pub fn get_output_format(&self) -> Result<v4l2::Format, GFmtError> {
         self.state.output_queue.get_format()
     }
 
-    pub fn get_capture_format(&self) -> v4l2::Result<v4l2::Format> {
+    pub fn get_capture_format(&self) -> Result<v4l2::Format, GFmtError> {
         self.state.capture_queue.get_format()
     }
 }

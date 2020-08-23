@@ -6,10 +6,10 @@ pub mod states;
 use super::Device;
 use crate::ioctl;
 use crate::memory::*;
-use crate::*;
+use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
-use ioctl::{DQBufError, QueryBuffer};
+use ioctl::{DQBufError, GFmtError, QueryBuffer, SFmtError, TryFmtError};
 use qbuf::*;
 use states::BufferState;
 use states::*;
@@ -75,14 +75,14 @@ where
         self.inner.type_
     }
 
-    pub fn get_format(&self) -> Result<Format> {
+    pub fn get_format(&self) -> Result<Format, GFmtError> {
         ioctl::g_fmt(&self.inner, self.inner.type_)
     }
 
     /// This method can invalidate any current format iterator, hence it requires
     /// the queue to be mutable. This way of doing is not perfect though, as setting
     /// the format on one queue can change the options available on another.
-    pub fn set_format(&mut self, format: Format) -> Result<Format> {
+    pub fn set_format(&mut self, format: Format) -> Result<Format, SFmtError> {
         let type_ = self.inner.type_;
         ioctl::s_fmt(&mut self.inner, type_, format)
     }
@@ -90,14 +90,14 @@ where
     /// Performs exactly as `set_format`, but does not actually apply `format`.
     /// Useful to check what modifications need to be done to a format before it
     /// can be used.
-    pub fn try_format(&self, format: Format) -> Result<Format> {
+    pub fn try_format(&self, format: Format) -> Result<Format, TryFmtError> {
         ioctl::try_fmt(&self.inner, self.inner.type_, format)
     }
 
     /// Returns a `FormatBuilder` which is set to the currently active format
     /// and can be modified and eventually applied. The `FormatBuilder` holds
     /// a mutable reference to this `Queue`.
-    pub fn change_format<'a>(&'a mut self) -> Result<FormatBuilder<'a>> {
+    pub fn change_format(&mut self) -> Result<FormatBuilder, GFmtError> {
         FormatBuilder::new(&mut self.inner)
     }
 
@@ -115,7 +115,7 @@ pub struct FormatBuilder<'a> {
 }
 
 impl<'a> FormatBuilder<'a> {
-    fn new(queue: &'a mut QueueBase) -> Result<Self> {
+    fn new(queue: &'a mut QueueBase) -> Result<Self, GFmtError> {
         let format = ioctl::g_fmt(queue, queue.type_)?;
         Ok(Self { queue, format })
     }
@@ -141,7 +141,7 @@ impl<'a> FormatBuilder<'a> {
     /// Apply the format built so far. The kernel will adjust the format to fit
     /// the driver's capabilities if needed, and the format actually applied will
     /// be returned.
-    pub fn apply(self) -> Result<Format> {
+    pub fn apply(self) -> Result<Format, SFmtError> {
         ioctl::s_fmt(self.queue, self.queue.type_, self.format)
     }
 
@@ -151,7 +151,7 @@ impl<'a> FormatBuilder<'a> {
     ///
     /// Calling `apply()` right after this method is guaranteed to successfully
     /// apply the format without further change.
-    pub fn try_apply(&mut self) -> Result<()> {
+    pub fn try_apply(&mut self) -> Result<(), TryFmtError> {
         let new_format = ioctl::try_fmt(self.queue, self.queue.type_, self.format.clone())?;
 
         self.format = new_format;
@@ -166,11 +166,11 @@ impl<D: Direction> Queue<D, QueueInit> {
     /// Not all devices support all kinds of queue. To test whether the queue is supported,
     /// a REQBUFS(0) is issued on the device. If it is not successful, the device is
     /// deemed to not support this kind of queue and this method will fail.
-    fn create(device: Arc<Device>, queue_type: QueueType) -> Result<Queue<D, QueueInit>> {
+    fn create(device: Arc<Device>, queue_type: QueueType) -> crate::Result<Queue<D, QueueInit>> {
         let mut used_queues = device.used_queues.lock().unwrap();
 
         if used_queues.contains(&queue_type) {
-            return Err(Error::AlreadyBorrowed);
+            return Err(crate::Error::AlreadyBorrowed);
         }
 
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
@@ -195,7 +195,10 @@ impl<D: Direction> Queue<D, QueueInit> {
 
     /// Allocate `count` buffers for this queue and make it transition to the
     /// `BuffersAllocated` state.
-    pub fn request_buffers<M: Memory>(self, count: u32) -> Result<Queue<D, BuffersAllocated<M>>> {
+    pub fn request_buffers<M: Memory>(
+        self,
+        count: u32,
+    ) -> crate::Result<Queue<D, BuffersAllocated<M>>> {
         let type_ = self.inner.type_;
         let num_buffers: usize =
             ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
@@ -233,7 +236,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_queue(device: Arc<Device>) -> Result<Self> {
+    pub fn get_output_queue(device: Arc<Device>) -> crate::Result<Self> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutput)
     }
 
@@ -241,7 +244,7 @@ impl Queue<Output, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_output_mplane_queue(device: Arc<Device>) -> Result<Self> {
+    pub fn get_output_mplane_queue(device: Arc<Device>) -> crate::Result<Self> {
         Queue::<Output, QueueInit>::create(device, QueueType::VideoOutputMplane)
     }
 }
@@ -251,7 +254,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_queue(device: Arc<Device>) -> Result<Self> {
+    pub fn get_capture_queue(device: Arc<Device>) -> crate::Result<Self> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCapture)
     }
 
@@ -259,7 +262,7 @@ impl Queue<Capture, QueueInit> {
     ///
     /// This method will fail if the queue has already been obtained and has not
     /// yet been released.
-    pub fn get_capture_mplane_queue(device: Arc<Device>) -> Result<Self> {
+    pub fn get_capture_mplane_queue(device: Arc<Device>) -> crate::Result<Self> {
         Queue::<Capture, QueueInit>::create(device, QueueType::VideoCaptureMplane)
     }
 }
@@ -285,7 +288,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.num_queued_buffers.get()
     }
 
-    pub fn streamon(&self) -> Result<()> {
+    pub fn streamon(&self) -> crate::Result<()> {
         let type_ = self.inner.type_;
         ioctl::streamon(&self.inner, type_)
     }
@@ -295,7 +298,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// If successful, then all the buffers that are queued but have not been
     /// dequeued yet return to the `Free` state. Buffer references obtained via
     /// `dequeue()` remain valid.
-    pub fn streamoff(&self) -> Result<Vec<CanceledBuffer<M>>> {
+    pub fn streamoff(&self) -> crate::Result<Vec<CanceledBuffer<M>>> {
         let type_ = self.inner.type_;
         ioctl::streamoff(&self.inner, type_)?;
 
@@ -337,18 +340,18 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     }
 
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
-    pub fn get_buffer<'a>(&'a self, index: usize) -> Result<QBuffer<'a, D, M>> {
+    pub fn get_buffer<'a>(&'a self, index: usize) -> crate::Result<QBuffer<'a, D, M>> {
         let buffer_info = self
             .state
             .buffer_info
             .get(index)
-            .ok_or(Error::InvalidBuffer)?;
+            .ok_or(crate::Error::InvalidBuffer)?;
 
         let mut buffer_state = buffer_info.state.lock().unwrap();
 
         match *buffer_state {
             BufferState::Free => (),
-            _ => return Err(Error::AlreadyBorrowed),
+            _ => return Err(crate::Error::AlreadyBorrowed),
         };
 
         // The buffer will remain in PreQueue state until it is queued
@@ -419,7 +422,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     }
 
     /// Release all the allocated buffers and returns the queue to the `Init` state.
-    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>> {
+    pub fn free_buffers(self) -> crate::Result<Queue<D, QueueInit>> {
         let type_ = self.inner.type_;
         ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
 
