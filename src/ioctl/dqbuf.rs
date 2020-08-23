@@ -3,6 +3,7 @@ use crate::bindings;
 use crate::QueueType;
 
 use nix::{self, errno::Errno};
+use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
@@ -90,16 +91,18 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum DQBufError {
+pub enum DQBufError<T: Debug> {
     #[error("End-of-stream reached")]
     EOS,
     #[error("No buffer ready for dequeue")]
     NotReady,
+    #[error("Buffer with ERROR flag dequeued")]
+    CorruptedBuffer(T),
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 
-impl From<nix::Error> for DQBufError {
+impl<T: Debug> From<nix::Error> for DQBufError<T> {
     fn from(error: nix::Error) -> Self {
         match error {
             nix::Error::Sys(Errno::EAGAIN) => Self::NotReady,
@@ -110,7 +113,7 @@ impl From<nix::Error> for DQBufError {
 }
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: DQBuf, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T, DQBufError> {
+pub fn dqbuf<T: DQBuf + Debug, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T, DQBufError<T>> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }

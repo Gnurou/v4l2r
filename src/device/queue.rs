@@ -406,8 +406,21 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// be moved into a `Rc` or `Arc` if you need to pass it to several clients.
     ///
     /// The data in the `DQBuffer` is read-only.
-    pub fn dequeue(&self) -> std::result::Result<DQBuffer<D, M>, DQBufError> {
-        let dqbuf: ioctl::DQBuffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
+    pub fn dequeue(&self) -> std::result::Result<DQBuffer<D, M>, DQBufError<DQBuffer<D, M>>> {
+        let dqbuf: ioctl::DQBuffer;
+        let mut error_flag_set = false;
+
+        dqbuf = match ioctl::dqbuf(&self.inner, self.inner.type_) {
+            Ok(dqbuf) => dqbuf,
+            Err(DQBufError::CorruptedBuffer(dqbuf)) => {
+                error_flag_set = true;
+                dqbuf
+            }
+            Err(DQBufError::EOS) => return Err(DQBufError::EOS),
+            Err(DQBufError::NotReady) => return Err(DQBufError::NotReady),
+            Err(DQBufError::IoctlError(e)) => return Err(DQBufError::IoctlError(e)),
+        };
+
         let id = dqbuf.index as usize;
 
         let buffer_info = self
@@ -432,13 +445,13 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        Ok(DQBuffer::new(
-            self,
-            &buffer_info.features,
-            plane_handles,
-            dqbuf,
-            fuse,
-        ))
+        let dqbuffer = DQBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
+
+        if error_flag_set {
+            Err(DQBufError::CorruptedBuffer(dqbuffer))
+        } else {
+            Ok(dqbuffer)
+        }
     }
 
     /// Release all the allocated buffers and returns the queue to the `Init` state.

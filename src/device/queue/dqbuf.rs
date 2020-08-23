@@ -8,7 +8,10 @@ use crate::ioctl;
 use crate::memory::Memory;
 use crate::{device::Device, memory::Mappable};
 use ioctl::{PlaneMapping, QueryBuffer};
-use std::sync::{Arc, Weak};
+use std::{
+    fmt::Debug,
+    sync::{Arc, Weak},
+};
 
 /// Represents the information of a dequeued buffer. This is basically the same
 /// information as what the `ioctl` interface provides, but it also includes
@@ -28,6 +31,12 @@ pub struct DQBuffer<D: Direction, M: Memory> {
     /// object is destroyed.
     fuse: BufferStateFuse<M>,
     _d: std::marker::PhantomData<D>,
+}
+
+impl<D: Direction, M: Memory> Debug for DQBuffer<D, M> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.data.fmt(f)
+    }
 }
 
 impl<D: Direction, M: Memory> DQBuffer<D, M> {
