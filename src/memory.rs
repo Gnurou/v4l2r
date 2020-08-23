@@ -25,8 +25,8 @@ pub enum MemoryType {
 /// Trait for handles that point to actual buffer data. Each one of the `MMAP`,
 /// `UserPtr`, and `DMABuf` memory types have a handler implementation, used
 /// with the `ioctl` module.
-pub trait PlaneHandle: Sized + Debug {
-    /// The memory type that this handle backs.
+pub trait PlaneHandle: Debug {
+    /// The memory type that this handle attaches to.
     const MEMORY_TYPE: MemoryType;
 
     /// Move the plane information into the buffer (for single-planar queues).
@@ -35,7 +35,8 @@ pub trait PlaneHandle: Sized + Debug {
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane);
 }
 
-pub trait Mappable: Sized {
+// Trait describing a memory type that can be mapped from a V4L2 buffer's information.
+pub trait Mappable {
     fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
 }
 
