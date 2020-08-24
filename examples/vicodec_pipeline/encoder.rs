@@ -422,6 +422,10 @@ where
                             todo!("V4L2 events not implemented yet");
                         }
 
+                        if event.is_error() {
+                            todo!("Implement error handling in poll()");
+                        }
+
                         if event.is_readable() {
                             // Get the encoded buffer
                             if let Ok(mut cap_buf) = self.capture_queue.dequeue() {
