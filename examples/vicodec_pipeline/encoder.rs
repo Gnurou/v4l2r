@@ -3,17 +3,16 @@ use v4l2::device::queue::{
     RequestBuffersError,
 };
 use v4l2::device::{Device, DeviceConfig, DeviceOpenError};
-use v4l2::ioctl::{BufferFlags, DQBufError, FormatFlags, GFmtError};
+use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
-use std::sync::mpsc::{channel, Receiver, Sender};
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Barrier,
+        Arc,
     },
     thread::JoinHandle,
 };
@@ -21,15 +20,6 @@ use std::{
 use direction::{Capture, Output};
 use dqbuf::DQBuffer;
 use thiserror::Error;
-
-enum Command {
-    /// Ask the encoder thread to also poll the availability of buffers to
-    /// dequeue on the OUTPUT queue, and to run the callback when one
-    /// becomes available. Once the callback is run, the encoder thread will
-    /// stop monitoring the OUTPUT queue until this command is sent again.
-    WatchOutputQueue(Box<dyn FnOnce() + Send>),
-    Stop,
-}
 
 /// Trait implemented by all states of the encoder.
 pub trait EncoderState {}
@@ -187,11 +177,8 @@ impl Encoder<ReadyToEncode> {
         InputDoneCb: Fn(&mut Vec<Vec<u8>>),
         OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
     {
-        let (cmd_send, cmd_recv) = channel();
-
         let poll = Poll::new().unwrap();
         let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
-        let thread_waker = waker.clone();
 
         self.state.output_queue.streamon().unwrap();
         self.state.capture_queue.streamon().unwrap();
@@ -200,13 +187,12 @@ impl Encoder<ReadyToEncode> {
             device: self.device.clone(),
             capture_queue: self.state.capture_queue,
             num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
-            watch_output_cb: None,
             output_ready_cb,
         };
 
         let handle = std::thread::Builder::new()
             .name("V4L2 Encoder".into())
-            .spawn(move || encoder_thread.run(cmd_recv, poll, thread_waker))
+            .spawn(move || encoder_thread.run(poll, waker))
             .unwrap();
 
         Ok(Encoder {
@@ -215,8 +201,6 @@ impl Encoder<ReadyToEncode> {
                 output_queue: self.state.output_queue,
                 input_done_cb,
                 handle,
-                send: cmd_send,
-                waker,
             },
         })
     }
@@ -231,29 +215,12 @@ where
     input_done_cb: InputDoneCb,
 
     handle: JoinHandle<EncoderThread<OutputReadyCb>>,
-    send: Sender<Command>,
-    /// Inform the encoder thread that we have sent a message through `send`.
-    waker: Arc<Waker>,
 }
 impl<InputDoneCb, OutputReadyCb> EncoderState for Encoding<InputDoneCb, OutputReadyCb>
 where
     InputDoneCb: Fn(&mut Vec<Vec<u8>>),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
-}
-
-#[derive(Debug, Error)]
-pub enum StopError {
-    #[error("error sending stop command: {0}")]
-    SendError(#[from] SendError),
-}
-
-#[derive(Debug, Error)]
-pub enum SendError {
-    #[error("channel send error")]
-    ChannelSendError,
-    #[error("io error: {0}")]
-    IoError(std::io::Error),
 }
 
 // Safe because all Rcs are internal and never leaked outside of the struct.
@@ -264,25 +231,16 @@ where
     InputDoneCb: Fn(&mut Vec<Vec<u8>>),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
-    fn send(&self, command: Command) -> Result<(), SendError> {
-        if self.state.send.send(command).is_err() {
-            return Err(SendError::ChannelSendError);
-        }
-        if let Err(e) = self.state.waker.wake() {
-            return Err(SendError::IoError(e));
-        }
-
-        Ok(())
-    }
-
     /// Stop the encoder, and return the thread handle we can wait on if we are
     /// interested in getting it back.
-    pub fn stop(self) -> Result<Encoder<ReadyToEncode>, StopError> {
-        self.send(Command::Stop)?;
+    pub fn stop(self) -> Result<Encoder<ReadyToEncode>, ()> {
+        v4l2::ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false)).unwrap();
 
+        // The encoder thread should receive the LAST buffer and exit on its own.
         let encoding_thread = self.state.handle.join().unwrap();
 
         encoding_thread.capture_queue.streamoff().unwrap();
+        // TODO retrieve handles back and call the input done callback on them.
         self.state.output_queue.streamoff().unwrap();
 
         Ok(Encoder {
@@ -294,11 +252,14 @@ where
         })
     }
 
+    /// Attempts to dequeue and release output buffers until at least half of
+    /// the buffers are dequeued, or no buffer is ready to be dequeued.
     fn dequeue_output_buffers(&self) {
         let output_queue = &self.state.output_queue;
+        let stop_at = (output_queue.num_buffers() + 1) / 2;
 
         // If have more than half of our buffers queued, attempt to dequeue some.
-        while output_queue.num_queued_buffers() >= (output_queue.num_buffers() + 1) / 2 {
+        while output_queue.num_queued_buffers() >= stop_at {
             match output_queue.dequeue() {
                 Ok(mut buf) => {
                     (self.state.input_done_cb)(&mut buf.plane_handles);
@@ -308,6 +269,37 @@ where
                 Err(e) => panic!(e),
             }
         }
+    }
+
+    // Make this thread sleep until at least one OUTPUT buffer is ready to be
+    // dequeued.
+    fn wait_for_output_buffer(&self) {
+        const OUTPUT_READY: Token = Token(2);
+        let mut events = Events::with_capacity(1);
+        let mut poll = Poll::new().unwrap();
+        poll.registry()
+            .register(
+                &mut SourceFd(&self.device.as_raw_fd()),
+                OUTPUT_READY,
+                Interest::WRITABLE,
+            )
+            .unwrap();
+
+        // TODO use timeout!
+        poll.poll(&mut events, None).unwrap();
+        for event in &events {
+            match event.token() {
+                OUTPUT_READY => {
+                    if event.is_writable() {
+                        return;
+                    } else {
+                        unreachable!();
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+        unreachable!();
     }
 
     /// Returns a V4L2 buffer to be filled with a frame to encode if one
@@ -331,15 +323,8 @@ where
         if let Some(buffer) = self.try_get_buffer() {
             Some(buffer)
         } else {
-            let barrier = Arc::new(Barrier::new(2));
-            let barrier_poll = barrier.clone();
-            self.send(Command::WatchOutputQueue(Box::new(move || {
-                barrier_poll.wait();
-            })))
-            .unwrap();
-            // This may make the encoder thread block if it processes our request first,
-            // which is unlikely but not optimal if it happens.
-            barrier.wait();
+            // Let the encoder thread tell us when an output buffer is available.
+            self.wait_for_output_buffer();
             // Now we should definitely be able to dequeue at least one input buffer.
             self.try_get_buffer()
         }
@@ -352,7 +337,6 @@ where
 {
     device: Arc<Device>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
-    watch_output_cb: Option<Box<dyn FnOnce() + Send>>,
     output_ready_cb: OutputReadyCb,
     // Number of times we have awaken from a poll, for stats purposes.
     num_poll_wakeups: Arc<AtomicUsize>,
@@ -364,13 +348,16 @@ impl<OutputReadyCb> EncoderThread<OutputReadyCb>
 where
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
-    fn run(mut self, cmd_recv: Receiver<Command>, mut poll: Poll, waker: Arc<Waker>) -> Self {
+    fn run(mut self, mut poll: Poll, waker: Arc<Waker>) -> Self {
         const DRIVER: Token = Token(1);
 
         let mut events = Events::with_capacity(4);
-        let device_fd = self.device.as_raw_fd();
         poll.registry()
-            .register(&mut SourceFd(&device_fd), DRIVER, Interest::READABLE)
+            .register(
+                &mut SourceFd(&self.device.as_raw_fd()),
+                DRIVER,
+                Interest::READABLE,
+            )
             .unwrap();
 
         self.enqueue_capture_buffers();
@@ -381,40 +368,7 @@ where
             for event in &events {
                 match event.token() {
                     WAKER => {
-                        // First possible source: we received a new command.
-                        // TODO move into own method?
-                        while let Ok(cmd) = cmd_recv.try_recv() {
-                            match cmd {
-                                Command::WatchOutputQueue(cb) => {
-                                    self.watch_output_cb = Some(cb);
-                                    poll.registry()
-                                        .reregister(
-                                            &mut SourceFd(&device_fd),
-                                            DRIVER,
-                                            Interest::READABLE | Interest::WRITABLE,
-                                        )
-                                        .unwrap();
-                                }
-                                Command::Stop => {
-                                    // Stop the CAPTURE queue and lose all buffers.
-                                    // TODO handle errors properly.
-                                    self.capture_queue.streamoff().unwrap();
-
-                                    // Stop the OUTPUT queue and return all handles to client.
-                                    /*
-                                    // TODO we need to move this into the client thread so it
-                                    // retrieves all the handles.
-                                    let canceled_buffers = self.output_queue.streamoff()?;
-                                    for mut buffer in canceled_buffers {
-                                        msg_send.send(Message::InputBufferDone(buffer.plane_handles.remove(0)))?;
-                                    }
-                                    */
-                                    break 'poll_loop;
-                                }
-                            }
-                        }
-
-                        // Second possible source: a capture buffer has been released.
+                        // A CAPTURE buffer has been released, requeue it.
                         self.enqueue_capture_buffers();
                     }
                     DRIVER => {
@@ -428,38 +382,26 @@ where
 
                         if event.is_readable() {
                             // Get the encoded buffer
+                            // TODO Manage errors here, including corrupted buffers!
                             if let Ok(mut cap_buf) = self.capture_queue.dequeue() {
                                 let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
+                                let bytes_used = cap_buf.data.planes[0].bytesused;
 
-                                let cap_waker = waker.clone();
-                                cap_buf.set_drop_callback(move |_dqbuf| {
-                                    // Intentionally ignore the result here.
-                                    let _ = cap_waker.wake();
-                                });
-                                (self.output_ready_cb)(cap_buf);
+                                // Zero-size buffers can be ignored.
+                                if bytes_used > 0 {
+                                    let cap_waker = waker.clone();
+                                    cap_buf.set_drop_callback(move |_dqbuf| {
+                                        // Intentionally ignore the result here.
+                                        let _ = cap_waker.wake();
+                                    });
+                                    (self.output_ready_cb)(cap_buf);
+                                }
 
+                                // Last buffer of the stream? Time for us to terminate.
                                 if is_last {
                                     break 'poll_loop;
                                 }
-                            } else {
-                                eprintln!("Poll awaken but no capture buffer available. This is a driver bug.");
                             }
-                        }
-
-                        if event.is_writable() {
-                            // If we are here we must have a closure ready to call. Otherwise that's
-                            // and error.
-                            let closure = self
-                                .watch_output_cb
-                                .take()
-                                .expect("Output buffer ready signaled but no closure to call");
-                            closure();
-
-                            // Signal the client thread that it can now get an OUTPUT buffer,
-                            // and go back to our business.
-                            poll.registry()
-                                .reregister(&mut SourceFd(&device_fd), DRIVER, Interest::READABLE)
-                                .unwrap();
                         }
                     }
                     _ => unreachable!(),
