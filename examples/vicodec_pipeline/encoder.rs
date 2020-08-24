@@ -383,7 +383,9 @@ where
                         if event.is_readable() {
                             // Get the encoded buffer
                             // TODO Manage errors here, including corrupted buffers!
-                            if let Ok(mut cap_buf) = self.capture_queue.dequeue() {
+                            // TODO looks like we won't get out of poll() a second time if two buffers
+                            // are made available between two poll() intervals?
+                            while let Ok(mut cap_buf) = self.capture_queue.dequeue() {
                                 let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
                                 let bytes_used = cap_buf.data.planes[0].bytesused;
 
