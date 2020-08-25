@@ -67,8 +67,8 @@ fn main() {
         .expect("Failed to set Ctrl-C handler.");
     }
 
-    let encoder = Encoder::open(&Path::new(&device_path)).expect("Failed to open device");
-    let encoder = encoder
+    let encoder = Encoder::open(&Path::new(&device_path))
+        .expect("Failed to open device")
         .set_capture_format(|f| {
             let format = f.set_pixelformat(b"FWHT").apply()?;
 
@@ -79,9 +79,7 @@ fn main() {
 
             Ok(())
         })
-        .expect("Failed to set capture format");
-
-    let encoder = encoder
+        .expect("Failed to set capture format")
         .set_output_format(|f| {
             let format = f
                 .set_pixelformat(b"RGB3")
@@ -165,11 +163,10 @@ fn main() {
         }
     };
 
-    let encoder = encoder
+    let mut encoder = encoder
         .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
-        .expect("Failed to allocate encoder buffers");
-    let encoder = encoder
-        .start_encoding(input_done_cb, output_ready_cb)
+        .expect("Failed to allocate encoder buffers")
+        .start(input_done_cb, output_ready_cb)
         .expect("Failed to start encoder");
 
     while !lets_quit.load(Ordering::SeqCst) {
@@ -183,6 +180,7 @@ fn main() {
                 v4l2_buffer.add_plane(buffer, bytes_used).queue().unwrap();
             }
         }
+        // TODO what do we do if one of the buffers is not available?
 
         if let Some(max_cpt) = &mut stop_after {
             if *max_cpt <= 1 {
