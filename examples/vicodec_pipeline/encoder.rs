@@ -348,6 +348,7 @@ where
     /// are currently queued.
     ///
     /// TODO return a Result<> with proper errors.
+    #[allow(dead_code)]
     pub fn try_get_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
         self.dequeue_output_buffers();
         self.state.output_queue.get_free_buffer()
@@ -359,7 +360,11 @@ where
     /// If all allocated buffers are currently queued, this methods will wait
     /// for one to be available.
     pub fn get_buffer(&mut self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
-        if self.try_get_buffer().is_none() {
+        let output_queue = &self.state.output_queue;
+
+        self.dequeue_output_buffers();
+        // If all our buffers are queued, wait until we can dequeue some.
+        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
             self.wait_for_output_buffer();
         }
 
