@@ -161,6 +161,11 @@ impl Encoder<AwaitingBufferAllocation> {
     }
 }
 
+const CAPTURE_READY: Token = Token(1);
+const OUTPUT_READY: Token = Token(2);
+/// Waker for all self-triggered events. Can only use one per Poll.
+const WAKER: Token = Token(1000);
+
 pub struct ReadyToEncode {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
@@ -168,7 +173,7 @@ pub struct ReadyToEncode {
 impl EncoderState for ReadyToEncode {}
 
 impl Encoder<ReadyToEncode> {
-    pub fn start_encoding<InputDoneCb, OutputReadyCb>(
+    pub fn start<InputDoneCb, OutputReadyCb>(
         self,
         input_done_cb: InputDoneCb,
         output_ready_cb: OutputReadyCb,
@@ -180,15 +185,36 @@ impl Encoder<ReadyToEncode> {
         let poll = Poll::new().unwrap();
         let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
 
+        // Mio only supports edge-triggered epoll, so it is important that we
+        // register the V4L2 FD *before* queuing any capture buffers, so the
+        // edge monitoring starts before any buffer can possibly be completed.
+        poll.registry()
+            .register(
+                &mut SourceFd(&self.device.as_raw_fd()),
+                CAPTURE_READY,
+                Interest::READABLE,
+            )
+            .unwrap();
+
         self.state.output_queue.streamon().unwrap();
         self.state.capture_queue.streamon().unwrap();
 
         let encoder_thread = EncoderThread {
-            device: self.device.clone(),
+            device: Arc::clone(&self.device),
             capture_queue: self.state.capture_queue,
             num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
             output_ready_cb,
         };
+
+        let output_poll = Poll::new().unwrap();
+        output_poll
+            .registry()
+            .register(
+                &mut SourceFd(&self.device.as_raw_fd()),
+                OUTPUT_READY,
+                Interest::WRITABLE,
+            )
+            .unwrap();
 
         let handle = std::thread::Builder::new()
             .name("V4L2 Encoder".into())
@@ -200,6 +226,7 @@ impl Encoder<ReadyToEncode> {
             state: Encoding {
                 output_queue: self.state.output_queue,
                 input_done_cb,
+                output_poll,
                 handle,
             },
         })
@@ -213,6 +240,8 @@ where
 {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     input_done_cb: InputDoneCb,
+
+    output_poll: Poll,
 
     handle: JoinHandle<EncoderThread<OutputReadyCb>>,
 }
@@ -252,14 +281,11 @@ where
         })
     }
 
-    /// Attempts to dequeue and release output buffers until at least half of
-    /// the buffers are dequeued, or no buffer is ready to be dequeued.
+    /// Attempts to dequeue and release output buffers that the driver is done with.
     fn dequeue_output_buffers(&self) {
         let output_queue = &self.state.output_queue;
-        let stop_at = (output_queue.num_buffers() + 1) / 2;
 
-        // If have more than half of our buffers queued, attempt to dequeue some.
-        while output_queue.num_queued_buffers() >= stop_at {
+        while output_queue.num_queued_buffers() > 0 {
             match output_queue.dequeue() {
                 Ok(mut buf) => {
                     (self.state.input_done_cb)(&mut buf.plane_handles);
@@ -272,25 +298,25 @@ where
     }
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
-    // dequeued.
-    fn wait_for_output_buffer(&self) {
-        const OUTPUT_READY: Token = Token(2);
+    // dequeued, and dequeues all available buffers.
+    fn wait_for_output_buffer(&mut self) {
         let mut events = Events::with_capacity(1);
-        let mut poll = Poll::new().unwrap();
-        poll.registry()
-            .register(
-                &mut SourceFd(&self.device.as_raw_fd()),
-                OUTPUT_READY,
-                Interest::WRITABLE,
-            )
-            .unwrap();
-
         // TODO use timeout!
-        poll.poll(&mut events, None).unwrap();
+        self.state.output_poll.poll(&mut events, None).unwrap();
         for event in &events {
             match event.token() {
                 OUTPUT_READY => {
                     if event.is_writable() {
+                        // We call dequeue_output_buffers() here to make sure
+                        // that all the buffers signaled by poll() are dequeued,
+                        // since Mio only supports edge-triggered polling and
+                        // leaving buffers unattended may create a deadlock the
+                        // next time this method is called.
+                        self.dequeue_output_buffers();
+                        return;
+                    } else if event.is_error() {
+                        // This can happen if we enter here while no buffer
+                        // is queued and is ok.
                         return;
                     } else {
                         unreachable!();
@@ -319,15 +345,12 @@ where
     ///
     /// If all allocated buffers are currently queued, this methods will wait
     /// for one to be available.
-    pub fn get_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
-        if let Some(buffer) = self.try_get_buffer() {
-            Some(buffer)
-        } else {
-            // Let the encoder thread tell us when an output buffer is available.
+    pub fn get_buffer(&mut self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
+        if self.try_get_buffer().is_none() {
             self.wait_for_output_buffer();
-            // Now we should definitely be able to dequeue at least one input buffer.
-            self.try_get_buffer()
         }
+
+        self.state.output_queue.get_free_buffer()
     }
 }
 
@@ -342,55 +365,75 @@ where
     num_poll_wakeups: Arc<AtomicUsize>,
 }
 
-const WAKER: Token = Token(1000);
-
 impl<OutputReadyCb> EncoderThread<OutputReadyCb>
 where
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     fn run(mut self, mut poll: Poll, waker: Arc<Waker>) -> Self {
-        const DRIVER: Token = Token(1);
-
+        let mut polling_device = true;
         let mut events = Events::with_capacity(4);
-        poll.registry()
-            .register(
-                &mut SourceFd(&self.device.as_raw_fd()),
-                DRIVER,
-                Interest::READABLE,
-            )
-            .unwrap();
-
         self.enqueue_capture_buffers();
 
         'poll_loop: loop {
+            // If there are no buffers on the CAPTURE queue, poll() will return
+            // immediately with EPOLLERR and we would loop indefinitely.
+            // Prevent this by temporarily disabling polling the device in such
+            // cases.
+            if polling_device && self.capture_queue.num_queued_buffers() == 0 {
+                poll.registry()
+                    .deregister(&mut SourceFd(&self.device.as_raw_fd()))
+                    .unwrap();
+                polling_device = false;
+            }
             poll.poll(&mut events, None).unwrap();
             self.num_poll_wakeups.fetch_add(1, Ordering::SeqCst);
             for event in &events {
+                if event.is_error() {
+                    // This happens if we try to poll while no CAPTURE buffer
+                    // is queued. We try to avoid that, so reaching this block
+                    // would be a bug.
+                    unreachable!()
+                }
+
                 match event.token() {
                     WAKER => {
+                        // If device polling was disabled, we can reenable it as
+                        // we are queuing a new buffer to the capture queue.
+                        // This must be done BEFORE queueing so the edge changes
+                        // after we registered the device.
+                        if !polling_device {
+                            poll.registry()
+                                .register(
+                                    &mut SourceFd(&self.device.as_raw_fd()),
+                                    CAPTURE_READY,
+                                    Interest::READABLE,
+                                )
+                                .unwrap();
+                            polling_device = true;
+                        }
                         // A CAPTURE buffer has been released, requeue it.
                         self.enqueue_capture_buffers();
                     }
-                    DRIVER => {
+                    CAPTURE_READY => {
                         if event.is_priority() {
                             todo!("V4L2 events not implemented yet");
                         }
 
-                        if event.is_error() {
-                            todo!("Implement error handling in poll()");
-                        }
-
                         if event.is_readable() {
                             // Get the encoded buffer
+                            // Mio only supports edge-triggered polling, so make
+                            // sure to dequeue all the buffers that were available
+                            // when poll() returned, as they won't be signaled a
+                            // second time.
                             // TODO Manage errors here, including corrupted buffers!
-                            // TODO looks like we won't get out of poll() a second time if two buffers
-                            // are made available between two poll() intervals?
                             while let Ok(mut cap_buf) = self.capture_queue.dequeue() {
                                 let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
                                 let bytes_used = cap_buf.data.planes[0].bytesused;
 
                                 // Zero-size buffers can be ignored.
                                 if bytes_used > 0 {
+                                    // Add a drop callback to the dequeued buffer so
+                                    // we re-queue it as soon as it is dropped.
                                     let cap_waker = waker.clone();
                                     cap_buf.set_drop_callback(move |_dqbuf| {
                                         // Intentionally ignore the result here.
