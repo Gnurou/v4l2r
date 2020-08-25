@@ -19,6 +19,7 @@ use std::{
 
 use direction::{Capture, Output};
 use dqbuf::DQBuffer;
+use states::BuffersAllocated;
 use thiserror::Error;
 
 /// Trait implemented by all states of the encoder.
@@ -189,28 +190,15 @@ impl Encoder<ReadyToEncode> {
         InputDoneCb: Fn(&mut Vec<Vec<u8>>),
         OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
     {
-        let poll = Poll::new().unwrap();
-        let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
-
-        // Mio only supports edge-triggered epoll, so it is important that we
-        // register the V4L2 FD *before* queuing any capture buffers, so the
-        // edge monitoring starts before any buffer can possibly be completed.
-        poll.registry()
-            .register(
-                &mut SourceFd(&self.device.as_raw_fd()),
-                CAPTURE_READY,
-                Interest::READABLE,
-            )
-            .unwrap();
-
         self.state.output_queue.streamon().unwrap();
         self.state.capture_queue.streamon().unwrap();
 
-        let encoder_thread = EncoderThread {
-            device: Arc::clone(&self.device),
-            capture_queue: self.state.capture_queue,
-            num_poll_wakeups: self.state.poll_wakeups_counter.clone(),
-            output_ready_cb,
+        let encoder_thread =
+            EncoderThread::new(&self.device, self.state.capture_queue, output_ready_cb);
+        let encoder_thread = if let Some(counter) = &self.state.poll_wakeups_counter {
+            encoder_thread.set_poll_counter(Arc::clone(counter))
+        } else {
+            encoder_thread
         };
 
         let output_poll = Poll::new().unwrap();
@@ -225,7 +213,7 @@ impl Encoder<ReadyToEncode> {
 
         let handle = std::thread::Builder::new()
             .name("V4L2 Encoder".into())
-            .spawn(move || encoder_thread.run(poll, waker))
+            .spawn(move || encoder_thread.run())
             .unwrap();
 
         Ok(Encoder {
@@ -378,16 +366,66 @@ where
 {
     device: Arc<Device>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
+    poll: Poll,
+    waker: Arc<Waker>,
     output_ready_cb: OutputReadyCb,
     // Number of times we have awaken from a poll, for stats purposes.
-    num_poll_wakeups: Option<Arc<AtomicUsize>>,
+    poll_wakeups_counter: Option<Arc<AtomicUsize>>,
 }
 
 impl<OutputReadyCb> EncoderThread<OutputReadyCb>
 where
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
-    fn run(mut self, mut poll: Poll, waker: Arc<Waker>) -> Self {
+    fn new(
+        device: &Arc<Device>,
+        capture_queue: Queue<Capture, BuffersAllocated<MMAP>>,
+        output_ready_cb: OutputReadyCb,
+    ) -> Self {
+        let poll = Poll::new().unwrap();
+        let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
+
+        let encoder_thread = EncoderThread {
+            device: Arc::clone(&device),
+            capture_queue,
+            poll,
+            waker,
+            output_ready_cb,
+            poll_wakeups_counter: None,
+        };
+
+        // Mio only supports edge-triggered epoll, so it is important that we
+        // register the V4L2 FD *before* queuing any capture buffers, so the
+        // edge monitoring starts before any buffer can possibly be completed.
+        encoder_thread.enable_device_polling();
+
+        encoder_thread
+    }
+
+    fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
+        self.poll_wakeups_counter = Some(poll_wakeups_counter);
+        self
+    }
+
+    fn enable_device_polling(&self) {
+        self.poll
+            .registry()
+            .register(
+                &mut SourceFd(&self.device.as_raw_fd()),
+                CAPTURE_READY,
+                Interest::READABLE,
+            )
+            .unwrap();
+    }
+
+    fn disable_device_polling(&self) {
+        self.poll
+            .registry()
+            .deregister(&mut SourceFd(&self.device.as_raw_fd()))
+            .unwrap();
+    }
+
+    fn run(mut self) -> Self {
         let mut polling_device = true;
         let mut events = Events::with_capacity(4);
         self.enqueue_capture_buffers();
@@ -398,13 +436,11 @@ where
             // Prevent this by temporarily disabling polling the device in such
             // cases.
             if polling_device && self.capture_queue.num_queued_buffers() == 0 {
-                poll.registry()
-                    .deregister(&mut SourceFd(&self.device.as_raw_fd()))
-                    .unwrap();
+                self.disable_device_polling();
                 polling_device = false;
             }
-            poll.poll(&mut events, None).unwrap();
-            if let Some(poll_counter) = &self.num_poll_wakeups {
+            self.poll.poll(&mut events, None).unwrap();
+            if let Some(poll_counter) = &self.poll_wakeups_counter {
                 poll_counter.fetch_add(1, Ordering::SeqCst);
             }
             for event in &events {
@@ -422,13 +458,7 @@ where
                         // This must be done BEFORE queueing so the edge changes
                         // after we registered the device.
                         if !polling_device {
-                            poll.registry()
-                                .register(
-                                    &mut SourceFd(&self.device.as_raw_fd()),
-                                    CAPTURE_READY,
-                                    Interest::READABLE,
-                                )
-                                .unwrap();
+                            self.enable_device_polling();
                             polling_device = true;
                         }
                         // A CAPTURE buffer has been released, requeue it.
@@ -454,7 +484,7 @@ where
                                 if bytes_used > 0 {
                                     // Add a drop callback to the dequeued buffer so
                                     // we re-queue it as soon as it is dropped.
-                                    let cap_waker = waker.clone();
+                                    let cap_waker = self.waker.clone();
                                     cap_buf.set_drop_callback(move |_dqbuf| {
                                         // Intentionally ignore the result here.
                                         let _ = cap_waker.wake();
