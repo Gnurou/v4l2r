@@ -7,7 +7,7 @@ use framegen::FrameGenerator;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
@@ -136,20 +136,23 @@ fn main() {
 
     let mut total_size = 0usize;
     let start_time = Instant::now();
+    let poll_count_reader = Arc::new(AtomicUsize::new(0));
+    let poll_count_writer = Arc::clone(&poll_count_reader);
     let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, MMAP>| {
         let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
         total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
         let frame_nb = cap_dqbuf.data.sequence + 1;
         let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
-        //let num_poll_wakeups = encoder.get_num_poll_wakeups();
+        let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_nb as f32;
         print!(
-            "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
+            "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2} ppf: {:#4.2}" ,
             cap_dqbuf.data.sequence,
             cap_dqbuf.data.index,
             bytes_used,
             total_size,
             fps,
+            ppf,
         );
         io::stdout().flush().unwrap();
 
@@ -166,6 +169,7 @@ fn main() {
     let mut encoder = encoder
         .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
         .expect("Failed to allocate encoder buffers")
+        .set_poll_counter(poll_count_writer)
         .start(input_done_cb, output_ready_cb)
         .expect("Failed to start encoder");
 

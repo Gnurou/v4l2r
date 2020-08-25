@@ -148,6 +148,7 @@ impl Encoder<AwaitingBufferAllocation> {
             state: ReadyToEncode {
                 output_queue,
                 capture_queue,
+                poll_wakeups_counter: None,
             },
         })
     }
@@ -169,10 +170,16 @@ const WAKER: Token = Token(1000);
 pub struct ReadyToEncode {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
+    poll_wakeups_counter: Option<Arc<AtomicUsize>>,
 }
 impl EncoderState for ReadyToEncode {}
 
 impl Encoder<ReadyToEncode> {
+    pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
+        self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
+        self
+    }
+
     pub fn start<InputDoneCb, OutputReadyCb>(
         self,
         input_done_cb: InputDoneCb,
@@ -202,7 +209,7 @@ impl Encoder<ReadyToEncode> {
         let encoder_thread = EncoderThread {
             device: Arc::clone(&self.device),
             capture_queue: self.state.capture_queue,
-            num_poll_wakeups: Arc::new(AtomicUsize::new(0)),
+            num_poll_wakeups: self.state.poll_wakeups_counter.clone(),
             output_ready_cb,
         };
 
@@ -228,6 +235,7 @@ impl Encoder<ReadyToEncode> {
                 input_done_cb,
                 output_poll,
                 handle,
+                num_poll_wakeups: self.state.poll_wakeups_counter,
             },
         })
     }
@@ -240,10 +248,11 @@ where
 {
     output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
     input_done_cb: InputDoneCb,
-
     output_poll: Poll,
 
     handle: JoinHandle<EncoderThread<OutputReadyCb>>,
+    // Number of times we have awaken from a poll, for stats purposes.
+    num_poll_wakeups: Option<Arc<AtomicUsize>>,
 }
 impl<InputDoneCb, OutputReadyCb> EncoderState for Encoding<InputDoneCb, OutputReadyCb>
 where
@@ -277,6 +286,7 @@ where
             state: ReadyToEncode {
                 output_queue: self.state.output_queue,
                 capture_queue: encoding_thread.capture_queue,
+                poll_wakeups_counter: None,
             },
         })
     }
@@ -303,6 +313,9 @@ where
         let mut events = Events::with_capacity(1);
         // TODO use timeout!
         self.state.output_poll.poll(&mut events, None).unwrap();
+        if let Some(poll_counter) = &self.state.num_poll_wakeups {
+            poll_counter.fetch_add(1, Ordering::SeqCst);
+        }
         for event in &events {
             match event.token() {
                 OUTPUT_READY => {
@@ -362,7 +375,7 @@ where
     capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
     output_ready_cb: OutputReadyCb,
     // Number of times we have awaken from a poll, for stats purposes.
-    num_poll_wakeups: Arc<AtomicUsize>,
+    num_poll_wakeups: Option<Arc<AtomicUsize>>,
 }
 
 impl<OutputReadyCb> EncoderThread<OutputReadyCb>
@@ -386,7 +399,9 @@ where
                 polling_device = false;
             }
             poll.poll(&mut events, None).unwrap();
-            self.num_poll_wakeups.fetch_add(1, Ordering::SeqCst);
+            if let Some(poll_counter) = &self.num_poll_wakeups {
+                poll_counter.fetch_add(1, Ordering::SeqCst);
+            }
             for event in &events {
                 if event.is_error() {
                     // This happens if we try to poll while no CAPTURE buffer
