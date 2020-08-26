@@ -107,13 +107,13 @@ impl Encoder<AwaitingOutputFormat> {
     pub fn set_output_format(
         mut self,
         f: fn(FormatBuilder) -> anyhow::Result<()>,
-    ) -> anyhow::Result<Encoder<AwaitingBufferAllocation>> {
+    ) -> anyhow::Result<Encoder<AwaitingOutputBuffers>> {
         let builder = self.state.output_queue.change_format()?;
         f(builder)?;
 
         Ok(Encoder {
             device: self.device,
-            state: AwaitingBufferAllocation {
+            state: AwaitingOutputBuffers {
                 output_queue: self.state.output_queue,
                 capture_queue: self.state.capture_queue,
             },
@@ -121,33 +121,25 @@ impl Encoder<AwaitingOutputFormat> {
     }
 }
 
-pub struct AwaitingBufferAllocation {
+pub struct AwaitingOutputBuffers {
     output_queue: Queue<direction::Output, states::QueueInit>,
     capture_queue: Queue<direction::Capture, states::QueueInit>,
 }
-impl EncoderState for AwaitingBufferAllocation {}
+impl EncoderState for AwaitingOutputBuffers {}
 
-impl Encoder<AwaitingBufferAllocation> {
-    pub fn allocate_buffers(
+impl Encoder<AwaitingOutputBuffers> {
+    pub fn allocate_output_buffers(
         self,
         num_output: usize,
-        num_capture: usize,
-    ) -> Result<Encoder<ReadyToEncode>, RequestBuffersError> {
-        let output_queue = self
-            .state
-            .output_queue
-            .request_buffers::<UserPtr<_>>(num_output as u32)?;
-        let capture_queue = self
-            .state
-            .capture_queue
-            .request_buffers::<MMAP>(num_capture as u32)?;
-
+    ) -> Result<Encoder<AwaitingCaptureBuffers>, RequestBuffersError> {
         Ok(Encoder {
             device: self.device,
-            state: ReadyToEncode {
-                output_queue,
-                capture_queue,
-                poll_wakeups_counter: None,
+            state: AwaitingCaptureBuffers {
+                output_queue: self
+                    .state
+                    .output_queue
+                    .request_buffers::<UserPtr<_>>(num_output as u32)?,
+                capture_queue: self.state.capture_queue,
             },
         })
     }
@@ -158,6 +150,31 @@ impl Encoder<AwaitingBufferAllocation> {
 
     pub fn get_capture_format(&self) -> Result<v4l2::Format, GFmtError> {
         self.state.capture_queue.get_format()
+    }
+}
+
+pub struct AwaitingCaptureBuffers {
+    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
+    capture_queue: Queue<direction::Capture, states::QueueInit>,
+}
+impl EncoderState for AwaitingCaptureBuffers {}
+
+impl Encoder<AwaitingCaptureBuffers> {
+    pub fn allocate_capture_buffers(
+        self,
+        num_capture: usize,
+    ) -> Result<Encoder<ReadyToEncode>, RequestBuffersError> {
+        Ok(Encoder {
+            device: self.device,
+            state: ReadyToEncode {
+                output_queue: self.state.output_queue,
+                capture_queue: self
+                    .state
+                    .capture_queue
+                    .request_buffers::<MMAP>(num_capture as u32)?,
+                poll_wakeups_counter: None,
+            },
+        })
     }
 }
 

@@ -168,8 +168,10 @@ fn main() {
 
     let mut encoder = encoder
         // TODO split between allocate OUTPUT and allocate CAPTURE.
-        .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
-        .expect("Failed to allocate encoder buffers")
+        .allocate_output_buffers(NUM_BUFFERS)
+        .expect("Failed to allocate OUTPUT buffers")
+        .allocate_capture_buffers(NUM_BUFFERS)
+        .expect("Failed to allocate CAPTURE buffers")
         .set_poll_counter(poll_count_writer)
         .start(input_done_cb, output_ready_cb)
         .expect("Failed to start encoder");
