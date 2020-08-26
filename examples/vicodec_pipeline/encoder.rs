@@ -441,7 +441,7 @@ where
         let mut events = Events::with_capacity(4);
         self.enqueue_capture_buffers();
 
-        'poll_loop: loop {
+        'polling: loop {
             // If there are no buffers on the CAPTURE queue, poll() will return
             // immediately with EPOLLERR and we would loop indefinitely.
             // Prevent this by temporarily disabling polling the device in such
@@ -476,10 +476,6 @@ where
                         self.enqueue_capture_buffers();
                     }
                     CAPTURE_READY => {
-                        if event.is_priority() {
-                            todo!("V4L2 events not implemented yet");
-                        }
-
                         if event.is_readable() {
                             // Get the encoded buffer
                             // Mio only supports edge-triggered polling, so make
@@ -505,9 +501,11 @@ where
 
                                 // Last buffer of the stream? Time for us to terminate.
                                 if is_last {
-                                    break 'poll_loop;
+                                    break 'polling;
                                 }
                             }
+                        } else if event.is_priority() {
+                            todo!("V4L2 events not implemented yet");
                         }
                     }
                     _ => unreachable!(),
