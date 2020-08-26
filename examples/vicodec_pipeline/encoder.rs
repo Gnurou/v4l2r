@@ -10,6 +10,7 @@ use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::{
+    io,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
@@ -43,6 +44,8 @@ pub enum EncoderOpenError {
     DeviceOpenError(#[from] DeviceOpenError),
     #[error("Error while creating queue")]
     CreateQueueError(#[from] CreateQueueError),
+    #[error("Specified device is not an encoder")]
+    NotAnEncoder,
 }
 
 impl Encoder<AwaitingCaptureFormat> {
@@ -55,23 +58,18 @@ impl Encoder<AwaitingCaptureFormat> {
         let capture_queue = Queue::get_capture_mplane_queue(device.clone())?;
         let output_queue = Queue::get_output_mplane_queue(device.clone())?;
 
-        // On an encoder, the OUTPUT formats are not compressed...
-        if output_queue
+        // On an encoder, the OUTPUT formats are not compressed, but the CAPTURE ones are.
+        // Return an error if our device does not satisfy these conditions.
+        output_queue
             .format_iter()
             .find(|fmt| !fmt.flags.contains(FormatFlags::COMPRESSED))
-            .is_none()
-        {
-            panic!("This is not an encoder: input formats are not raw.");
-        }
-
-        // But the CAPTURE ones are.
-        if capture_queue
-            .format_iter()
-            .find(|fmt| fmt.flags.contains(FormatFlags::COMPRESSED))
-            .is_none()
-        {
-            panic!("This is not an encoder: output formats are not compressed.");
-        }
+            .and(
+                capture_queue
+                    .format_iter()
+                    .find(|fmt| fmt.flags.contains(FormatFlags::COMPRESSED)),
+            )
+            .ok_or(EncoderOpenError::NotAnEncoder)
+            .map(|_| ())?;
 
         Ok(Encoder {
             device,
@@ -185,7 +183,7 @@ impl Encoder<ReadyToEncode> {
         self,
         input_done_cb: InputDoneCb,
         output_ready_cb: OutputReadyCb,
-    ) -> v4l2::Result<Encoder<Encoding<InputDoneCb, OutputReadyCb>>>
+    ) -> Result<Encoder<Encoding<InputDoneCb, OutputReadyCb>>, io::Error>
     where
         InputDoneCb: Fn(&mut Vec<Vec<u8>>),
         OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
@@ -194,27 +192,23 @@ impl Encoder<ReadyToEncode> {
         self.state.capture_queue.streamon().unwrap();
 
         let encoder_thread =
-            EncoderThread::new(&self.device, self.state.capture_queue, output_ready_cb);
+            EncoderThread::new(&self.device, self.state.capture_queue, output_ready_cb)?;
         let encoder_thread = if let Some(counter) = &self.state.poll_wakeups_counter {
             encoder_thread.set_poll_counter(Arc::clone(counter))
         } else {
             encoder_thread
         };
 
-        let output_poll = Poll::new().unwrap();
-        output_poll
-            .registry()
-            .register(
-                &mut SourceFd(&self.device.as_raw_fd()),
-                OUTPUT_READY,
-                Interest::WRITABLE,
-            )
-            .unwrap();
+        let output_poll = Poll::new()?;
+        output_poll.registry().register(
+            &mut SourceFd(&self.device.as_raw_fd()),
+            OUTPUT_READY,
+            Interest::WRITABLE,
+        )?;
 
         let handle = std::thread::Builder::new()
             .name("V4L2 Encoder".into())
-            .spawn(move || encoder_thread.run())
-            .unwrap();
+            .spawn(move || encoder_thread.run())?;
 
         Ok(Encoder {
             device: self.device,
@@ -252,6 +246,17 @@ where
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
+type OutputBuffer<'a> = QBuffer<'a, Output, UserPtr<Vec<u8>>>;
+type DequeueOutputBufferError = DQBufError<DQBuffer<Output, UserPtr<Vec<u8>>>>;
+
+#[derive(Debug, Error)]
+pub enum GetBufferError {
+    #[error("Error while dequeueing buffer")]
+    DequeueBufferError(#[from] DequeueOutputBufferError),
+    #[error("No buffer currently available")]
+    NoBufferAvailable,
+}
+
 impl<InputDoneCb, OutputReadyCb> Encoder<Encoding<InputDoneCb, OutputReadyCb>>
 where
     InputDoneCb: Fn(&mut Vec<Vec<u8>>),
@@ -280,7 +285,7 @@ where
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) {
+    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -289,15 +294,16 @@ where
                     (self.state.input_done_cb)(&mut buf.plane_handles);
                 }
                 Err(DQBufError::NotReady) => break,
-                // TODO this should return a Result<>.
-                Err(e) => panic!(e),
+                Err(e) => return Err(e),
             }
         }
+
+        Ok(())
     }
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
-    // dequeued, and dequeues all available buffers.
-    fn wait_for_output_buffer(&mut self) {
+    // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
+    fn wait_for_output_buffer(&mut self) -> Result<(), DequeueOutputBufferError> {
         let mut events = Events::with_capacity(1);
         // TODO use timeout!
         self.state.output_poll.poll(&mut events, None).unwrap();
@@ -313,20 +319,21 @@ where
                         // since Mio only supports edge-triggered polling and
                         // leaving buffers unattended may create a deadlock the
                         // next time this method is called.
-                        self.dequeue_output_buffers();
-                        return;
+                        self.dequeue_output_buffers()?;
                     } else if event.is_error() {
                         // This can happen if we enter here while no buffer
                         // is queued and is ok.
-                        return;
                     } else {
                         unreachable!();
                     }
                 }
+                // We are only polling for one kind of event, so should never
+                // reach here.
                 _ => unreachable!(),
             }
         }
-        unreachable!();
+
+        Ok(())
     }
 
     /// Returns a V4L2 buffer to be filled with a frame to encode if one
@@ -334,12 +341,13 @@ where
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
-    ///
-    /// TODO return a Result<> with proper errors.
     #[allow(dead_code)]
-    pub fn try_get_buffer(&self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
-        self.dequeue_output_buffers();
-        self.state.output_queue.get_free_buffer()
+    pub fn try_get_buffer(&self) -> Result<OutputBuffer, GetBufferError> {
+        self.dequeue_output_buffers()?;
+        self.state
+            .output_queue
+            .get_free_buffer()
+            .ok_or(GetBufferError::NoBufferAvailable)
     }
 
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
@@ -347,16 +355,19 @@ where
     ///
     /// If all allocated buffers are currently queued, this methods will wait
     /// for one to be available.
-    pub fn get_buffer(&mut self) -> Option<QBuffer<Output, UserPtr<Vec<u8>>>> {
+    pub fn get_buffer(&mut self) -> Result<OutputBuffer, GetBufferError> {
         let output_queue = &self.state.output_queue;
 
-        self.dequeue_output_buffers();
+        self.dequeue_output_buffers()?;
         // If all our buffers are queued, wait until we can dequeue some.
         if output_queue.num_queued_buffers() == output_queue.num_buffers() {
-            self.wait_for_output_buffer();
+            self.wait_for_output_buffer()?;
         }
 
-        self.state.output_queue.get_free_buffer()
+        self.state
+            .output_queue
+            .get_free_buffer()
+            .ok_or(GetBufferError::NoBufferAvailable)
     }
 }
 
@@ -381,9 +392,9 @@ where
         device: &Arc<Device>,
         capture_queue: Queue<Capture, BuffersAllocated<MMAP>>,
         output_ready_cb: OutputReadyCb,
-    ) -> Self {
-        let poll = Poll::new().unwrap();
-        let waker = Arc::new(Waker::new(poll.registry(), WAKER).unwrap());
+    ) -> Result<Self, io::Error> {
+        let poll = Poll::new()?;
+        let waker = Arc::new(Waker::new(poll.registry(), WAKER)?);
 
         let encoder_thread = EncoderThread {
             device: Arc::clone(&device),
@@ -399,7 +410,7 @@ where
         // edge monitoring starts before any buffer can possibly be completed.
         encoder_thread.enable_device_polling();
 
-        encoder_thread
+        Ok(encoder_thread)
     }
 
     fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {

@@ -167,6 +167,7 @@ fn main() {
     };
 
     let mut encoder = encoder
+        // TODO split between allocate OUTPUT and allocate CAPTURE.
         .allocate_buffers(NUM_BUFFERS, NUM_BUFFERS)
         .expect("Failed to allocate encoder buffers")
         .set_poll_counter(poll_count_writer)
@@ -174,25 +175,28 @@ fn main() {
         .expect("Failed to start encoder");
 
     while !lets_quit.load(Ordering::SeqCst) {
-        if let Some(v4l2_buffer) = encoder.get_buffer() {
-            if let Some(mut buffer) = free_buffers.borrow_mut().pop_front() {
-                frame_gen
-                    .next_frame(&mut buffer[..])
-                    .expect("Failed to generate frame");
-                let bytes_used = buffer.len();
-                // TODO handle the QueueError?
-                v4l2_buffer.add_plane(buffer, bytes_used).queue().unwrap();
-            }
-        }
-        // TODO what do we do if one of the buffers is not available?
-
         if let Some(max_cpt) = &mut stop_after {
-            if *max_cpt <= 1 {
-                lets_quit.store(true, Ordering::SeqCst);
+            if *max_cpt == 0 {
                 break;
             }
             *max_cpt -= 1;
         }
+
+        let v4l2_buffer = encoder
+            .get_buffer()
+            .expect("Error while getting V4L2 buffer");
+        let mut buffer = free_buffers
+            .borrow_mut()
+            .pop_front()
+            .expect("No backing buffer to bind");
+        frame_gen
+            .next_frame(&mut buffer[..])
+            .expect("Failed to generate frame");
+        let bytes_used = buffer.len();
+        v4l2_buffer
+            .add_plane(buffer, bytes_used)
+            .queue()
+            .expect("Failed to queue input frame");
     }
 
     encoder.stop().unwrap();
