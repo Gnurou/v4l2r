@@ -184,9 +184,12 @@ fn main() {
             *max_cpt -= 1;
         }
 
-        let v4l2_buffer = encoder
-            .get_buffer()
-            .expect("Error while getting V4L2 buffer");
+        let v4l2_buffer = match encoder.get_buffer() {
+            Ok(buffer) => buffer,
+            // If we got interrupted while waiting for a buffer, just exit normally.
+            Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => break,
+            Err(e) => panic!(e),
+        };
         let mut buffer = free_buffers
             .borrow_mut()
             .pop_front()

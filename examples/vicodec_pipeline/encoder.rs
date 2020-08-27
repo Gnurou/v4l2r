@@ -269,7 +269,9 @@ type DequeueOutputBufferError = DQBufError<DQBuffer<Output, UserPtr<Vec<u8>>>>;
 #[derive(Debug, Error)]
 pub enum GetBufferError {
     #[error("Error while dequeueing buffer")]
-    DequeueBufferError(#[from] DequeueOutputBufferError),
+    DequeueError(#[from] DequeueOutputBufferError),
+    #[error("Error during poll")]
+    PollError(#[from] io::Error),
     #[error("No buffer currently available")]
     NoBufferAvailable,
 }
@@ -322,10 +324,10 @@ where
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
     // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
-    fn wait_for_output_buffer(&mut self) -> Result<(), DequeueOutputBufferError> {
+    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
         let mut events = Events::with_capacity(1);
         // TODO use timeout!
-        self.state.output_poll.poll(&mut events, None).unwrap();
+        self.state.output_poll.poll(&mut events, None)?;
         if let Some(poll_counter) = &self.state.num_poll_wakeups {
             poll_counter.fetch_add(1, Ordering::SeqCst);
         }
