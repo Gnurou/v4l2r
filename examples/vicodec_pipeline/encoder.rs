@@ -279,8 +279,7 @@ where
     InputDoneCb: Fn(&mut Vec<Vec<u8>>),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
-    /// Stop the encoder, and return the thread handle we can wait on if we are
-    /// interested in getting it back.
+    /// Stop the encoder, and returns the encoder ready to be started again.
     pub fn stop(self) -> Result<Encoder<ReadyToEncode>, ()> {
         v4l2::ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false)).unwrap();
 
@@ -288,8 +287,11 @@ where
         let encoding_thread = self.state.handle.join().unwrap();
 
         encoding_thread.capture_queue.streamoff().unwrap();
-        // TODO retrieve handles back and call the input done callback on them.
-        self.state.output_queue.streamoff().unwrap();
+        /* Return all canceled buffers to the client */
+        let canceled_buffers = self.state.output_queue.streamoff().unwrap();
+        for mut buffer in canceled_buffers {
+            (self.state.input_done_cb)(&mut buffer.plane_handles);
+        }
 
         Ok(Encoder {
             device: self.device,
