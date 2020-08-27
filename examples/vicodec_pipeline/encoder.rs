@@ -413,7 +413,7 @@ where
         device: &Arc<Device>,
         capture_queue: Queue<Capture, BuffersAllocated<MMAP>>,
         output_ready_cb: OutputReadyCb,
-    ) -> Result<Self, io::Error> {
+    ) -> io::Result<Self> {
         let poll = Poll::new()?;
         let waker = Arc::new(Waker::new(poll.registry(), WAKER)?);
 
@@ -429,7 +429,7 @@ where
         // Mio only supports edge-triggered epoll, so it is important that we
         // register the V4L2 FD *before* queuing any capture buffers, so the
         // edge monitoring starts before any buffer can possibly be completed.
-        encoder_thread.enable_device_polling();
+        encoder_thread.enable_device_polling()?;
 
         Ok(encoder_thread)
     }
@@ -439,22 +439,18 @@ where
         self
     }
 
-    fn enable_device_polling(&self) {
-        self.poll
-            .registry()
-            .register(
-                &mut SourceFd(&self.device.as_raw_fd()),
-                CAPTURE_READY,
-                Interest::READABLE,
-            )
-            .unwrap();
+    fn enable_device_polling(&self) -> io::Result<()> {
+        self.poll.registry().register(
+            &mut SourceFd(&self.device.as_raw_fd()),
+            CAPTURE_READY,
+            Interest::READABLE,
+        )
     }
 
-    fn disable_device_polling(&self) {
+    fn disable_device_polling(&self) -> io::Result<()> {
         self.poll
             .registry()
             .deregister(&mut SourceFd(&self.device.as_raw_fd()))
-            .unwrap();
     }
 
     fn run(mut self) -> Self {
@@ -468,7 +464,7 @@ where
             // Prevent this by temporarily disabling polling the device in such
             // cases.
             if polling_device && self.capture_queue.num_queued_buffers() == 0 {
-                self.disable_device_polling();
+                self.disable_device_polling().unwrap();
                 polling_device = false;
             }
             self.poll.poll(&mut events, None).unwrap();
@@ -490,7 +486,7 @@ where
                         // This must be done BEFORE queueing so the edge changes
                         // after we registered the device.
                         if !polling_device {
-                            self.enable_device_polling();
+                            self.enable_device_polling().unwrap();
                             polling_device = true;
                         }
                         // A CAPTURE buffer has been released, requeue it.
