@@ -1,22 +1,16 @@
-use std::error;
-use std::fmt;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub enum Error {
+#[derive(Debug, Error)]
+pub enum NewFrameGeneratorError {
+    #[error("Invalid stride")]
     InvalidStride,
+}
+
+#[derive(Debug, Error)]
+pub enum GenerateFrameError {
+    #[error("Provided buffer is too small")]
     BufferTooSmall,
 }
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::InvalidStride => write!(f, "Stride is smaller than width"),
-            Error::BufferTooSmall => write!(f, "Buffer too small"),
-        }
-    }
-}
-
-impl error::Error for Error {}
 
 pub struct FrameGenerator {
     width: usize,
@@ -26,9 +20,9 @@ pub struct FrameGenerator {
 }
 
 impl FrameGenerator {
-    pub fn new(width: usize, height: usize, stride: usize) -> Result<Self, Error> {
+    pub fn new(width: usize, height: usize, stride: usize) -> Result<Self, NewFrameGeneratorError> {
         if stride < width * 3 {
-            return Err(Error::InvalidStride);
+            return Err(NewFrameGeneratorError::InvalidStride);
         }
 
         Ok(FrameGenerator {
@@ -39,9 +33,9 @@ impl FrameGenerator {
         })
     }
 
-    pub fn next_frame(&mut self, frame: &mut [u8]) -> Result<(), Error> {
+    pub fn next_frame(&mut self, frame: &mut [u8]) -> Result<(), GenerateFrameError> {
         if frame.len() < self.stride * self.height {
-            return Err(Error::BufferTooSmall);
+            return Err(GenerateFrameError::BufferTooSmall);
         }
 
         self.gen_pattern(frame);
