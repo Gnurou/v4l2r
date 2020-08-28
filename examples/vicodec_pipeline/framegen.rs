@@ -51,16 +51,17 @@ impl FrameGenerator {
     }
 
     fn gen_pattern(&mut self, frame: &mut [u8]) {
-        for y in 0..self.height {
-            let line_offset = y * self.stride;
-            let line = &mut frame[line_offset..line_offset + self.width * 3];
-            for x in 0..self.width {
-                let pixel = &mut line[x * 3..(x + 1) * 3];
-                let rgba = self.step.wrapping_add((x ^ y) as u32).to_le_bytes();
-                pixel[0] = rgba[0];
-                pixel[1] = rgba[1];
-                pixel[2] = rgba[2];
-            }
-        }
+        frame
+            .chunks_exact_mut(self.stride)
+            .map(|l| &mut l[0..self.width * 3])
+            .enumerate()
+            .for_each(|(y, line)| {
+                line.chunks_exact_mut(3).enumerate().for_each(|(x, pixel)| {
+                    let rgba = self.step.wrapping_add((x ^ y) as u32).to_le_bytes();
+                    pixel[0] = rgba[0];
+                    pixel[1] = rgba[1];
+                    pixel[2] = rgba[2];
+                });
+            });
     }
 }
