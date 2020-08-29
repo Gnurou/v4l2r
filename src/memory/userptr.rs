@@ -36,6 +36,6 @@ pub struct UserPtr<T: AsRef<[u8]>> {
 /// userspace-allocated memory will be alive and untouched until the buffer is
 /// dequeued, so for this reason we take full ownership of it during `qbuf`,
 /// and return it when the buffer is dequeued or the queue is stopped.
-impl<T: AsRef<[u8]>> Memory for UserPtr<T> {
-    type HandleType = Vec<u8>;
+impl<T: AsRef<[u8]> + Debug> Memory for UserPtr<T> {
+    type HandleType = T;
 }
