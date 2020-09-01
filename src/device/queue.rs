@@ -296,6 +296,14 @@ pub struct CanceledBuffer<M: Memory> {
     pub plane_handles: PlaneHandles<M>,
 }
 
+#[derive(Debug, Error)]
+pub enum GetBufferError {
+    #[error("Buffer with provided index {0} does not exist")]
+    InvalidIndex(usize),
+    #[error("Buffer is already in use")]
+    AlreadyUsed,
+}
+
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// Returns the total number of buffers allocated for this queue.
     pub fn num_buffers(&self) -> usize {
@@ -360,18 +368,18 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     }
 
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
-    pub fn get_buffer<'a>(&'a self, index: usize) -> crate::Result<QBuffer<'a, D, M>> {
+    pub fn get_buffer(&self, index: usize) -> Result<QBuffer<D, M>, GetBufferError> {
         let buffer_info = self
             .state
             .buffer_info
             .get(index)
-            .ok_or(crate::Error::InvalidBuffer)?;
+            .ok_or(GetBufferError::InvalidIndex(index))?;
 
         let mut buffer_state = buffer_info.state.lock().unwrap();
 
         match *buffer_state {
             BufferState::Free => (),
-            _ => return Err(crate::Error::AlreadyBorrowed),
+            _ => return Err(GetBufferError::AlreadyUsed),
         };
 
         // The buffer will remain in PreQueue state until it is queued
