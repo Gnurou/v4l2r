@@ -2,6 +2,7 @@
 use super::string_from_cstr;
 use crate::bindings;
 use bitflags::bitflags;
+use nix::Error;
 use std::fmt;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -104,7 +105,7 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum QueryCapError {
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Error),
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYCAP` ioctl.

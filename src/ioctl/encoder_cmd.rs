@@ -1,4 +1,6 @@
 use crate::bindings;
+use nix::errno::Errno;
+use nix::Error;
 use std::{mem, os::unix::io::AsRawFd};
 use thiserror::Error;
 
@@ -22,7 +24,7 @@ pub enum EncoderCmdError {
     #[error("Command not supported by device")]
     UnsupportedCommand,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Error),
 }
 
 pub fn encoder_cmd(fd: &impl AsRawFd, command: EncoderCommand) -> Result<(), EncoderCmdError> {
@@ -42,8 +44,8 @@ pub fn encoder_cmd(fd: &impl AsRawFd, command: EncoderCommand) -> Result<(), Enc
 
     match unsafe { ioctl::vidioc_encoder_cmd(fd.as_raw_fd(), &mut enc_cmd) } {
         Ok(_) => Ok(()),
-        Err(nix::Error::Sys(nix::errno::Errno::EBUSY)) => Err(EncoderCmdError::DrainInProgress),
-        Err(nix::Error::Sys(nix::errno::Errno::EINVAL)) => Err(EncoderCmdError::UnsupportedCommand),
+        Err(Error::Sys(Errno::EBUSY)) => Err(EncoderCmdError::DrainInProgress),
+        Err(Error::Sys(Errno::EINVAL)) => Err(EncoderCmdError::UnsupportedCommand),
         Err(e) => Err(EncoderCmdError::IoctlError(e)),
     }
 }

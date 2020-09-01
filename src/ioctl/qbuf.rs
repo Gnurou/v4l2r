@@ -4,6 +4,7 @@ use crate::memory::PlaneHandle;
 use crate::{bindings, QueueType};
 
 use bitflags::bitflags;
+use nix::Error;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::mem;
@@ -41,11 +42,11 @@ pub enum QBufError {
     #[error("Data offset specified while using the single-planar API")]
     DataOffsetNotSupported,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Error),
 }
 
-impl From<nix::Error> for QBufError {
-    fn from(error: nix::Error) -> Self {
+impl From<Error> for QBufError {
+    fn from(error: Error) -> Self {
         Self::IoctlError(error)
     }
 }

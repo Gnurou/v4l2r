@@ -2,7 +2,7 @@ use super::{is_multi_planar, BufferFlags, PlaneData};
 use crate::bindings;
 use crate::QueueType;
 
-use nix::{self, errno::Errno};
+use nix::{self, errno::Errno, Error};
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -99,14 +99,14 @@ pub enum DQBufError<T: Debug> {
     #[error("Buffer with ERROR flag dequeued")]
     CorruptedBuffer(T),
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Error),
 }
 
-impl<T: Debug> From<nix::Error> for DQBufError<T> {
-    fn from(error: nix::Error) -> Self {
+impl<T: Debug> From<Error> for DQBufError<T> {
+    fn from(error: Error) -> Self {
         match error {
-            nix::Error::Sys(Errno::EAGAIN) => Self::NotReady,
-            nix::Error::Sys(Errno::EPIPE) => Self::EOS,
+            Error::Sys(Errno::EAGAIN) => Self::NotReady,
+            Error::Sys(Errno::EPIPE) => Self::EOS,
             error => Self::IoctlError(error),
         }
     }

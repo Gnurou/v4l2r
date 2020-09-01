@@ -20,7 +20,7 @@ pub enum StreamOnError {
     #[error("Invalid pipeline link configuration")]
     InvalidPipelineConfig,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Error),
 }
 
 /// Safe wrapper around the `VIDIOC_STREAMON` ioctl.
@@ -39,7 +39,7 @@ pub enum StreamOffError {
     #[error("Queue type not supported")]
     InvalidQueue,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Error),
 }
 
 /// Safe wrapper around the `VIDIOC_STREAMOFF` ioctl.
