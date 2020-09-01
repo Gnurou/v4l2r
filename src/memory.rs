@@ -41,7 +41,7 @@ pub trait Mappable {
 }
 
 /// Trait describing a memory type that can be used to back V4L2 buffers.
-pub trait Memory {
+pub trait Memory: 'static {
     // A type that can be applied into a v4l2_plane or v4l2_buffer.
     type HandleType: PlaneHandle;
 }

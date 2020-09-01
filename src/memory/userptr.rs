@@ -28,7 +28,7 @@ impl<T: AsRef<[u8]> + Debug> PlaneHandle for T {
 
 /// A USERPTR buffer is always backed by userspace-allocated memory. We get this
 /// memory through any kind of object that implements `AsRef<[u8]>`.
-pub struct UserPtr<T: AsRef<[u8]>> {
+pub struct UserPtr<T: AsRef<[u8]> + 'static> {
     _t: std::marker::PhantomData<T>,
 }
 
@@ -36,6 +36,6 @@ pub struct UserPtr<T: AsRef<[u8]>> {
 /// userspace-allocated memory will be alive and untouched until the buffer is
 /// dequeued, so for this reason we take full ownership of it during `qbuf`,
 /// and return it when the buffer is dequeued or the queue is stopped.
-impl<T: AsRef<[u8]> + Debug> Memory for UserPtr<T> {
+impl<T: AsRef<[u8]> + Debug + 'static> Memory for UserPtr<T> {
     type HandleType = T;
 }

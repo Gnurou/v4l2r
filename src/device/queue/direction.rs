@@ -2,7 +2,7 @@
 
 /// Represents the direction of a `Queue` (`Capture` or `Output`). The direction
 /// of a queue limits the operations that are possible on it.
-pub trait Direction {}
+pub trait Direction: 'static {}
 /// Type for `OUTPUT` queues.
 pub struct Output;
 impl Direction for Output {}
