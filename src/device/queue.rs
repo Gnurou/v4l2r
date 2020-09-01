@@ -9,7 +9,9 @@ use crate::memory::*;
 use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
-use ioctl::{DQBufError, GFmtError, QueryBuffer, SFmtError, TryFmtError};
+use ioctl::{
+    DQBufError, GFmtError, QueryBuffer, SFmtError, StreamOffError, StreamOnError, TryFmtError,
+};
 use qbuf::*;
 use states::BufferState;
 use states::*;
@@ -316,7 +318,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.num_queued_buffers.get()
     }
 
-    pub fn streamon(&self) -> crate::Result<()> {
+    pub fn streamon(&self) -> Result<(), StreamOnError> {
         let type_ = self.inner.type_;
         ioctl::streamon(&self.inner, type_)
     }
@@ -326,7 +328,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// If successful, then all the buffers that are queued but have not been
     /// dequeued yet return to the `Free` state. Buffer references obtained via
     /// `dequeue()` remain valid.
-    pub fn streamoff(&self) -> crate::Result<Vec<CanceledBuffer<M>>> {
+    pub fn streamoff(&self) -> Result<Vec<CanceledBuffer<M>>, StreamOffError> {
         let type_ = self.inner.type_;
         ioctl::streamoff(&self.inner, type_)?;
 
