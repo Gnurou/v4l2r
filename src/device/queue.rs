@@ -381,11 +381,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.allocator.take_buffer(index);
         drop(buffer_state);
 
-        let fuse = BufferStateFuse::new(
-            Arc::downgrade(&buffer_info.state),
-            Arc::clone(&self.state.allocator),
-            index,
-        );
+        let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
 
         Ok(QBuffer::new(self, &buffer_info.features, fuse))
     }
@@ -436,16 +432,21 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             BufferState::Queued(plane_handles) => plane_handles,
             _ => unreachable!("Inconsistent buffer state"),
         };
-        let fuse = BufferStateFuse::new(
-            Arc::downgrade(&buffer_info.state),
-            Arc::clone(&self.state.allocator),
-            id,
-        );
+        let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
 
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        let dqbuffer = DQBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
+        let mut dqbuffer = DQBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
+
+        // Release callback for allocator: if we still exist, make the buffer
+        // available to dequeue again.
+        let allocator_for_cb = Arc::downgrade(&self.state.allocator);
+        dqbuffer.add_drop_callback(move |dqbuf| {
+            if let Some(allocator) = allocator_for_cb.upgrade() {
+                allocator.return_buffer(dqbuf.data.index as usize);
+            }
+        });
 
         if error_flag_set {
             Err(DQBufError::CorruptedBuffer(dqbuffer))
@@ -471,23 +472,13 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 /// it has been disarmed.
 struct BufferStateFuse<M: Memory> {
     buffer_state: Weak<Mutex<BufferState<M>>>,
-    allocator: Arc<dyn BufferAllocator>,
-    index: usize,
 }
 
 impl<M: Memory> BufferStateFuse<M> {
     /// Create a new fuse that will set `state` to `BufferState::Free` if
     /// destroyed before `disarm()` has been called.
-    fn new(
-        buffer_state: Weak<Mutex<BufferState<M>>>,
-        allocator: Arc<dyn BufferAllocator>,
-        index: usize,
-    ) -> Self {
-        BufferStateFuse {
-            buffer_state,
-            allocator,
-            index,
-        }
+    fn new(buffer_state: Weak<Mutex<BufferState<M>>>) -> Self {
+        BufferStateFuse { buffer_state }
     }
 
     /// Disarm this fuse, e.g. the monitored state will be left untouched when
@@ -507,7 +498,6 @@ impl<M: Memory> BufferStateFuse<M> {
             Some(buffer_state_unlocked) => {
                 let mut buffer_state = buffer_state_unlocked.lock().unwrap();
                 *buffer_state = BufferState::Free;
-                self.allocator.return_buffer(self.index);
                 self.buffer_state = Weak::new();
             }
         };
