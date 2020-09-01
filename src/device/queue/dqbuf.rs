@@ -25,8 +25,8 @@ pub struct DQBuffer<D: Direction, M: Memory> {
     pub data: ioctl::DQBuffer,
     device: Weak<Device>,
     buffer_info: Weak<QueryBuffer>,
-    /// Callback to be run when the object is dropped.
-    drop_callback: Option<Box<dyn FnOnce(&mut Self) + Send>>,
+    /// Callbacks to be run when the object is dropped.
+    drop_callbacks: Vec<Box<dyn FnOnce(&mut Self) + Send>>,
     /// Fuse that will put the buffer back into the `Free` state when this
     /// object is destroyed.
     fuse: BufferStateFuse<M>,
@@ -53,15 +53,17 @@ impl<D: Direction, M: Memory> DQBuffer<D, M> {
             device: Arc::downgrade(&queue.inner.device),
             buffer_info: Arc::downgrade(buffer),
             fuse,
-            drop_callback: None,
+            drop_callbacks: Default::default(),
             _d: std::marker::PhantomData,
         }
     }
 
     /// Attach a callback that will be called when the DQBuffer is destroyed,
     /// and after the buffer has been returned to the free list.
-    pub fn set_drop_callback<F: FnOnce(&mut Self) + Send + 'static>(&mut self, callback: F) {
-        self.drop_callback = Some(Box::new(callback));
+    /// This method can be called several times, the callback will be run in
+    /// the inverse order that they were added.
+    pub fn add_drop_callback<F: FnOnce(&mut Self) + Send + 'static>(&mut self, callback: F) {
+        self.drop_callbacks.push(Box::new(callback));
     }
 }
 
@@ -85,9 +87,9 @@ impl<M: Memory + Mappable> DQBuffer<Capture, M> {
 impl<D: Direction, M: Memory> Drop for DQBuffer<D, M> {
     fn drop(&mut self) {
         // Make sure the buffer is returned to the free state before we call
-        // the callback.
+        // the callbacks.
         self.fuse.trigger();
-        if let Some(callback) = self.drop_callback.take() {
+        while let Some(callback) = self.drop_callbacks.pop() {
             callback(self);
         }
     }

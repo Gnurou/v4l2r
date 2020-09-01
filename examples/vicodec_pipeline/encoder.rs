@@ -509,7 +509,7 @@ where
                                     // Add a drop callback to the dequeued buffer so
                                     // we re-queue it as soon as it is dropped.
                                     let cap_waker = self.waker.clone();
-                                    cap_buf.set_drop_callback(move |_dqbuf| {
+                                    cap_buf.add_drop_callback(move |_dqbuf| {
                                         // Intentionally ignore the result here.
                                         let _ = cap_waker.wake();
                                     });
