@@ -1,6 +1,6 @@
 use v4l2::device::queue::{
-    direction, dqbuf, qbuf::QBuffer, states, CreateQueueError, FormatBuilder, Queue,
-    RequestBuffersError,
+    direction, dqbuf, qbuf::QBuffer, BuffersAllocated, CreateQueueError, FormatBuilder, Queue,
+    QueueInit, RequestBuffersError,
 };
 use v4l2::device::{Device, DeviceConfig, DeviceOpenError};
 use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
@@ -20,7 +20,6 @@ use std::{
 
 use direction::{Capture, Output};
 use dqbuf::DQBuffer;
-use states::BuffersAllocated;
 use thiserror::Error;
 
 /// Trait implemented by all states of the encoder.
@@ -33,8 +32,8 @@ pub struct Encoder<S: EncoderState> {
 }
 
 pub struct AwaitingCaptureFormat {
-    output_queue: Queue<direction::Output, states::QueueInit>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
+    output_queue: Queue<direction::Output, QueueInit>,
+    capture_queue: Queue<direction::Capture, QueueInit>,
 }
 impl EncoderState for AwaitingCaptureFormat {}
 
@@ -98,8 +97,8 @@ impl Encoder<AwaitingCaptureFormat> {
 }
 
 pub struct AwaitingOutputFormat {
-    output_queue: Queue<direction::Output, states::QueueInit>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
+    output_queue: Queue<direction::Output, QueueInit>,
+    capture_queue: Queue<direction::Capture, QueueInit>,
 }
 impl EncoderState for AwaitingOutputFormat {}
 
@@ -122,8 +121,8 @@ impl Encoder<AwaitingOutputFormat> {
 }
 
 pub struct AwaitingOutputBuffers {
-    output_queue: Queue<direction::Output, states::QueueInit>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
+    output_queue: Queue<direction::Output, QueueInit>,
+    capture_queue: Queue<direction::Capture, QueueInit>,
 }
 impl EncoderState for AwaitingOutputBuffers {}
 
@@ -154,8 +153,8 @@ impl Encoder<AwaitingOutputBuffers> {
 }
 
 pub struct AwaitingCaptureBuffers {
-    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
-    capture_queue: Queue<direction::Capture, states::QueueInit>,
+    output_queue: Queue<direction::Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
+    capture_queue: Queue<direction::Capture, QueueInit>,
 }
 impl EncoderState for AwaitingCaptureBuffers {}
 
@@ -184,8 +183,8 @@ const OUTPUT_READY: Token = Token(2);
 const WAKER: Token = Token(1000);
 
 pub struct ReadyToEncode {
-    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
-    capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
+    output_queue: Queue<direction::Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
+    capture_queue: Queue<direction::Capture, BuffersAllocated<MMAP>>,
     poll_wakeups_counter: Option<Arc<AtomicUsize>>,
 }
 impl EncoderState for ReadyToEncode {}
@@ -245,7 +244,7 @@ where
     InputDoneCb: Fn(&mut Vec<Vec<u8>>),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
-    output_queue: Queue<direction::Output, states::BuffersAllocated<UserPtr<Vec<u8>>>>,
+    output_queue: Queue<direction::Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
     input_done_cb: InputDoneCb,
     output_poll: Poll,
 
@@ -397,7 +396,7 @@ where
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     device: Arc<Device>,
-    capture_queue: Queue<direction::Capture, states::BuffersAllocated<MMAP>>,
+    capture_queue: Queue<direction::Capture, BuffersAllocated<MMAP>>,
     poll: Poll,
     waker: Arc<Waker>,
     output_ready_cb: OutputReadyCb,

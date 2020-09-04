@@ -1,8 +1,7 @@
 //! Provides types related to dequeuing buffers from a `Queue` object.
 use super::{
     direction::{Capture, Direction},
-    states::BuffersAllocated,
-    BufferStateFuse, PlaneHandles, Queue,
+    BufferStateFuse, BuffersAllocated, PlaneHandles, Queue,
 };
 use crate::ioctl;
 use crate::memory::Memory;
