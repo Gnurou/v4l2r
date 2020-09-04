@@ -414,9 +414,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.allocator.take_buffer(index);
         drop(buffer_state);
 
-        let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
-
-        Ok(QBuffer::new(self, &buffer_info.features, fuse))
+        Ok(QBuffer::new(self, buffer_info))
     }
 
     pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {

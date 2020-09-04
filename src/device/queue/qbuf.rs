@@ -1,12 +1,15 @@
 //! Provides types related to queuing buffers on a `Queue` object.
+use super::{states::BufferInfo, Capture, Direction, Output};
 use super::{BufferState, BufferStateFuse, BuffersAllocated, PlaneHandles, Queue};
-use super::{Capture, Direction, Output};
 use crate::ioctl;
 use crate::memory::*;
 use std::cmp::Ordering;
-use std::fmt::{self, Debug};
+use std::{
+    fmt::{self, Debug},
+    sync::Arc,
+};
 
-use ioctl::{PlaneMapping, QBufError, QueryBuffer};
+use ioctl::{PlaneMapping, QBufError};
 use thiserror::Error;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
@@ -67,9 +70,11 @@ pub struct QBuffer<'a, D: Direction, M: Memory> {
 impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     pub(super) fn new(
         queue: &'a Queue<D, BuffersAllocated<M>>,
-        buffer: &QueryBuffer,
-        fuse: BufferStateFuse<M>,
+        buffer_info: &BufferInfo<M>,
     ) -> Self {
+        let buffer = &buffer_info.features;
+        let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
+
         QBuffer {
             queue,
             index: buffer.index,
