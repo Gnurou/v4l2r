@@ -45,3 +45,9 @@ pub trait Memory: 'static {
     // A type that can be applied into a v4l2_plane or v4l2_buffer.
     type HandleType: PlaneHandle;
 }
+
+/// Contains the handles (pointers to user memory or DMABUFs) that are kept
+/// when a buffer is processed by the kernel and returned to the user upon
+/// `dequeue()` or `streamoff()`.
+#[allow(type_alias_bounds)]
+pub type PlaneHandles<M: Memory> = Vec<M::HandleType>;

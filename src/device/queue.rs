@@ -22,12 +22,6 @@ use std::{
 };
 use thiserror::Error;
 
-/// Contains the handles (pointers to user memory or DMABUFs) that are kept
-/// when a buffer is processed by the kernel and returned to the user upon
-/// `dequeue()` or `streamoff()`.
-#[allow(type_alias_bounds)]
-pub type PlaneHandles<M: Memory> = Vec<M::HandleType>;
-
 /// Base values of a queue, that are always value no matter the state the queue
 /// is in. This base object remains alive as long as the queue is borrowed from
 /// the `Device`.

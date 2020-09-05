@@ -17,11 +17,12 @@ use std::{
 /// the plane handles that have been provided when the buffer was queued to
 /// return their ownership to the user.
 pub struct DQBuffer<D: Direction, M: Memory> {
+    /// Dequeued buffer information as reported by V4L2.
+    pub data: ioctl::DQBuffer,
     /// The backing memory that has been provided for this buffer. Only useful
     /// if the buffers are of USERPTR type.
     pub plane_handles: PlaneHandles<M>,
-    /// Dequeued buffer information as reported by V4L2.
-    pub data: ioctl::DQBuffer,
+
     device: Weak<Device>,
     buffer_info: Weak<QueryBuffer>,
     /// Callbacks to be run when the object is dropped.
