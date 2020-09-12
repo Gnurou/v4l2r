@@ -10,7 +10,8 @@ use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
 use ioctl::{
-    DQBufError, GFmtError, QueryBuffer, SFmtError, StreamOffError, StreamOnError, TryFmtError,
+    DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError, StreamOnError,
+    TryFmtError,
 };
 use qbuf::*;
 use qbuf::{
@@ -389,7 +390,7 @@ impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
 impl<D: Direction, M: Memory> TryDequeue for Queue<D, BuffersAllocated<M>> {
     type Dequeued = DQBuffer<D, M>;
 
-    fn try_dequeue(&self) -> std::result::Result<Self::Dequeued, DQBufError<Self::Dequeued>> {
+    fn try_dequeue(&self) -> DQBufResult<Self::Dequeued> {
         let dqbuf: ioctl::DQBuffer;
         let mut error_flag_set = false;
 
