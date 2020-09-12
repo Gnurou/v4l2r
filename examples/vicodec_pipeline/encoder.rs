@@ -1,8 +1,11 @@
-use v4l2::device::queue::{
-    direction, dqbuf,
-    qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
-    qbuf::QBuffer,
-    BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit, RequestBuffersError,
+use v4l2::device::{
+    queue::{
+        direction, dqbuf,
+        qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
+        qbuf::QBuffer,
+        BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit, RequestBuffersError,
+    },
+    AllocatedQueue,
 };
 use v4l2::device::{Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue};
 use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};

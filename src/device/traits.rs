@@ -1,3 +1,4 @@
+use super::queue::{direction::Direction, qbuf::get_indexed::GetBufferByIndex, Queue, QueueInit};
 use crate::ioctl;
 use std::fmt::Debug;
 
@@ -33,4 +34,18 @@ pub trait Stream {
     /// If successful, then all the buffers that are queued but have not been
     /// dequeued yet return to the `Free` sta, and be returned as `Canceled`.
     fn stream_off(&self) -> Result<Vec<Self::Canceled>, ioctl::StreamOffError>;
+}
+
+/// Trait for a configured queue, i.e. a queue on which we can queue and dequeue
+/// buffers.
+pub trait AllocatedQueue<'a, D: Direction>: GetBufferByIndex<'a> + TryDequeue + Stream {
+    /// Returns the total number of buffers allocated for this queue.
+    fn num_buffers(&self) -> usize;
+
+    /// Returns the number of buffers currently queued (i.e. being processed
+    /// or awaiting to be dequeued).
+    fn num_queued_buffers(&self) -> usize;
+
+    /// Release all the allocated buffers and returns the queue to the `Init` state.
+    fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError>;
 }

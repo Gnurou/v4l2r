@@ -3,7 +3,7 @@ pub mod dqbuf;
 pub mod qbuf;
 pub mod states;
 
-use super::{Device, Stream, TryDequeue};
+use super::{AllocatedQueue, Device, Stream, TryDequeue};
 use crate::ioctl;
 use crate::memory::*;
 use crate::{Format, PixelFormat, QueueType};
@@ -307,20 +307,16 @@ pub struct BuffersAllocated<M: Memory> {
 }
 impl<M: Memory> QueueState for BuffersAllocated<M> {}
 
-impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
-    /// Returns the total number of buffers allocated for this queue.
-    pub fn num_buffers(&self) -> usize {
+impl<'a, D: Direction, M: Memory> AllocatedQueue<'a, D> for Queue<D, BuffersAllocated<M>> {
+    fn num_buffers(&self) -> usize {
         self.state.buffer_info.len()
     }
 
-    /// Returns the number of buffers currently queued (i.e. being processed
-    /// by the device).
-    pub fn num_queued_buffers(&self) -> usize {
+    fn num_queued_buffers(&self) -> usize {
         self.state.num_queued_buffers.get()
     }
 
-    /// Release all the allocated buffers and returns the queue to the `Init` state.
-    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError> {
+    fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError> {
         let type_ = self.inner.type_;
         ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
 
