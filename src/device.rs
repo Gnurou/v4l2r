@@ -27,6 +27,9 @@ use std::{path::Path, sync::Mutex};
 use thiserror::Error;
 
 pub mod queue;
+mod traits;
+
+pub use traits::*;
 
 /// Options that can be specified when creating a `Device`.
 #[derive(Default)]

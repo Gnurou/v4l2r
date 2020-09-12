@@ -2,7 +2,7 @@ use v4l2::device::queue::{
     direction, dqbuf, qbuf::QBuffer, BuffersAllocated, CreateQueueError, FormatBuilder, Queue,
     QueueInit, RequestBuffersError,
 };
-use v4l2::device::{Device, DeviceConfig, DeviceOpenError};
+use v4l2::device::{Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue};
 use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
 use v4l2::memory::{UserPtr, MMAP};
 
@@ -204,8 +204,8 @@ impl Encoder<ReadyToEncode> {
         InputDoneCb: Fn(&mut Vec<Vec<u8>>),
         OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
     {
-        self.state.output_queue.streamon().unwrap();
-        self.state.capture_queue.streamon().unwrap();
+        self.state.output_queue.stream_on().unwrap();
+        self.state.capture_queue.stream_on().unwrap();
 
         let encoder_thread =
             EncoderThread::new(&self.device, self.state.capture_queue, output_ready_cb)?;
@@ -287,9 +287,9 @@ where
         // The encoder thread should receive the LAST buffer and exit on its own.
         let encoding_thread = self.state.handle.join().unwrap();
 
-        encoding_thread.capture_queue.streamoff().unwrap();
+        encoding_thread.capture_queue.stream_off().unwrap();
         /* Return all canceled buffers to the client */
-        let canceled_buffers = self.state.output_queue.streamoff().unwrap();
+        let canceled_buffers = self.state.output_queue.stream_off().unwrap();
         for mut buffer in canceled_buffers {
             (self.state.input_done_cb)(&mut buffer.plane_handles);
         }
@@ -309,7 +309,7 @@ where
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
-            match output_queue.dequeue() {
+            match output_queue.try_dequeue() {
                 Ok(mut buf) => {
                     (self.state.input_done_cb)(&mut buf.plane_handles);
                 }
@@ -499,7 +499,7 @@ where
                             // when poll() returned, as they won't be signaled a
                             // second time.
                             // TODO Manage errors here, including corrupted buffers!
-                            while let Ok(mut cap_buf) = self.capture_queue.dequeue() {
+                            while let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
                                 let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
                                 let bytes_used = cap_buf.data.planes[0].bytesused;
 

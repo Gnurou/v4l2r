@@ -3,7 +3,7 @@ pub mod dqbuf;
 pub mod qbuf;
 pub mod states;
 
-use super::Device;
+use super::{Device, Stream, TryDequeue};
 use crate::ioctl;
 use crate::memory::*;
 use crate::{Format, PixelFormat, QueueType};
@@ -297,15 +297,6 @@ impl Queue<Capture, QueueInit> {
     }
 }
 
-/// Represents a queued buffer which has not been processed due to `streamoff` being
-/// called on the queue.
-pub struct CanceledBuffer<M: Memory> {
-    /// Index of the buffer,
-    pub index: u32,
-    /// Plane handles that were passed when the buffer has been queued.
-    pub plane_handles: PlaneHandles<M>,
-}
-
 /// Allocated state for a queue. A queue with its buffers allocated can be
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<M: Memory> {
@@ -335,17 +326,71 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         self.state.num_queued_buffers.get()
     }
 
-    pub fn streamon(&self) -> Result<(), StreamOnError> {
+    /// Release all the allocated buffers and returns the queue to the `Init` state.
+    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError> {
+        let type_ = self.inner.type_;
+        ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
+
+        Ok(Queue {
+            inner: self.inner,
+            _d: std::marker::PhantomData,
+            state: QueueInit {},
+        })
+    }
+
+    // Take buffer `id` in order to prepare it for queueing, provided it is available.
+    pub fn get_buffer(&self, index: usize) -> Result<QBuffer<D, M>, GetBufferError> {
+        let buffer_info = self
+            .state
+            .buffer_info
+            .get(index)
+            .ok_or(GetBufferError::InvalidIndex(index))?;
+
+        let mut buffer_state = buffer_info.state.lock().unwrap();
+
+        match *buffer_state {
+            BufferState::Free => (),
+            _ => return Err(GetBufferError::AlreadyUsed),
+        };
+
+        // The buffer will remain in PreQueue state until it is queued
+        // or the reference to it is lost.
+        *buffer_state = BufferState::PreQueue;
+
+        self.state.allocator.take_buffer(index);
+        drop(buffer_state);
+
+        Ok(QBuffer::new(self, buffer_info))
+    }
+
+    pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {
+        let index = match self.state.allocator.get_free_buffer() {
+            Some(index) => index,
+            None => return None,
+        };
+
+        self.get_buffer(index).ok()
+    }
+}
+
+/// Represents a queued buffer which has not been processed due to `streamoff`
+/// being called on a queue.
+pub struct CanceledBuffer<M: Memory> {
+    /// Index of the buffer,
+    pub index: u32,
+    /// Plane handles that were passed when the buffer has been queued.
+    pub plane_handles: PlaneHandles<M>,
+}
+
+impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
+    type Canceled = CanceledBuffer<M>;
+
+    fn stream_on(&self) -> Result<(), StreamOnError> {
         let type_ = self.inner.type_;
         ioctl::streamon(&self.inner, type_)
     }
 
-    /// Stop streaming on this queue.
-    ///
-    /// If successful, then all the buffers that are queued but have not been
-    /// dequeued yet return to the `Free` state. Buffer references obtained via
-    /// `dequeue()` remain valid.
-    pub fn streamoff(&self) -> Result<Vec<CanceledBuffer<M>>, StreamOffError> {
+    fn stream_off(&self) -> Result<Vec<Self::Canceled>, StreamOffError> {
         let type_ = self.inner.type_;
         ioctl::streamoff(&self.inner, type_)?;
 
@@ -385,49 +430,12 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         Ok(canceled_buffers)
     }
+}
 
-    // Take buffer `id` in order to prepare it for queueing, provided it is available.
-    pub fn get_buffer(&self, index: usize) -> Result<QBuffer<D, M>, GetBufferError> {
-        let buffer_info = self
-            .state
-            .buffer_info
-            .get(index)
-            .ok_or(GetBufferError::InvalidIndex(index))?;
+impl<D: Direction, M: Memory> TryDequeue for Queue<D, BuffersAllocated<M>> {
+    type Dequeued = DQBuffer<D, M>;
 
-        let mut buffer_state = buffer_info.state.lock().unwrap();
-
-        match *buffer_state {
-            BufferState::Free => (),
-            _ => return Err(GetBufferError::AlreadyUsed),
-        };
-
-        // The buffer will remain in PreQueue state until it is queued
-        // or the reference to it is lost.
-        *buffer_state = BufferState::PreQueue;
-
-        self.state.allocator.take_buffer(index);
-        drop(buffer_state);
-
-        Ok(QBuffer::new(self, buffer_info))
-    }
-
-    pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {
-        let index = match self.state.allocator.get_free_buffer() {
-            Some(index) => index,
-            None => return None,
-        };
-
-        self.get_buffer(index).ok()
-    }
-
-    /// Dequeue the next processed buffer and return it.
-    ///
-    /// The V4L2 buffer can not be reused until the returned `DQBuffer` is
-    /// dropped, so make sure to keep it around for as long as you need it. It can
-    /// be moved into a `Rc` or `Arc` if you need to pass it to several clients.
-    ///
-    /// The data in the `DQBuffer` is read-only.
-    pub fn dequeue(&self) -> std::result::Result<DQBuffer<D, M>, DQBufError<DQBuffer<D, M>>> {
+    fn try_dequeue(&self) -> std::result::Result<Self::Dequeued, DQBufError<Self::Dequeued>> {
         let dqbuf: ioctl::DQBuffer;
         let mut error_flag_set = false;
 
@@ -478,18 +486,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
         } else {
             Ok(dqbuffer)
         }
-    }
-
-    /// Release all the allocated buffers and returns the queue to the `Init` state.
-    pub fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError> {
-        let type_ = self.inner.type_;
-        ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
-
-        Ok(Queue {
-            inner: self.inner,
-            _d: std::marker::PhantomData,
-            state: QueueInit {},
-        })
     }
 }
 

@@ -126,9 +126,9 @@ pub fn run<F: FnMut(&[u8])>(
     let mut output_frame = Some(vec![0u8; output_image_size]);
 
     output_queue
-        .streamon()
+        .stream_on()
         .expect("Failed to start output_queue");
-    capture_queue.streamon().expect("Failed to start capture");
+    capture_queue.stream_on().expect("Failed to start capture");
 
     let mut cpt = 0usize;
     let mut total_size = 0usize;
@@ -174,7 +174,7 @@ pub fn run<F: FnMut(&[u8])>(
         // Now dequeue the work that we just scheduled.
 
         let mut out_dqbuf = output_queue
-            .dequeue()
+            .try_dequeue()
             .expect("Failed to dequeue output buffer");
 
         // Make the buffer data available again. It should have been empty since
@@ -185,7 +185,7 @@ pub fn run<F: FnMut(&[u8])>(
         );
 
         let cap_dqbuf = capture_queue
-            .dequeue()
+            .try_dequeue()
             .expect("Failed to dequeue capture buffer");
         let cap_index = cap_dqbuf.data.index as usize;
         let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
@@ -213,9 +213,9 @@ pub fn run<F: FnMut(&[u8])>(
     }
 
     capture_queue
-        .streamoff()
+        .stream_off()
         .expect("Failed to stop output_queue");
     output_queue
-        .streamoff()
+        .stream_off()
         .expect("Failed to stop output_queue");
 }

@@ -10,7 +10,7 @@ use crate::bindings;
 /// USERPTR buffers have the particularity that the `length` field of `struct
 /// v4l2_buffer` must be set before doing a `QBUF` ioctl. This handle struct
 /// also takes care of that.
-impl<T: AsRef<[u8]> + Debug> PlaneHandle for T {
+impl<T: AsRef<[u8]> + Debug + Send> PlaneHandle for T {
     const MEMORY_TYPE: MemoryType = MemoryType::UserPtr;
 
     fn fill_v4l2_buffer(plane: &bindings::v4l2_plane, buffer: &mut bindings::v4l2_buffer) {
@@ -36,6 +36,6 @@ pub struct UserPtr<T: AsRef<[u8]> + 'static> {
 /// userspace-allocated memory will be alive and untouched until the buffer is
 /// dequeued, so for this reason we take full ownership of it during `qbuf`,
 /// and return it when the buffer is dequeued or the queue is stopped.
-impl<T: AsRef<[u8]> + Debug + 'static> Memory for UserPtr<T> {
+impl<T: AsRef<[u8]> + Debug + Send + 'static> Memory for UserPtr<T> {
     type HandleType = T;
 }

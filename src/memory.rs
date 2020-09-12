@@ -25,7 +25,7 @@ pub enum MemoryType {
 /// Trait for handles that point to actual buffer data. Each one of the `MMAP`,
 /// `UserPtr`, and `DMABuf` memory types have a handler implementation, used
 /// with the `ioctl` module.
-pub trait PlaneHandle: Debug {
+pub trait PlaneHandle: Debug + Send {
     /// The memory type that this handle attaches to.
     const MEMORY_TYPE: MemoryType;
 
