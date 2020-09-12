@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
+use qbuf::get_free::GetFreeBuffer;
 use v4l2::device::queue::*;
 use v4l2::device::*;
 use v4l2::memory::{UserPtr, MMAP};
@@ -154,7 +155,7 @@ pub fn run<F: FnMut(&[u8])>(
         // There is no information to set on MMAP capture buffers: just queue
         // them as soon as we get them.
         capture_queue
-            .get_free_buffer()
+            .try_get_free_buffer()
             .expect("Failed to obtain capture buffer")
             .auto_queue()
             .expect("Failed to queue capture buffer");
@@ -165,7 +166,7 @@ pub fn run<F: FnMut(&[u8])>(
         // with it.
         let bytes_used = output_buffer_data.len();
         output_queue
-            .get_free_buffer()
+            .try_get_free_buffer()
             .expect("Failed to obtain output buffer")
             .add_plane(output_buffer_data, bytes_used)
             .queue()

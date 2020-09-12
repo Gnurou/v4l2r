@@ -13,8 +13,11 @@ use ioctl::{
     DQBufError, GFmtError, QueryBuffer, SFmtError, StreamOffError, StreamOnError, TryFmtError,
 };
 use qbuf::*;
-use states::BufferState;
-use states::*;
+use qbuf::{
+    get_free::{GetFreeBuffer, GetFreeBufferError},
+    get_indexed::{GetBufferByIndex, TryGetBufferError},
+};
+use states::{BufferInfo, BufferState};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::{
     cell::Cell,
@@ -254,7 +257,6 @@ impl<D: Direction> Queue<D, QueueInit> {
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
                 num_queued_buffers: Default::default(),
-                allocator: Arc::new(FifoBufferAllocator::new(num_buffers)),
                 buffer_info,
             },
         })
@@ -301,18 +303,9 @@ impl Queue<Capture, QueueInit> {
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<M: Memory> {
     num_queued_buffers: Cell<usize>,
-    allocator: Arc<dyn BufferAllocator>,
     buffer_info: Vec<BufferInfo<M>>,
 }
 impl<M: Memory> QueueState for BuffersAllocated<M> {}
-
-#[derive(Debug, Error)]
-pub enum GetBufferError {
-    #[error("Buffer with provided index {0} does not exist")]
-    InvalidIndex(usize),
-    #[error("Buffer is already in use")]
-    AlreadyUsed,
-}
 
 impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
     /// Returns the total number of buffers allocated for this queue.
@@ -336,40 +329,6 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
             _d: std::marker::PhantomData,
             state: QueueInit {},
         })
-    }
-
-    // Take buffer `id` in order to prepare it for queueing, provided it is available.
-    pub fn get_buffer(&self, index: usize) -> Result<QBuffer<D, M>, GetBufferError> {
-        let buffer_info = self
-            .state
-            .buffer_info
-            .get(index)
-            .ok_or(GetBufferError::InvalidIndex(index))?;
-
-        let mut buffer_state = buffer_info.state.lock().unwrap();
-
-        match *buffer_state {
-            BufferState::Free => (),
-            _ => return Err(GetBufferError::AlreadyUsed),
-        };
-
-        // The buffer will remain in PreQueue state until it is queued
-        // or the reference to it is lost.
-        *buffer_state = BufferState::PreQueue;
-
-        self.state.allocator.take_buffer(index);
-        drop(buffer_state);
-
-        Ok(QBuffer::new(self, buffer_info))
-    }
-
-    pub fn get_free_buffer(&self) -> Option<QBuffer<D, M>> {
-        let index = match self.state.allocator.get_free_buffer() {
-            Some(index) => index,
-            None => return None,
-        };
-
-        self.get_buffer(index).ok()
     }
 }
 
@@ -409,7 +368,6 @@ impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
 
                 // Set entry to Free state and steal its handles.
                 let old_state = std::mem::replace(&mut (*state), BufferState::Free);
-                self.state.allocator.return_buffer(buffer_index);
 
                 Some(CanceledBuffer::<M> {
                     index: buffer_index as u32,
@@ -470,21 +428,56 @@ impl<D: Direction, M: Memory> TryDequeue for Queue<D, BuffersAllocated<M>> {
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        let mut dqbuffer = DQBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
-
-        // Release callback for allocator: if we still exist, make the buffer
-        // available to dequeue again.
-        let allocator_for_cb = Arc::downgrade(&self.state.allocator);
-        dqbuffer.add_drop_callback(move |dqbuf| {
-            if let Some(allocator) = allocator_for_cb.upgrade() {
-                allocator.return_buffer(dqbuf.data.index as usize);
-            }
-        });
+        let dqbuffer = DQBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
 
         if error_flag_set {
             Err(DQBufError::CorruptedBuffer(dqbuffer))
         } else {
             Ok(dqbuffer)
+        }
+    }
+}
+
+impl<'a, D: Direction, M: Memory> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<M>> {
+    type Queueable = QBuffer<'a, D, M>;
+
+    // Take buffer `id` in order to prepare it for queueing, provided it is available.
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+        let buffer_info = self
+            .state
+            .buffer_info
+            .get(index)
+            .ok_or(TryGetBufferError::InvalidIndex(index))?;
+
+        let mut buffer_state = buffer_info.state.lock().unwrap();
+        match *buffer_state {
+            BufferState::Free => (),
+            _ => return Err(TryGetBufferError::AlreadyUsed),
+        };
+
+        // The buffer will remain in PreQueue state until it is queued
+        // or the reference to it is lost.
+        *buffer_state = BufferState::PreQueue;
+        drop(buffer_state);
+
+        Ok(QBuffer::new(self, buffer_info))
+    }
+}
+
+impl<'a, D: Direction, M: Memory> GetFreeBuffer<'a> for Queue<D, BuffersAllocated<M>> {
+    type Queueable = QBuffer<'a, D, M>;
+
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
+        let res = self.state.buffer_info.iter().enumerate().find(|(_, s)| {
+            match *s.state.lock().unwrap() {
+                BufferState::Free => true,
+                _ => false,
+            }
+        });
+
+        match res {
+            None => Err(GetFreeBufferError::NoFreeBuffer),
+            Some((i, _)) => Ok(self.try_get_buffer(i).unwrap()),
         }
     }
 }

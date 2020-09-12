@@ -1,6 +1,8 @@
 use v4l2::device::queue::{
-    direction, dqbuf, qbuf::QBuffer, BuffersAllocated, CreateQueueError, FormatBuilder, Queue,
-    QueueInit, RequestBuffersError,
+    direction, dqbuf,
+    qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
+    qbuf::QBuffer,
+    BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit, RequestBuffersError,
 };
 use v4l2::device::{Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue};
 use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
@@ -271,8 +273,8 @@ pub enum GetBufferError {
     DequeueError(#[from] DequeueOutputBufferError),
     #[error("Error during poll")]
     PollError(#[from] io::Error),
-    #[error("No buffer currently available")]
-    NoBufferAvailable,
+    #[error("Error while obtaining buffer")]
+    GetFreeBufferError(#[from] GetFreeBufferError),
 }
 
 impl<InputDoneCb, OutputReadyCb> Encoder<Encoding<InputDoneCb, OutputReadyCb>>
@@ -364,10 +366,7 @@ where
     #[allow(dead_code)]
     pub fn try_get_buffer(&self) -> Result<OutputBuffer, GetBufferError> {
         self.dequeue_output_buffers()?;
-        self.state
-            .output_queue
-            .get_free_buffer()
-            .ok_or(GetBufferError::NoBufferAvailable)
+        Ok(self.state.output_queue.try_get_free_buffer()?)
     }
 
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
@@ -384,10 +383,7 @@ where
             self.wait_for_output_buffer()?;
         }
 
-        self.state
-            .output_queue
-            .get_free_buffer()
-            .ok_or(GetBufferError::NoBufferAvailable)
+        Ok(self.state.output_queue.try_get_free_buffer()?)
     }
 }
 
@@ -533,7 +529,7 @@ where
     }
 
     fn enqueue_capture_buffers(&mut self) {
-        while let Some(buffer) = self.capture_queue.get_free_buffer() {
+        while let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
             buffer.auto_queue().unwrap();
         }
     }

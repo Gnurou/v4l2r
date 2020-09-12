@@ -12,6 +12,9 @@ use std::{
 use ioctl::{PlaneMapping, QBufError};
 use thiserror::Error;
 
+pub mod get_free;
+pub mod get_indexed;
+
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
 /// returns the plane handles back to the user.
 #[derive(Error)]
