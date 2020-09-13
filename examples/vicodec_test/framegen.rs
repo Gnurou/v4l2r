@@ -3,8 +3,9 @@
 /// Generate a pattern in `frame`, filling as many lines as can be using
 /// `bytes_per_line. `seed` can be increased over consecutive calls to animate
 /// the pattern.
-pub fn gen_pattern(frame: &mut [u8], bytes_per_line: usize, seed: u32) {
+pub fn gen_pattern<S: AsMut<[u8]>>(frame: &mut S, bytes_per_line: usize, seed: u32) {
     frame
+        .as_mut()
         .chunks_exact_mut(bytes_per_line)
         .enumerate()
         .for_each(|(y, line)| {

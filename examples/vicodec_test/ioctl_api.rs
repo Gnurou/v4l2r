@@ -171,7 +171,7 @@ pub fn run<F: FnMut(&[u8])>(
 
         // Generate the frame data.
         framegen::gen_pattern(
-            &mut output_buffer[..],
+            output_buffer,
             output_image_bytesperline,
             cpt as u32,
         );

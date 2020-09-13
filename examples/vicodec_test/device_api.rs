@@ -147,7 +147,7 @@ pub fn run<F: FnMut(&[u8])>(
             .expect("Output buffer not available. This is a bug.");
 
         framegen::gen_pattern(
-            &mut output_buffer_data[..],
+            &mut output_buffer_data,
             output_image_bytesperline,
             cpt as u32,
         );
