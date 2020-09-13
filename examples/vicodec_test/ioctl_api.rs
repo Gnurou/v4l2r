@@ -48,13 +48,14 @@ pub fn run<F: FnMut(&[u8])>(
     // Check whether the driver uses the single or multi-planar API by
     // requesting 0 MMAP buffers on the OUTPUT queue. The working queue will
     // return a success.
-    let use_multi_planar = if reqbufs::<(), _>(&fd, VideoOutput, MemoryType::MMAP, 0).is_ok() {
-        false
-    } else if reqbufs::<(), _>(&fd, VideoOutputMplane, MemoryType::MMAP, 0).is_ok() {
-        true
-    } else {
-        panic!("Both single-planar and multi-planar queues are unusable.");
-    };
+    let (output_queue_type, _capture_queue_type, use_multi_planar) =
+        if reqbufs::<(), _>(&fd, VideoOutput, MemoryType::MMAP, 0).is_ok() {
+            (VideoOutput, VideoCapture, false)
+        } else if reqbufs::<(), _>(&fd, VideoOutputMplane, MemoryType::MMAP, 0).is_ok() {
+            (VideoOutputMplane, VideoCaptureMplane, true)
+        } else {
+            panic!("Both single-planar and multi-planar queues are unusable.");
+        };
     println!(
         "Multi-planar: {}",
         if use_multi_planar { "yes" } else { "no" }
@@ -117,6 +118,7 @@ pub fn run<F: FnMut(&[u8])>(
     println!("Adjusted capture format: {:?}", capture_format);
 
     match output_mem {
+        MemoryType::MMAP => (),
         MemoryType::UserPtr => (),
         m => panic!("Unsupported output memory type {:?}", m),
     }
@@ -129,10 +131,10 @@ pub fn run<F: FnMut(&[u8])>(
     // We could run this with as little as one buffer, but let's cycle between
     // two for the sake of it.
     // For simplicity the OUTPUT buffers will use user memory.
-    let num_output_buffers: usize = reqbufs(&fd, output_queue, MemoryType::UserPtr, 2)
-        .expect("Failed to allocate output buffers");
-    let num_capture_buffers: usize = reqbufs(&fd, capture_queue, MemoryType::MMAP, 2)
-        .expect("Failed to allocate capture buffers");
+    let num_output_buffers: usize =
+        reqbufs(&fd, output_queue, output_mem, 2).expect("Failed to allocate output buffers");
+    let num_capture_buffers: usize =
+        reqbufs(&fd, capture_queue, capture_mem, 2).expect("Failed to allocate capture buffers");
     println!(
         "Using {} output and {} capture buffers.",
         num_output_buffers, num_capture_buffers
@@ -158,9 +160,13 @@ pub fn run<F: FnMut(&[u8])>(
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
-    let mut output_buffers: Vec<Vec<u8>> = std::iter::repeat(vec![0u8; output_image_size])
-        .take(num_output_buffers)
-        .collect();
+    let mut output_buffers: Vec<Vec<u8>> = match output_mem {
+        MemoryType::MMAP => Default::default(),
+        MemoryType::UserPtr => std::iter::repeat(vec![0u8; output_image_size])
+            .take(num_output_buffers)
+            .collect(),
+        _ => unreachable!(),
+    };
 
     // Start streaming.
     streamon(&fd, output_queue).expect("Failed to start output queue");
@@ -179,22 +185,41 @@ pub fn run<F: FnMut(&[u8])>(
 
         let output_buffer_index = cpt % num_output_buffers;
         let capture_buffer_index = cpt % num_output_buffers;
-        let output_buffer = &mut output_buffers[output_buffer_index];
 
-        // Generate the frame data.
-        framegen::gen_pattern(
-            output_buffer,
-            output_image_bytesperline,
-            cpt as u32,
-        );
+        // Generate the frame data and buffer to queue.
+        match output_mem {
+            MemoryType::MMAP => {
+                let buffer_info: QueryBuffer =
+                    querybuf(&fd, output_queue_type, output_buffer_index)
+                        .expect("Failed to query output buffer");
+                let plane = &buffer_info.planes[0];
+                let mut mapping =
+                    mmap(&fd, plane.mem_offset, plane.length).expect("Failed to map output buffer");
 
-        // Queue the work to be encoded.
-        let out_qbuf = QBuffer::<Vec<u8>> {
-            planes: vec![QBufPlane::new(output_buffer, output_buffer.len())],
-            ..Default::default()
-        };
-        qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
-            .expect("Error queueing output buffer");
+                framegen::gen_pattern(&mut mapping, output_image_bytesperline, cpt as u32);
+
+                let out_qbuf = QBuffer::<MMAPHandle> {
+                    planes: vec![QBufPlane::new::<MMAPHandle>(&().into(), mapping.len())],
+                    ..Default::default()
+                };
+
+                qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
+            }
+            MemoryType::UserPtr => {
+                let output_buffer = &mut output_buffers[output_buffer_index];
+
+                framegen::gen_pattern(output_buffer, output_image_bytesperline, cpt as u32);
+
+                let out_qbuf = QBuffer::<Vec<u8>> {
+                    planes: vec![QBufPlane::new(output_buffer, output_buffer.len())],
+                    ..Default::default()
+                };
+
+                qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
+            }
+            _ => unreachable!(),
+        }
+        .expect("Error queueing output buffer");
 
         let cap_qbuf = QBuffer::<MMAPHandle> {
             planes: vec![QBufPlane::new::<MMAPHandle>(&().into(), 0)],
