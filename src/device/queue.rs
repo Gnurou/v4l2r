@@ -1,5 +1,6 @@
 pub mod direction;
 pub mod dqbuf;
+pub mod dual_queue;
 pub mod qbuf;
 pub mod states;
 
