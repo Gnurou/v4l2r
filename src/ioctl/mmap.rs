@@ -35,6 +35,12 @@ impl AsRef<[u8]> for PlaneMapping {
     }
 }
 
+impl AsMut<[u8]> for PlaneMapping {
+    fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.data[self.start..self.end]
+    }
+}
+
 /// To provide len() and is_empty().
 impl Deref for PlaneMapping {
     type Target = [u8];
