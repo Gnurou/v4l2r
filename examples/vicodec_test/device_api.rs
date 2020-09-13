@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
-use qbuf::get_free::GetFreeBuffer;
+use qbuf::{get_free::GetFreeBuffer, Plane};
 use v4l2::device::queue::*;
 use v4l2::device::*;
 use v4l2::memory::{UserPtr, MMAP};
@@ -168,7 +168,7 @@ pub fn run<F: FnMut(&[u8])>(
         output_queue
             .try_get_free_buffer()
             .expect("Failed to obtain output buffer")
-            .add_plane(output_buffer_data, bytes_used)
+            .add_plane(Plane::out_with_handle(output_buffer_data, bytes_used))
             .queue()
             .expect("Failed to queue output buffer");
 

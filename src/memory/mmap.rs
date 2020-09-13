@@ -37,3 +37,5 @@ impl Mappable for MMAP {
         Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
     }
 }
+
+impl SelfBacked for MMAP {}

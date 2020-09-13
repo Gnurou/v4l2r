@@ -40,6 +40,14 @@ pub trait Mappable {
     fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
 }
 
+// Trait for memory types that provide their own memory, i.e. MMAP.
+// HandleType for implementors must be 0-sized and implement From<()>.
+pub trait SelfBacked: Memory {}
+
+// Trait for memory types to which external memory must be attachd to, i.e. UserPtr and DMABuf.
+// HandleType for implementors must have a size > 0
+pub trait Bound: Memory {}
+
 /// Trait describing a memory type that can be used to back V4L2 buffers.
 pub trait Memory: 'static {
     // A type that can be applied into a v4l2_plane or v4l2_buffer.
