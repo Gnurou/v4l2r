@@ -190,8 +190,7 @@ impl<'a> QBuffer<'a, Capture, MMAP> {
     /// methods allows to queue them as soon as they are obtained.
     pub fn auto_queue(mut self) -> QueueResult<MMAP, ()> {
         while self.num_set_planes() < self.num_expected_planes() {
-            let handle = MMAPHandle::new(self.index() as u32);
-            self = self.add_plane(handle, 0);
+            self = self.add_plane(().into(), 0);
         }
         self.queue()
     }

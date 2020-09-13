@@ -1,23 +1,16 @@
 //! Operations specific to MMAP-type buffers.
 use super::*;
 use crate::{bindings, ioctl};
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 
 /// Handle for a MMAP buffer. These buffers are backed by V4L2 itself, and
-/// thus we don't need to attach any extra handle information to them. We
-/// still need to pass an mmap offset to user-space so it can read/write the
-/// data.
-pub struct MMAPHandle(u32);
+/// thus we don't need to attach any extra handle information to them.
+#[derive(Default, Debug)]
+pub struct MMAPHandle;
 
-impl MMAPHandle {
-    pub fn new(index: u32) -> MMAPHandle {
-        MMAPHandle(index)
-    }
-}
-
-impl Debug for MMAPHandle {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("MMAPHandle").field(&self.0).finish()
+impl From<()> for MMAPHandle {
+    fn from(_: ()) -> Self {
+        Default::default()
     }
 }
 

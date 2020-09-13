@@ -185,10 +185,7 @@ pub fn run<F: FnMut(&[u8])>(
             .expect("Error queueing output buffer");
 
         let cap_qbuf = QBuffer::<MMAPHandle> {
-            planes: vec![QBufPlane::new(
-                &MMAPHandle::new(capture_buffer_index as u32),
-                0,
-            )],
+            planes: vec![QBufPlane::new::<MMAPHandle>(&().into(), 0)],
             ..Default::default()
         };
         qbuf(&fd, capture_queue, capture_buffer_index, cap_qbuf)
