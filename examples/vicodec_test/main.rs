@@ -13,6 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::{fs::File, io::Write, sync::Arc};
 
 use clap::{App, Arg};
+use v4l2::memory::MemoryType;
 
 fn main() {
     let matches = App::new("vicodec example")
@@ -39,6 +40,22 @@ fn main() {
                 .takes_value(true)
                 .help("Save the encoded stream to a file"),
         )
+        .arg(
+            Arg::with_name("output_mem")
+                .long("output_mem")
+                .required(false)
+                .takes_value(true)
+                .default_value("user")
+                .help("Type of output memory to use (mmap or user)"),
+        )
+        .arg(
+            Arg::with_name("capture_mem")
+                .long("capture_mem")
+                .required(false)
+                .takes_value(true)
+                .default_value("mmap")
+                .help("Type of capture memory to use (mmap or user)"),
+        )
         .get_matches();
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
@@ -52,6 +69,17 @@ fn main() {
     let mut output_file = matches
         .value_of("output_file")
         .map(|s| File::create(s).expect("Invalid output file specified."));
+
+    let output_mem = match matches.value_of("output_mem") {
+        Some("mmap") => MemoryType::MMAP,
+        Some("user") => MemoryType::UserPtr,
+        _ => panic!("Invalid value for output_mem"),
+    };
+    let capture_mem = match matches.value_of("capture_mem") {
+        Some("mmap") => MemoryType::MMAP,
+        Some("user") => MemoryType::UserPtr,
+        _ => panic!("Invalid value for capture_mem"),
+    };
 
     let save_closure = |b: &[u8]| {
         if let Some(ref mut output) = output_file {
@@ -75,6 +103,8 @@ fn main() {
         println!("Using ioctl interface");
         ioctl_api::run(
             &Path::new(&device_path),
+            output_mem,
+            capture_mem,
             lets_quit,
             stop_after,
             save_closure,
@@ -83,6 +113,8 @@ fn main() {
         println!("Using device interface");
         device_api::run(
             &Path::new(&device_path),
+            output_mem,
+            capture_mem,
             lets_quit,
             stop_after,
             save_closure,

@@ -8,12 +8,15 @@ use std::time::Instant;
 use qbuf::{get_free::GetFreeBuffer, Plane};
 use v4l2::device::queue::*;
 use v4l2::device::*;
+use v4l2::memory::MemoryType;
 use v4l2::memory::{UserPtr, MMAP};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
 pub fn run<F: FnMut(&[u8])>(
     device_path: &Path,
+    output_mem: MemoryType,
+    capture_mem: MemoryType,
     lets_quit: Arc<AtomicBool>,
     stop_after: Option<usize>,
     mut save_output: F,
@@ -109,6 +112,16 @@ pub fn run<F: FnMut(&[u8])>(
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
+
+    match output_mem {
+        MemoryType::UserPtr => (),
+        m => panic!("Unsupported output memory type {:?}", m),
+    }
+
+    match capture_mem {
+        MemoryType::MMAP => (),
+        m => panic!("Unsupported capture memory type {:?}", m),
+    }
 
     // Move the queues into their "allocated" state.
     let output_queue = output_queue

@@ -18,6 +18,8 @@ use v4l2::{Format, QueueType::*};
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
 pub fn run<F: FnMut(&[u8])>(
     device_path: &Path,
+    output_mem: MemoryType,
+    capture_mem: MemoryType,
     lets_quit: Arc<AtomicBool>,
     stop_after: Option<usize>,
     mut save_output: F,
@@ -113,6 +115,16 @@ pub fn run<F: FnMut(&[u8])>(
     let capture_format: Format = g_fmt(&fd, capture_queue).expect("Failed getting capture format");
     println!("Adjusted output format: {:?}", output_format);
     println!("Adjusted capture format: {:?}", capture_format);
+
+    match output_mem {
+        MemoryType::UserPtr => (),
+        m => panic!("Unsupported output memory type {:?}", m),
+    }
+
+    match capture_mem {
+        MemoryType::MMAP => (),
+        m => panic!("Unsupported capture memory type {:?}", m),
+    }
 
     // We could run this with as little as one buffer, but let's cycle between
     // two for the sake of it.
