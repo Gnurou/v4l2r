@@ -99,6 +99,12 @@ pub enum QueueType {
     VideoOutputMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE as isize,
 }
 
+impl Display for QueueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, f)
+    }
+}
+
 /// A Fourcc pixel format, used to pass formats to V4L2. It can be converted
 /// back and forth from a 32-bit integer, or a 4-bytes string.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]

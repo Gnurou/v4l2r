@@ -10,6 +10,7 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_encoder_cmd, b'V', 77, v4l2_encoder_cmd);
 }
 
+#[derive(Debug)]
 pub enum EncoderCommand {
     Start,
     Stop(bool),
@@ -22,7 +23,7 @@ pub enum EncoderCmdError {
     #[error("Drain already in progress")]
     DrainInProgress,
     #[error("Command not supported by device")]
-    UnsupportedCommand,
+    UnsupportedCommand(EncoderCommand),
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(Error),
 }
@@ -45,7 +46,7 @@ pub fn encoder_cmd(fd: &impl AsRawFd, command: EncoderCommand) -> Result<(), Enc
     match unsafe { ioctl::vidioc_encoder_cmd(fd.as_raw_fd(), &mut enc_cmd) } {
         Ok(_) => Ok(()),
         Err(Error::Sys(Errno::EBUSY)) => Err(EncoderCmdError::DrainInProgress),
-        Err(Error::Sys(Errno::EINVAL)) => Err(EncoderCmdError::UnsupportedCommand),
+        Err(Error::Sys(Errno::EINVAL)) => Err(EncoderCmdError::UnsupportedCommand(command)),
         Err(e) => Err(EncoderCmdError::IoctlError(e)),
     }
 }

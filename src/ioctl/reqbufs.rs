@@ -69,8 +69,8 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum ReqbufsError {
-    #[error("Invalid buffer or memory type requested")]
-    InvalidBufferType,
+    #[error("Invalid buffer ({0}) or memory type ({1}) requested")]
+    InvalidBufferType(QueueType, MemoryType),
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(Error),
 }
@@ -91,7 +91,7 @@ pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) } {
         Ok(_) => Ok(T::from(reqbufs)),
-        Err(Error::Sys(Errno::EINVAL)) => Err(ReqbufsError::InvalidBufferType),
+        Err(Error::Sys(Errno::EINVAL)) => Err(ReqbufsError::InvalidBufferType(queue, memory)),
         Err(e) => Err(ReqbufsError::IoctlError(e)),
     }
 }

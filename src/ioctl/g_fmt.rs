@@ -11,10 +11,10 @@ use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum FormatConversionError {
-    #[error("Too many planes specified")]
-    TooManyPlanes,
+    #[error("Too many planes ({0}) specified,")]
+    TooManyPlanes(usize),
     #[error("Invalid buffer type requested")]
-    InvalidBufferType,
+    InvalidBufferType(u32),
 }
 
 /// Implementors can receive the result from the `g_fmt`, `s_fmt` and `try_fmt`
@@ -32,7 +32,7 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
                     bindings::v4l2_format__bindgen_ty_1 {
                         pix_mp: {
                             if format.plane_fmt.len() > bindings::VIDEO_MAX_PLANES as usize {
-                                return Err(Self::Error::TooManyPlanes);
+                                return Err(Self::Error::TooManyPlanes(format.plane_fmt.len()));
                             }
 
                             let mut pix_mp = bindings::v4l2_pix_format_mplane {
@@ -59,7 +59,7 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
                 _ => bindings::v4l2_format__bindgen_ty_1 {
                     pix: {
                         if format.plane_fmt.len() > 1 {
-                            return Err(Self::Error::TooManyPlanes);
+                            return Err(Self::Error::TooManyPlanes(format.plane_fmt.len()));
                         }
 
                         let (bytesperline, sizeimage) = if !format.plane_fmt.is_empty() {
@@ -110,7 +110,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
 
                 // Can only happen if we passed a malformed v4l2_format.
                 if pix_mp.num_planes as usize > pix_mp.plane_fmt.len() {
-                    return Err(Self::Error::TooManyPlanes);
+                    return Err(Self::Error::TooManyPlanes(pix_mp.num_planes as usize));
                 }
 
                 let mut plane_fmt = Vec::new();
@@ -129,7 +129,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
                     plane_fmt,
                 })
             }
-            _ => Err(Self::Error::InvalidBufferType),
+            t => Err(Self::Error::InvalidBufferType(t)),
         }
     }
 }
@@ -332,7 +332,7 @@ mod test {
         };
         assert_eq!(
             TryInto::<bindings::v4l2_format>::try_into((mplane, QueueType::VideoCapture)).err(),
-            Some(FormatConversionError::TooManyPlanes)
+            Some(FormatConversionError::TooManyPlanes(3))
         );
     }
 }

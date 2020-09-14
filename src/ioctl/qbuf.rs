@@ -35,10 +35,10 @@ bitflags! {
 
 #[derive(Debug, Error)]
 pub enum QBufError {
-    #[error("Not enough planes specified for the buffer")]
-    NotEnoughPlanes,
-    #[error("Too many planes specified for the buffer")]
-    TooManyPlanes,
+    #[error("Not enough planes specified for the buffer: got {0}, expected {1}")]
+    NotEnoughPlanes(usize, usize),
+    #[error("Too many planes specified for the buffer: got {0}, expected {1}")]
+    TooManyPlanes(usize, usize),
     #[error("Data offset specified while using the single-planar API")]
     DataOffsetNotSupported,
     #[error("Unexpected ioctl error: {0}")]
@@ -124,8 +124,8 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         v4l2_buf: &mut bindings::v4l2_buffer,
     ) -> Result<(), QBufError> {
         match self.planes.len().cmp(&1) {
-            Ordering::Less => return Err(QBufError::NotEnoughPlanes),
-            Ordering::Greater => return Err(QBufError::TooManyPlanes),
+            Ordering::Less => return Err(QBufError::NotEnoughPlanes(self.planes.len(), 1)),
+            Ordering::Greater => return Err(QBufError::TooManyPlanes(self.planes.len(), 1)),
             Ordering::Equal => (),
         };
 
@@ -146,10 +146,16 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         v4l2_planes: &mut PlaneData,
     ) -> Result<(), QBufError> {
         if self.planes.is_empty() {
-            return Err(QBufError::NotEnoughPlanes);
+            return Err(QBufError::NotEnoughPlanes(
+                self.planes.len(),
+                v4l2_planes.len(),
+            ));
         }
         if self.planes.len() > v4l2_planes.len() {
-            return Err(QBufError::TooManyPlanes);
+            return Err(QBufError::TooManyPlanes(
+                self.planes.len(),
+                v4l2_planes.len(),
+            ));
         }
 
         v4l2_buf.memory = H::MEMORY_TYPE as u32;

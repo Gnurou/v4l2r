@@ -13,8 +13,8 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum StreamOnError {
-    #[error("Queue type not supported, or no buffers allocated or enqueued")]
-    InvalidQueue,
+    #[error("Queue type ({0}) not supported, or no buffers allocated or enqueued")]
+    InvalidQueue(QueueType),
     #[error("Invalid pad configuration")]
     InvalidPadConfig,
     #[error("Invalid pipeline link configuration")]
@@ -27,7 +27,7 @@ pub enum StreamOnError {
 pub fn streamon(fd: &impl AsRawFd, queue: QueueType) -> Result<(), StreamOnError> {
     match unsafe { ioctl::vidioc_streamon(fd.as_raw_fd(), &(queue as u32)) } {
         Ok(_) => Ok(()),
-        Err(Error::Sys(Errno::EINVAL)) => Err(StreamOnError::InvalidQueue),
+        Err(Error::Sys(Errno::EINVAL)) => Err(StreamOnError::InvalidQueue(queue)),
         Err(Error::Sys(Errno::EPIPE)) => Err(StreamOnError::InvalidPadConfig),
         Err(Error::Sys(Errno::ENOLINK)) => Err(StreamOnError::InvalidPipelineConfig),
         Err(e) => Err(StreamOnError::IoctlError(e)),

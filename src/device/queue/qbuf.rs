@@ -125,13 +125,13 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
         match plane_handles.len().cmp(&self.num_planes) {
             Ordering::Less => {
                 return Err(QueueError {
-                    error: QBufError::NotEnoughPlanes,
+                    error: QBufError::NotEnoughPlanes(plane_handles.len(), self.num_planes),
                     plane_handles,
                 })
             }
             Ordering::Greater => {
                 return Err(QueueError {
-                    error: QBufError::TooManyPlanes,
+                    error: QBufError::TooManyPlanes(plane_handles.len(), self.num_planes),
                     plane_handles,
                 })
             }

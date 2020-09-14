@@ -12,7 +12,7 @@ use crate::{
     bindings,
     ioctl::{PlaneMapping, QueryBufPlane},
 };
-use std::fmt::Debug;
+use std::fmt::{self, Debug, Display};
 use std::os::unix::io::AsRawFd;
 
 #[derive(Debug, Clone, Copy)]
@@ -20,6 +20,12 @@ pub enum MemoryType {
     MMAP = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
     UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR as isize,
     DMABuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF as isize,
+}
+
+impl Display for MemoryType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(self, f)
+    }
 }
 
 /// Trait for handles that point to actual buffer data. Each one of the `MMAP`,
