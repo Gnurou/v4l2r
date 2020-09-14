@@ -9,8 +9,8 @@ pub enum GetFreeBufferError {
 /// Trait for buffers providers with their own allocation policy. Users of this
 /// interface leave the choice of which buffer to return to the implementor,
 /// which must define its own allocation policy.
-pub trait GetFreeBuffer<'a> {
+pub trait GetFreeBuffer<'a, ErrorType = GetFreeBufferError> {
     type Queueable;
 
-    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError>;
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
 }

@@ -360,17 +360,6 @@ where
         Ok(())
     }
 
-    /// Returns a V4L2 buffer to be filled with a frame to encode if one
-    /// is available.
-    ///
-    /// This method will return None immediately if all the allocated buffers
-    /// are currently queued.
-    #[allow(dead_code)]
-    pub fn try_get_buffer(&self) -> Result<OutputBuffer, GetBufferError> {
-        self.dequeue_output_buffers()?;
-        Ok(self.state.output_queue.try_get_free_buffer()?)
-    }
-
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
     /// one to be available if needed.
     ///
@@ -379,12 +368,30 @@ where
     pub fn get_buffer(&mut self) -> Result<OutputBuffer, GetBufferError> {
         let output_queue = &self.state.output_queue;
 
-        self.dequeue_output_buffers()?;
         // If all our buffers are queued, wait until we can dequeue some.
         if output_queue.num_queued_buffers() == output_queue.num_buffers() {
             self.wait_for_output_buffer()?;
         }
 
+        self.try_get_free_buffer()
+    }
+}
+
+impl<'a, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError>
+    for Encoder<Encoding<InputDoneCb, OutputReadyCb>>
+where
+    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+{
+    type Queueable = OutputBuffer<'a>;
+
+    /// Returns a V4L2 buffer to be filled with a frame to encode if one
+    /// is available.
+    ///
+    /// This method will return None immediately if all the allocated buffers
+    /// are currently queued.
+    fn try_get_free_buffer(&self) -> Result<OutputBuffer, GetBufferError> {
+        self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
 }
