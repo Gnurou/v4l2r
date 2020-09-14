@@ -5,17 +5,16 @@ use v4l2::device::{
         qbuf::QBuffer,
         BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit, RequestBuffersError,
     },
-    AllocatedQueue,
+    AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
 };
-use v4l2::device::{Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue};
 use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
 use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
-use std::os::unix::io::AsRawFd;
-use std::path::Path;
 use std::{
     io,
+    os::unix::io::AsRawFd,
+    path::Path,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
