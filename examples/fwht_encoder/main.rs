@@ -22,7 +22,7 @@ use v4l2::{
 const FRAME_SIZE: (usize, usize) = (640, 480);
 
 fn main() {
-    let matches = App::new("vicodec example")
+    let matches = App::new("FWHT encoder")
         .arg(
             Arg::with_name("num_frames")
                 .long("stop_after")

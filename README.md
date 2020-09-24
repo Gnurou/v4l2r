@@ -42,8 +42,10 @@ for running the device API example, or
 for the ioctl example, assuming `/dev/video0` is the path to the `vicodec`
 encoder.
 
-`examples/vicodec_pipeline` contains another example program implementing a
-higher-level vicodec encoder running in its own thread. As the name implies the
-goal is to also feature a decoder at some point in the future. Run as follows:
+`examples/fwht_encoder` contains another example program implementing a
+higher-level vicodec encoder running in its own thread. It can be run as
+follows:
 
-    cargo run --example vicodec_pipeline -- /dev/video0
+    cargo run --example fwht_encoder -- /dev/video0
+
+Pass `--help` to the program for further options.
