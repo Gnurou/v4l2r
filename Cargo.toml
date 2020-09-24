@@ -6,7 +6,7 @@ edition = "2018"
 license = "LGPL-2.1"
 
 [dependencies]
-nix = "0.17.0"
+nix = "0.18.0"
 bitflags = "1.2.1"
 thiserror = "1.0"
 anyhow = "1.0"
