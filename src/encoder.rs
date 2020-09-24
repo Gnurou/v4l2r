@@ -1,14 +1,18 @@
-use v4l2::device::{
-    queue::{
-        direction, dqbuf,
-        qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
-        qbuf::QBuffer,
-        BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit, RequestBuffersError,
+use crate::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
+use crate::memory::{UserPtr, MMAP};
+use crate::{
+    device::{
+        queue::{
+            direction, dqbuf,
+            qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
+            qbuf::QBuffer,
+            BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
+            RequestBuffersError,
+        },
+        AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
+    ioctl, Format,
 };
-use v4l2::ioctl::{BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError};
-use v4l2::memory::{UserPtr, MMAP};
 
 use mio::{self, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 use std::{
@@ -147,11 +151,11 @@ impl Encoder<AwaitingOutputBuffers> {
         })
     }
 
-    pub fn get_output_format(&self) -> Result<v4l2::Format, GFmtError> {
+    pub fn get_output_format(&self) -> Result<Format, GFmtError> {
         self.state.output_queue.get_format()
     }
 
-    pub fn get_capture_format(&self) -> Result<v4l2::Format, GFmtError> {
+    pub fn get_capture_format(&self) -> Result<Format, GFmtError> {
         self.state.capture_queue.get_format()
     }
 }
@@ -286,7 +290,7 @@ where
 {
     /// Stop the encoder, and returns the encoder ready to be started again.
     pub fn stop(self) -> Result<Encoder<ReadyToEncode>, ()> {
-        v4l2::ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false)).unwrap();
+        ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false)).unwrap();
 
         // The encoder thread should receive the LAST buffer and exit on its own.
         let encoding_thread = self.state.handle.join().unwrap();

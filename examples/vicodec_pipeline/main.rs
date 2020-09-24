@@ -1,8 +1,7 @@
-mod encoder;
 mod framegen;
 
-use encoder::*;
 use framegen::FrameGenerator;
+use v4l2::encoder::*;
 
 use std::fs::File;
 use std::io::{self, Write};

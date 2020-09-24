@@ -19,6 +19,7 @@
 //!
 mod bindings;
 pub mod device;
+pub mod encoder;
 pub mod ioctl;
 pub mod memory;
 
