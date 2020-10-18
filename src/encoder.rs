@@ -365,8 +365,8 @@ where
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
     /// one to be available if needed.
     ///
-    /// If all allocated buffers are currently queued, this methods will wait
-    /// for one to be available.
+    /// If all allocated buffers are currently queued, this method will wait for
+    /// one to be available.
     pub fn get_buffer(&mut self) -> Result<OutputBuffer, GetBufferError> {
         let output_queue = &self.state.output_queue;
 
