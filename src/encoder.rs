@@ -85,10 +85,10 @@ impl Encoder<AwaitingCaptureFormat> {
         })
     }
 
-    pub fn set_capture_format(
-        mut self,
-        f: fn(FormatBuilder) -> anyhow::Result<()>,
-    ) -> anyhow::Result<Encoder<AwaitingOutputFormat>> {
+    pub fn set_capture_format<F>(mut self, f: F) -> anyhow::Result<Encoder<AwaitingOutputFormat>>
+    where
+        F: Fn(FormatBuilder) -> anyhow::Result<()>,
+    {
         let builder = self.state.capture_queue.change_format()?;
         f(builder)?;
 
@@ -109,10 +109,10 @@ pub struct AwaitingOutputFormat {
 impl EncoderState for AwaitingOutputFormat {}
 
 impl Encoder<AwaitingOutputFormat> {
-    pub fn set_output_format(
-        mut self,
-        f: fn(FormatBuilder) -> anyhow::Result<()>,
-    ) -> anyhow::Result<Encoder<AwaitingOutputBuffers>> {
+    pub fn set_output_format<F>(mut self, f: F) -> anyhow::Result<Encoder<AwaitingOutputBuffers>>
+    where
+        F: Fn(FormatBuilder) -> anyhow::Result<()>,
+    {
         let builder = self.state.output_queue.change_format()?;
         f(builder)?;
 
