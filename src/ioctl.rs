@@ -91,8 +91,8 @@ type PlaneData = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
 
 /// Returns whether the given queue type can handle multi-planar formats.
 fn is_multi_planar(queue: QueueType) -> bool {
-    match queue {
-        QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane => true,
-        _ => false,
-    }
+    matches!(
+        queue,
+        QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane
+    )
 }

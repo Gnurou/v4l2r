@@ -466,12 +466,12 @@ impl<'a, D: Direction, M: Memory> GetFreeBuffer<'a> for Queue<D, BuffersAllocate
     type Queueable = QBuffer<'a, D, M>;
 
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
-        let res = self.state.buffer_info.iter().enumerate().find(|(_, s)| {
-            match *s.state.lock().unwrap() {
-                BufferState::Free => true,
-                _ => false,
-            }
-        });
+        let res = self
+            .state
+            .buffer_info
+            .iter()
+            .enumerate()
+            .find(|(_, s)| matches!(*s.state.lock().unwrap(), BufferState::Free));
 
         match res {
             None => Err(GetFreeBufferError::NoFreeBuffer),
