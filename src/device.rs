@@ -26,6 +26,7 @@ use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::{path::Path, sync::Mutex};
 use thiserror::Error;
 
+pub mod poller;
 pub mod queue;
 mod traits;
 
