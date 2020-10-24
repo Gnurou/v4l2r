@@ -17,6 +17,7 @@ mod querybuf;
 mod querycap;
 mod reqbufs;
 mod streamon;
+mod subscribe_event;
 
 pub use dqbuf::*;
 pub use encoder_cmd::*;
@@ -28,6 +29,7 @@ pub use querybuf::*;
 pub use querycap::*;
 pub use reqbufs::*;
 pub use streamon::*;
+pub use subscribe_event::*;
 
 use crate::bindings;
 use crate::QueueType;
