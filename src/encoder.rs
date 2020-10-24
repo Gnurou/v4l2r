@@ -318,11 +318,6 @@ where
     fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
         let events = self.state.output_poller.poll(None)?;
         if events.contains(PollEvents::DEVICE_OUTPUT) {
-            // We call dequeue_output_buffers() here to make sure
-            // that all the buffers signaled by poll() are dequeued,
-            // since Mio only supports edge-triggered polling and
-            // leaving buffers unattended may create a deadlock the
-            // next time this method is called.
             self.dequeue_output_buffers()?;
         } else {
             panic!("Unexpected return from OUTPUT queue poll!");
@@ -433,11 +428,8 @@ where
             // A CAPTURE buffer is ready to be dequeued.
             if events.contains(PollEvents::DEVICE_CAPTURE) {
                 // Get the encoded buffer
-                // Mio only supports edge-triggered polling, so make sure to
-                // dequeue all the buffers that were available when poll()
-                // returned, as they won't be signaled a second time.
                 // TODO Manage errors here, including corrupted buffers!
-                while let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
+                if let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
                     let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
                     let is_empty = cap_buf.data.planes[0].bytesused == 0;
 
@@ -458,6 +450,9 @@ where
                     if is_last {
                         break 'polling;
                     }
+                } else {
+                    // TODO we should not crash here.
+                    panic!("Expected a CAPTURE buffer but none available!");
                 }
             }
         }
