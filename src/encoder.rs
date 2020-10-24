@@ -304,6 +304,8 @@ where
                     (self.state.input_done_cb)(&mut buf.plane_handles);
                 }
                 Err(DQBufError::NotReady) => break,
+                // TODO buffers with the error flag set should not result in
+                // a fatal error!
                 Err(e) => return Err(e),
             }
         }
