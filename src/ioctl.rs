@@ -7,6 +7,7 @@
 //! argument, and only return the values written by the kernel. Therefore,
 //! although the return types look similar to the kernel structures, they are
 //! not strictly identical.
+mod decoder_cmd;
 mod dqbuf;
 mod encoder_cmd;
 mod enum_fmt;
@@ -19,6 +20,7 @@ mod reqbufs;
 mod streamon;
 mod subscribe_event;
 
+pub use decoder_cmd::*;
 pub use dqbuf::*;
 pub use encoder_cmd::*;
 pub use enum_fmt::*;
