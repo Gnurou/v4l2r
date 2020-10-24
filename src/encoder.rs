@@ -437,7 +437,7 @@ where
                 // TODO Manage errors here, including corrupted buffers!
                 while let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
                     let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
-                    let bytes_used = cap_buf.data.planes[0].bytesused;
+                    let is_empty = cap_buf.data.planes[0].bytesused == 0;
 
                     // Add a drop callback to the dequeued buffer so we
                     // re-queue it as soon as it is dropped.
@@ -447,8 +447,8 @@ where
                         let _ = cap_waker.wake();
                     });
 
-                    // Zero-size buffers do not need to be passed to the client.
-                    if bytes_used > 0 {
+                    // Empty buffers do not need to be passed to the client.
+                    if !is_empty {
                         (self.output_ready_cb)(cap_buf);
                     }
 
