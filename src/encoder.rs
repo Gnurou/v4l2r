@@ -316,12 +316,15 @@ where
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
     // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
     fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
-        let events = self.state.output_poller.poll(None)?;
-        if events.contains(PollEvents::DEVICE_OUTPUT) {
-            self.dequeue_output_buffers()?;
-        } else {
-            panic!("Unexpected return from OUTPUT queue poll!");
+        for event in self.state.output_poller.poll(None)? {
+            match event {
+                PollEvents::DEVICE_OUTPUT => {
+                    self.dequeue_output_buffers()?;
+                }
+                _ => panic!("Unexpected return from OUTPUT queue poll!"),
+            }
         }
+
         Ok(())
     }
 
@@ -402,57 +405,62 @@ where
         self.enqueue_capture_buffers();
 
         'polling: loop {
-            // If there are no buffers on the CAPTURE queue, poll() will return
-            // immediately with EPOLLERR and we would loop indefinitely.
-            // Prevent this by temporarily disabling polling the device in such
-            // cases.
-            if self.capture_queue.num_queued_buffers() == 0 {
-                self.poller
-                    .disable_event(DeviceEvent::CaptureReady)
-                    .unwrap();
-            }
-            let events = self.poller.poll(None).unwrap();
-
-            // A CAPTURE buffer has been released by the client.
-            if events.contains(PollEvents::WAKER) {
-                // Requeue all available CAPTURE buffers.
-                self.enqueue_capture_buffers();
+            match self.capture_queue.num_queued_buffers() {
+                // If there are no buffers on the CAPTURE queue, poll() will return
+                // immediately with EPOLLERR and we would loop indefinitely.
+                // Prevent this by temporarily disabling polling the device in such
+                // cases.
+                0 => {
+                    self.poller
+                        .disable_event(DeviceEvent::CaptureReady)
+                        .unwrap();
+                }
                 // If device polling was disabled and we have buffers queued, we
                 // can reenable it as poll will now wait for a CAPTURE buffer to
                 // be ready for dequeue.
-                if self.capture_queue.num_queued_buffers() > 0 {
+                _ => {
                     self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
                 }
             }
 
-            // A CAPTURE buffer is ready to be dequeued.
-            if events.contains(PollEvents::DEVICE_CAPTURE) {
-                // Get the encoded buffer
-                // TODO Manage errors here, including corrupted buffers!
-                if let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
-                    let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
-                    let is_empty = cap_buf.data.planes[0].bytesused == 0;
-
-                    // Add a drop callback to the dequeued buffer so we
-                    // re-queue it as soon as it is dropped.
-                    let cap_waker = Arc::clone(self.poller.get_waker());
-                    cap_buf.add_drop_callback(move |_dqbuf| {
-                        // Intentionally ignore the result here.
-                        let _ = cap_waker.wake();
-                    });
-
-                    // Empty buffers do not need to be passed to the client.
-                    if !is_empty {
-                        (self.output_ready_cb)(cap_buf);
+            for event in self.poller.poll(None).unwrap() {
+                match event {
+                    // A CAPTURE buffer has been released by the client.
+                    PollEvents::WAKER => {
+                        // Requeue all available CAPTURE buffers.
+                        self.enqueue_capture_buffers();
                     }
+                    // A CAPTURE buffer is ready to be dequeued.
+                    PollEvents::DEVICE_CAPTURE => {
+                        // Get the encoded buffer
+                        // TODO Manage errors here, including corrupted buffers!
+                        if let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
+                            let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
+                            let is_empty = cap_buf.data.planes[0].bytesused == 0;
 
-                    // Last buffer of the stream? Time for us to terminate.
-                    if is_last {
-                        break 'polling;
+                            // Add a drop callback to the dequeued buffer so we
+                            // re-queue it as soon as it is dropped.
+                            let cap_waker = Arc::clone(self.poller.get_waker());
+                            cap_buf.add_drop_callback(move |_dqbuf| {
+                                // Intentionally ignore the result here.
+                                let _ = cap_waker.wake();
+                            });
+
+                            // Empty buffers do not need to be passed to the client.
+                            if !is_empty {
+                                (self.output_ready_cb)(cap_buf);
+                            }
+
+                            // Last buffer of the stream? Time for us to terminate.
+                            if is_last {
+                                break 'polling;
+                            }
+                        } else {
+                            // TODO we should not crash here.
+                            panic!("Expected a CAPTURE buffer but none available!");
+                        }
                     }
-                } else {
-                    // TODO we should not crash here.
-                    panic!("Expected a CAPTURE buffer but none available!");
+                    _ => panic!("Unexpected return from CAPTURE queue poll!"),
                 }
             }
         }
