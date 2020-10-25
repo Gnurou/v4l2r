@@ -1,6 +1,7 @@
 use crate::{
     device::{
         poller::{DeviceEvent, PollEvents, Poller},
+        queue::CanceledBuffer,
         queue::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
@@ -198,7 +199,7 @@ impl Encoder<ReadyToEncode> {
         output_ready_cb: OutputReadyCb,
     ) -> io::Result<Encoder<Encoding<InputDoneCb, OutputReadyCb>>>
     where
-        InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+        InputDoneCb: Fn(CompletedOutputBuffer),
         OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
     {
         self.state.output_queue.stream_on().unwrap();
@@ -233,7 +234,7 @@ impl Encoder<ReadyToEncode> {
 
 pub struct Encoding<InputDoneCb, OutputReadyCb>
 where
-    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+    InputDoneCb: Fn(CompletedOutputBuffer),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     output_queue: Queue<Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
@@ -244,7 +245,7 @@ where
 }
 impl<InputDoneCb, OutputReadyCb> EncoderState for Encoding<InputDoneCb, OutputReadyCb>
 where
-    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+    InputDoneCb: Fn(CompletedOutputBuffer),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
 }
@@ -254,6 +255,11 @@ unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
 type OutputBuffer<'a> = QBuffer<'a, Output, UserPtr<Vec<u8>>>;
 type DequeueOutputBufferError = DQBufError<DQBuffer<Output, UserPtr<Vec<u8>>>>;
+
+pub enum CompletedOutputBuffer {
+    Dequeued(DQBuffer<Output, UserPtr<Vec<u8>>>),
+    Canceled(CanceledBuffer<UserPtr<Vec<u8>>>),
+}
 
 #[derive(Debug, Error)]
 pub enum GetBufferError {
@@ -267,7 +273,7 @@ pub enum GetBufferError {
 
 impl<InputDoneCb, OutputReadyCb> Encoder<Encoding<InputDoneCb, OutputReadyCb>>
 where
-    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+    InputDoneCb: Fn(CompletedOutputBuffer),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     /// Stop the encoder, and returns the encoder ready to be started again.
@@ -280,8 +286,8 @@ where
         encoding_thread.capture_queue.stream_off().unwrap();
         /* Return all canceled buffers to the client */
         let canceled_buffers = self.state.output_queue.stream_off().unwrap();
-        for mut buffer in canceled_buffers {
-            (self.state.input_done_cb)(&mut buffer.plane_handles);
+        for buffer in canceled_buffers {
+            (self.state.input_done_cb)(CompletedOutputBuffer::Canceled(buffer));
         }
 
         Ok(Encoder {
@@ -300,8 +306,8 @@ where
 
         while output_queue.num_queued_buffers() > 0 {
             match output_queue.try_dequeue() {
-                Ok(mut buf) => {
-                    (self.state.input_done_cb)(&mut buf.plane_handles);
+                Ok(buf) => {
+                    (self.state.input_done_cb)(CompletedOutputBuffer::Dequeued(buf));
                 }
                 Err(DQBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in
@@ -348,7 +354,7 @@ where
 impl<'a, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError>
     for Encoder<Encoding<InputDoneCb, OutputReadyCb>>
 where
-    InputDoneCb: Fn(&mut Vec<Vec<u8>>),
+    InputDoneCb: Fn(CompletedOutputBuffer),
     OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
 {
     type Queueable = OutputBuffer<'a>;

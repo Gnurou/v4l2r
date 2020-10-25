@@ -130,7 +130,11 @@ fn main() {
             .collect();
     let free_buffers = RefCell::new(free_buffers);
 
-    let input_done_cb = |handles: &mut Vec<Vec<u8>>| {
+    let input_done_cb = |buffer: CompletedOutputBuffer| {
+        let mut handles = match buffer {
+            CompletedOutputBuffer::Dequeued(mut buf) => std::mem::take(&mut buf.plane_handles),
+            CompletedOutputBuffer::Canceled(buf) => buf.plane_handles,
+        };
         free_buffers.borrow_mut().push_back(handles.remove(0));
     };
 
