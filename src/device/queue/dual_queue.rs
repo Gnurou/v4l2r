@@ -115,10 +115,10 @@ impl<D: Direction> Stream for DualAllocatedQueue<D> {
             // TODO we should include the Vec inside the enum, probably?
             DualAllocatedQueue::MMAP(m) => m
                 .stream_off()
-                .map(|v| v.into_iter().map(|b| b.into()).collect()),
+                .map(|v| v.into_iter().map(DualCanceledBuffer::from).collect()),
             DualAllocatedQueue::User(u) => u
                 .stream_off()
-                .map(|v| v.into_iter().map(|b| b.into()).collect()),
+                .map(|v| v.into_iter().map(DualCanceledBuffer::from).collect()),
         }
     }
 }
@@ -128,8 +128,8 @@ impl<'a, D: Direction> GetBufferByIndex<'a> for DualAllocatedQueue<D> {
 
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
         match self {
-            DualAllocatedQueue::MMAP(m) => m.try_get_buffer(index).map(|b| b.into()),
-            DualAllocatedQueue::User(u) => u.try_get_buffer(index).map(|b| b.into()),
+            DualAllocatedQueue::MMAP(m) => m.try_get_buffer(index).map(DualQBuffer::from),
+            DualAllocatedQueue::User(u) => u.try_get_buffer(index).map(DualQBuffer::from),
         }
     }
 }
@@ -155,11 +155,11 @@ impl<D: Direction> TryDequeue for DualAllocatedQueue<D> {
         match self {
             DualAllocatedQueue::MMAP(m) => m
                 .try_dequeue()
-                .map(|b| b.into())
+                .map(DualDQBuffer::from)
                 .map_err(map_dqbuferror_to_dual),
             DualAllocatedQueue::User(u) => u
                 .try_dequeue()
-                .map(|b| b.into())
+                .map(DualDQBuffer::from)
                 .map_err(map_dqbuferror_to_dual),
         }
     }
