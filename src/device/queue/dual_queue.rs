@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     device::AllocatedQueue,
-    device::{Stream, TryDequeue},
+    device::{FreeBuffersResult, Stream, TryDequeue},
     ioctl,
     memory::{Memory, UserPtr, MMAP},
 };
@@ -180,10 +180,30 @@ impl<'a, D: Direction> AllocatedQueue<'a, D> for DualAllocatedQueue<D> {
         }
     }
 
-    fn free_buffers(self) -> Result<Queue<D, super::QueueInit>, ioctl::ReqbufsError> {
+    fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
         match self {
-            DualAllocatedQueue::MMAP(m) => m.free_buffers(),
-            DualAllocatedQueue::User(u) => u.free_buffers(),
+            DualAllocatedQueue::MMAP(m) => {
+                let result = m.free_buffers()?;
+                Ok(FreeBuffersResult {
+                    queue: result.queue,
+                    canceled_buffers: result
+                        .canceled_buffers
+                        .into_iter()
+                        .map(DualCanceledBuffer::from)
+                        .collect(),
+                })
+            }
+            DualAllocatedQueue::User(u) => {
+                let result = u.free_buffers()?;
+                Ok(FreeBuffersResult {
+                    queue: result.queue,
+                    canceled_buffers: result
+                        .canceled_buffers
+                        .into_iter()
+                        .map(DualCanceledBuffer::from)
+                        .collect(),
+                })
+            }
         }
     }
 }

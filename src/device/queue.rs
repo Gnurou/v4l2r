@@ -4,7 +4,7 @@ pub mod dual_queue;
 pub mod qbuf;
 pub mod states;
 
-use super::{AllocatedQueue, Device, Stream, TryDequeue};
+use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::ioctl;
 use crate::memory::*;
 use crate::{Format, PixelFormat, QueueType};
@@ -309,48 +309,11 @@ pub struct BuffersAllocated<M: Memory> {
 }
 impl<M: Memory> QueueState for BuffersAllocated<M> {}
 
-impl<'a, D: Direction, M: Memory> AllocatedQueue<'a, D> for Queue<D, BuffersAllocated<M>> {
-    fn num_buffers(&self) -> usize {
-        self.state.buffer_info.len()
-    }
-
-    fn num_queued_buffers(&self) -> usize {
-        self.state.num_queued_buffers.get()
-    }
-
-    fn free_buffers(self) -> Result<Queue<D, QueueInit>, ioctl::ReqbufsError> {
-        let type_ = self.inner.type_;
-        ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
-
-        Ok(Queue {
-            inner: self.inner,
-            _d: std::marker::PhantomData,
-            state: QueueInit {},
-        })
-    }
-}
-
-/// Represents a queued buffer which has not been processed due to `streamoff`
-/// being called on a queue.
-pub struct CanceledBuffer<M: Memory> {
-    /// Index of the buffer,
-    pub index: u32,
-    /// Plane handles that were passed when the buffer has been queued.
-    pub plane_handles: PlaneHandles<M>,
-}
-
-impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
-    type Canceled = CanceledBuffer<M>;
-
-    fn stream_on(&self) -> Result<(), StreamOnError> {
-        let type_ = self.inner.type_;
-        ioctl::streamon(&self.inner, type_)
-    }
-
-    fn stream_off(&self) -> Result<Vec<Self::Canceled>, StreamOffError> {
-        let type_ = self.inner.type_;
-        ioctl::streamoff(&self.inner, type_)?;
-
+impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
+    /// Return all the currently queued buffers as CanceledBuffers. This can
+    /// be called after a explicit or implicit streamoff to inform the client
+    /// of which buffers have been canceled and return their handles.
+    fn cancel_queued_buffers(&self) -> Vec<CanceledBuffer<M>> {
         let canceled_buffers: Vec<_> = self
             .state
             .buffer_info
@@ -384,7 +347,60 @@ impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
             .num_queued_buffers
             .set(num_queued_buffers - canceled_buffers.len());
 
-        Ok(canceled_buffers)
+        canceled_buffers
+    }
+}
+
+impl<'a, D: Direction, M: Memory> AllocatedQueue<'a, D> for Queue<D, BuffersAllocated<M>> {
+    fn num_buffers(&self) -> usize {
+        self.state.buffer_info.len()
+    }
+
+    fn num_queued_buffers(&self) -> usize {
+        self.state.num_queued_buffers.get()
+    }
+
+    fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
+        let type_ = self.inner.type_;
+        ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
+
+        // reqbufs also performs an implicit streamoff, so return the cancelled
+        // buffers.
+        let canceled_buffers = self.cancel_queued_buffers();
+
+        Ok(FreeBuffersResult {
+            queue: Queue {
+                inner: self.inner,
+                _d: std::marker::PhantomData,
+                state: QueueInit {},
+            },
+            canceled_buffers,
+        })
+    }
+}
+
+/// Represents a queued buffer which has not been processed due to `streamoff`
+/// being called on a queue.
+pub struct CanceledBuffer<M: Memory> {
+    /// Index of the buffer,
+    pub index: u32,
+    /// Plane handles that were passed when the buffer has been queued.
+    pub plane_handles: PlaneHandles<M>,
+}
+
+impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
+    type Canceled = CanceledBuffer<M>;
+
+    fn stream_on(&self) -> Result<(), StreamOnError> {
+        let type_ = self.inner.type_;
+        ioctl::streamon(&self.inner, type_)
+    }
+
+    fn stream_off(&self) -> Result<Vec<Self::Canceled>, StreamOffError> {
+        let type_ = self.inner.type_;
+        ioctl::streamoff(&self.inner, type_)?;
+
+        Ok(self.cancel_queued_buffers())
     }
 }
 
