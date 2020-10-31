@@ -1,6 +1,6 @@
 //! Safe wrapper for the `VIDIOC_(G|S|TRY)_FMT` ioctls.
 use crate::bindings;
-use crate::{Format, PixelFormat, PlanePixFormat, QueueType};
+use crate::{Format, PixelFormat, PlaneLayout, QueueType};
 use nix::errno::Errno;
 use nix::Error;
 use std::convert::{From, Into, TryFrom, TryInto};
@@ -98,7 +98,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
                     width: pix.width,
                     height: pix.height,
                     pixelformat: PixelFormat::from(pix.pixelformat),
-                    plane_fmt: vec![PlanePixFormat {
+                    plane_fmt: vec![PlaneLayout {
                         bytesperline: pix.bytesperline,
                         sizeimage: pix.sizeimage,
                     }],
@@ -116,7 +116,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
                 let mut plane_fmt = Vec::new();
                 for i in 0..pix_mp.num_planes as usize {
                     let plane = &pix_mp.plane_fmt[i];
-                    plane_fmt.push(PlanePixFormat {
+                    plane_fmt.push(PlaneLayout {
                         sizeimage: plane.sizeimage,
                         bytesperline: plane.bytesperline,
                     });
@@ -146,8 +146,8 @@ impl Default for bindings::v4l2_plane_pix_format {
     }
 }
 
-impl From<PlanePixFormat> for bindings::v4l2_plane_pix_format {
-    fn from(plane: PlanePixFormat) -> Self {
+impl From<PlaneLayout> for bindings::v4l2_plane_pix_format {
+    fn from(plane: PlaneLayout) -> Self {
         bindings::v4l2_plane_pix_format {
             sizeimage: plane.sizeimage,
             bytesperline: plane.bytesperline,
@@ -263,15 +263,15 @@ mod test {
             height: 480,
             pixelformat: b"NM12".into(),
             plane_fmt: vec![
-                PlanePixFormat {
+                PlaneLayout {
                     sizeimage: 307200,
                     bytesperline: 640,
                 },
-                PlanePixFormat {
+                PlaneLayout {
                     sizeimage: 153600,
                     bytesperline: 320,
                 },
-                PlanePixFormat {
+                PlaneLayout {
                     sizeimage: 76800,
                     bytesperline: 160,
                 },
@@ -294,7 +294,7 @@ mod test {
             width: 632,
             height: 480,
             pixelformat: b"NV12".into(),
-            plane_fmt: vec![PlanePixFormat {
+            plane_fmt: vec![PlaneLayout {
                 sizeimage: 307200,
                 bytesperline: 640,
             }],
@@ -316,15 +316,15 @@ mod test {
             pixelformat: b"NM12".into(),
             // This is not a real format but let us use unique values per field.
             plane_fmt: vec![
-                PlanePixFormat {
+                PlaneLayout {
                     sizeimage: 307200,
                     bytesperline: 640,
                 },
-                PlanePixFormat {
+                PlaneLayout {
                     sizeimage: 153600,
                     bytesperline: 320,
                 },
-                PlanePixFormat {
+                PlaneLayout {
                     sizeimage: 76800,
                     bytesperline: 160,
                 },

@@ -223,7 +223,7 @@ impl fmt::Display for PixelFormat {
 
 /// Description of a single plane in a format.
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct PlanePixFormat {
+pub struct PlaneLayout {
     /// Useful size of the plane ; the backing memory must be at least that large.
     pub sizeimage: u32,
     /// Bytes per line of data. Only meaningful for image formats.
@@ -244,7 +244,7 @@ pub struct Format {
     pub pixelformat: PixelFormat,
     /// Individual layout of each plane in this format. The exact number of planes
     /// is defined by `pixelformat`.
-    pub plane_fmt: Vec<PlanePixFormat>,
+    pub plane_fmt: Vec<PlaneLayout>,
 }
 
 /// Quickly build a usable `Format` from a pixel format and resolution.
