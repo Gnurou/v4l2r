@@ -507,8 +507,8 @@ impl<M: Memory> BufferStateFuse<M> {
     fn trigger(&mut self) {
         match self.buffer_state.upgrade() {
             None => (),
-            Some(buffer_state_unlocked) => {
-                let mut buffer_state = buffer_state_unlocked.lock().unwrap();
+            Some(buffer_state_locked) => {
+                let mut buffer_state = buffer_state_locked.lock().unwrap();
                 *buffer_state = BufferState::Free;
                 self.buffer_state = Weak::new();
             }
