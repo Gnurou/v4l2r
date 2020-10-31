@@ -208,60 +208,45 @@ pub struct Plane<D: Direction, M: Memory> {
 }
 
 impl<M: Memory> Plane<Capture, M> {
-    /// Creates a new plane builder suitable for a self-backed capture queue.
-    pub fn cap() -> Self
-    where
-        M: SelfBacked,
-        M::HandleType: From<()>,
-    {
-        let handle = ().into();
-        let plane = ioctl::QBufPlane::new(&handle, 0);
-        Self {
-            plane,
-            handle,
-            _d: std::marker::PhantomData,
-        }
-    }
-
-    /// Creates a new plane builder suitable for a bound capture queue.
+    /// Creates a new plane suitable for a bound capture queue.
     /// Mandatory information is just a valid memory handle for the driver to
     /// write into.
-    pub fn cap_with_handle(handle: M::HandleType) -> Self
-    where
-        M: Bound,
-    {
+    pub fn cap_from_handle(handle: M::HandleType) -> Self {
         Self {
             plane: ioctl::QBufPlane::new(&handle, 0),
             handle,
             _d: std::marker::PhantomData,
         }
     }
+
+    /// Creates a new plane builder suitable for a self-backed capture queue.
+    pub fn cap() -> Self
+    where
+        M: SelfBacked,
+        M::HandleType: Default,
+    {
+        Self::cap_from_handle(Default::default())
+    }
 }
 
 impl<M: Memory> Plane<Output, M> {
-    /// Creates a new plane builder suitable for a self-backed output queue.
-    pub fn out(bytes_used: usize) -> Self
-    where
-        M: SelfBacked,
-        M::HandleType: From<()>,
-    {
-        let handle = ().into();
-        let plane = ioctl::QBufPlane::new(&handle, bytes_used);
-        Self {
-            plane,
-            handle,
-            _d: std::marker::PhantomData,
-        }
-    }
-
     /// Creates a new plane builder suitable for an output queue.
     /// Mandatory information include a memory handle, and the number of bytes
     /// used within it.
-    pub fn out_with_handle(handle: M::HandleType, bytes_used: usize) -> Self {
+    pub fn out_from_handle(handle: M::HandleType, bytes_used: usize) -> Self {
         Self {
             plane: ioctl::QBufPlane::new(&handle, bytes_used),
             handle,
             _d: std::marker::PhantomData,
         }
+    }
+
+    /// Creates a new plane builder suitable for a self-backed output queue.
+    pub fn out(bytes_used: usize) -> Self
+    where
+        M: SelfBacked,
+        M::HandleType: Default,
+    {
+        Self::out_from_handle(Default::default(), bytes_used)
     }
 }

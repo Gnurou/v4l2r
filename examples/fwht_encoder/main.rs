@@ -203,7 +203,7 @@ fn main() {
             .expect("Failed to generate frame");
         let bytes_used = buffer.len();
         v4l2_buffer
-            .add_plane(Plane::out_with_handle(buffer, bytes_used))
+            .add_plane(Plane::out_from_handle(buffer, bytes_used))
             .queue()
             .expect("Failed to queue input frame");
     }

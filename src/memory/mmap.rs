@@ -5,14 +5,8 @@ use std::fmt::Debug;
 
 /// Handle for a MMAP buffer. These buffers are backed by V4L2 itself, and
 /// thus we don't need to attach any extra handle information to them.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct MMAPHandle;
-
-impl From<()> for MMAPHandle {
-    fn from(_: ()) -> Self {
-        Default::default()
-    }
-}
 
 impl PlaneHandle for MMAPHandle {
     const MEMORY_TYPE: MemoryType = MemoryType::MMAP;

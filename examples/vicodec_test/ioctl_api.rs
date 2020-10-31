@@ -199,7 +199,10 @@ pub fn run<F: FnMut(&[u8])>(
                 framegen::gen_pattern(&mut mapping, output_image_bytesperline, cpt as u32);
 
                 let out_qbuf = QBuffer::<MMAPHandle> {
-                    planes: vec![QBufPlane::new::<MMAPHandle>(&().into(), mapping.len())],
+                    planes: vec![QBufPlane::new::<MMAPHandle>(
+                        &Default::default(),
+                        mapping.len(),
+                    )],
                     ..Default::default()
                 };
 
@@ -222,7 +225,7 @@ pub fn run<F: FnMut(&[u8])>(
         .expect("Error queueing output buffer");
 
         let cap_qbuf = QBuffer::<MMAPHandle> {
-            planes: vec![QBufPlane::new::<MMAPHandle>(&().into(), 0)],
+            planes: vec![QBufPlane::new::<MMAPHandle>(&Default::default(), 0)],
             ..Default::default()
         };
         qbuf(&fd, capture_queue, capture_buffer_index, cap_qbuf)

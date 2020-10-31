@@ -206,7 +206,7 @@ pub fn run<F: FnMut(&[u8])>(
                 );
 
                 let bytes_used = output_buffer_data.len();
-                buf.add_plane(Plane::out_with_handle(output_buffer_data, bytes_used))
+                buf.add_plane(Plane::out_from_handle(output_buffer_data, bytes_used))
                     .queue()
                     .expect("Failed to queue output buffer");
             }
