@@ -429,6 +429,8 @@ where
                 }
             }
 
+            // TODO handle errors - this system call can be interrupted and we
+            // should leave in this case.
             for event in self.poller.poll(None).unwrap() {
                 match event {
                     // A CAPTURE buffer has been released by the client.
