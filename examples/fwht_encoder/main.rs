@@ -212,4 +212,7 @@ fn main() {
 
     // Insert new line since we were overwriting the same one
     println!();
+
+    // All the OUTPUT buffers should have been returned
+    assert_eq!(free_buffers.borrow().len(), NUM_BUFFERS);
 }
