@@ -169,9 +169,10 @@ impl Poller {
             epoll.as_raw_fd(),
             &mut libc::epoll_event { ..mem::zeroed() },
             1,
-            -1
+            10
         ))?;
-        // Now reset our device events.
+        // Now reset our device events. We must keep it registered for the
+        // workaround's effect to persist.
         syscall!(epoll_ctl(
             epoll.as_raw_fd(),
             libc::EPOLL_CTL_MOD,
