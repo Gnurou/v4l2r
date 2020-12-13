@@ -22,7 +22,7 @@ impl<T: AsRawFd + Debug + Send> From<T> for DMABufHandle<T> {
     }
 }
 
-impl<T: AsRawFd + Debug + Send> PlaneHandle for DMABufHandle<T> {
+impl<T: AsRawFd + Debug + Send + 'static> PlaneHandle for DMABufHandle<T> {
     type Memory = DMABuf;
 
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane) {

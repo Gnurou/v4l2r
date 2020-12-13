@@ -25,7 +25,7 @@ impl Imported for UserPtr {}
 /// v4l2_buffer` must be set before doing a `QBUF` ioctl. This handle struct
 /// also takes care of that.
 #[derive(Debug)]
-pub struct UserPtrHandle<T: AsRef<[u8]> + Debug + Send>(pub T);
+pub struct UserPtrHandle<T: AsRef<[u8]> + Debug + Send + 'static>(pub T);
 
 impl<T: AsRef<[u8]> + Debug + Send> From<T> for UserPtrHandle<T> {
     fn from(buffer: T) -> Self {
@@ -33,7 +33,7 @@ impl<T: AsRef<[u8]> + Debug + Send> From<T> for UserPtrHandle<T> {
     }
 }
 
-impl<T: AsRef<[u8]> + Debug + Send> PlaneHandle for UserPtrHandle<T> {
+impl<T: AsRef<[u8]> + Debug + Send + 'static> PlaneHandle for UserPtrHandle<T> {
     type Memory = UserPtr;
 
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane) {

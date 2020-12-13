@@ -273,7 +273,7 @@ pub enum CompletedOutputBuffer<OP: BufferHandles> {
 }
 
 #[derive(Debug, Error)]
-pub enum GetBufferError<OP: BufferHandles + 'static> {
+pub enum GetBufferError<OP: BufferHandles> {
     #[error("Error while dequeueing buffer")]
     DequeueError(#[from] DequeueOutputBufferError<OP>),
     #[error("Error during poll")]

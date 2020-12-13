@@ -66,7 +66,7 @@ pub trait Imported: Memory {}
 
 /// Trait for a handle that represents actual data for a single place. A buffer
 /// will have as many of these as it has planes.
-pub trait PlaneHandle: Debug + Send {
+pub trait PlaneHandle: Debug + Send + 'static {
     /// The kind of memory the handle attaches to.
     type Memory: Memory;
 
@@ -86,7 +86,7 @@ pub trait Mappable: PlaneHandle {
 }
 
 /// Trait for structures providing all the handles of a single buffer.
-pub trait BufferHandles: Send + Debug {
+pub trait BufferHandles: Send + Debug + 'static {
     /// Enumeration of all the `MemoryType` supported by this type. Typically
     /// a subset of `MemoryType` or `MemoryType` itself.
     type SupportedMemoryType: Into<MemoryType> + Send + Clone + Copy;
