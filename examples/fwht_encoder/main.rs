@@ -51,11 +51,9 @@ fn main() {
         Err(e) => panic!("Invalid value for stop_after: {}", e),
     };
 
-    let mut output_file: Option<File> = if let Some(path) = matches.value_of("output_file") {
-        Some(File::create(path).expect("Invalid output file specified."))
-    } else {
-        None
-    };
+    let mut output_file = matches
+        .value_of("output_file")
+        .map(|s| File::create(s).expect("Invalid output file specified."));
 
     let lets_quit = Arc::new(AtomicBool::new(false));
     // Setup the Ctrl+c handler.
