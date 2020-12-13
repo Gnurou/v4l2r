@@ -1,19 +1,18 @@
 use crate::{
     device::{
         poller::{DeviceEvent, PollEvents, Poller},
-        queue::CanceledBuffer,
         queue::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
             qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
-            qbuf::QBuffer,
-            BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
+            qbuf::{Plane, QBuffer},
+            BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
     ioctl::{self, BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError},
-    memory::{UserPtr, MMAP},
+    memory::{BufferHandles, HandlesProvider, PrimitiveBufferHandles},
     Format,
 };
 
@@ -130,17 +129,17 @@ pub struct AwaitingOutputBuffers {
 impl EncoderState for AwaitingOutputBuffers {}
 
 impl Encoder<AwaitingOutputBuffers> {
-    pub fn allocate_output_buffers(
+    pub fn allocate_output_buffers<OP: PrimitiveBufferHandles>(
         self,
         num_output: usize,
-    ) -> Result<Encoder<AwaitingCaptureBuffers>, RequestBuffersError> {
+    ) -> Result<Encoder<AwaitingCaptureBuffers<OP>>, RequestBuffersError> {
         Ok(Encoder {
             device: self.device,
             state: AwaitingCaptureBuffers {
                 output_queue: self
                     .state
                     .output_queue
-                    .request_buffers::<UserPtr<_>>(num_output as u32)?,
+                    .request_buffers::<OP>(num_output as u32)?,
                 capture_queue: self.state.capture_queue,
             },
         })
@@ -155,17 +154,18 @@ impl Encoder<AwaitingOutputBuffers> {
     }
 }
 
-pub struct AwaitingCaptureBuffers {
-    output_queue: Queue<Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
+pub struct AwaitingCaptureBuffers<OP: BufferHandles> {
+    output_queue: Queue<Output, BuffersAllocated<OP>>,
     capture_queue: Queue<Capture, QueueInit>,
 }
-impl EncoderState for AwaitingCaptureBuffers {}
+impl<OP: BufferHandles> EncoderState for AwaitingCaptureBuffers<OP> {}
 
-impl Encoder<AwaitingCaptureBuffers> {
-    pub fn allocate_capture_buffers(
+impl<OP: BufferHandles> Encoder<AwaitingCaptureBuffers<OP>> {
+    pub fn allocate_capture_buffers<P: HandlesProvider>(
         self,
         num_capture: usize,
-    ) -> Result<Encoder<ReadyToEncode>, RequestBuffersError> {
+        capture_memory_provider: P,
+    ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError> {
         Ok(Encoder {
             device: self.device,
             state: ReadyToEncode {
@@ -173,21 +173,23 @@ impl Encoder<AwaitingCaptureBuffers> {
                 capture_queue: self
                     .state
                     .capture_queue
-                    .request_buffers::<MMAP>(num_capture as u32)?,
+                    .request_buffers::<P::HandleType>(num_capture as u32)?,
+                capture_memory_provider,
                 poll_wakeups_counter: None,
             },
         })
     }
 }
 
-pub struct ReadyToEncode {
-    output_queue: Queue<Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
-    capture_queue: Queue<Capture, BuffersAllocated<MMAP>>,
+pub struct ReadyToEncode<OP: BufferHandles, P: HandlesProvider> {
+    output_queue: Queue<Output, BuffersAllocated<OP>>,
+    capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
+    capture_memory_provider: P,
     poll_wakeups_counter: Option<Arc<AtomicUsize>>,
 }
-impl EncoderState for ReadyToEncode {}
+impl<OP: BufferHandles, P: HandlesProvider> EncoderState for ReadyToEncode<OP, P> {}
 
-impl Encoder<ReadyToEncode> {
+impl<OP: BufferHandles, P: HandlesProvider> Encoder<ReadyToEncode<OP, P>> {
     pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
         self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
         self
@@ -197,10 +199,10 @@ impl Encoder<ReadyToEncode> {
         self,
         input_done_cb: InputDoneCb,
         output_ready_cb: OutputReadyCb,
-    ) -> io::Result<Encoder<Encoding<InputDoneCb, OutputReadyCb>>>
+    ) -> io::Result<Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>>
     where
-        InputDoneCb: Fn(CompletedOutputBuffer),
-        OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send + 'static,
+        InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+        OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send + 'static,
     {
         self.state.output_queue.stream_on().unwrap();
         self.state.capture_queue.stream_on().unwrap();
@@ -208,8 +210,12 @@ impl Encoder<ReadyToEncode> {
         let mut output_poller = Poller::new(Arc::clone(&self.device))?;
         output_poller.enable_event(DeviceEvent::OutputReady)?;
 
-        let mut encoder_thread =
-            EncoderThread::new(&self.device, self.state.capture_queue, output_ready_cb)?;
+        let mut encoder_thread = EncoderThread::new(
+            &self.device,
+            self.state.capture_queue,
+            self.state.capture_memory_provider,
+            output_ready_cb,
+        )?;
 
         if let Some(counter) = &self.state.poll_wakeups_counter {
             output_poller.set_poll_counter(Arc::clone(counter));
@@ -232,52 +238,59 @@ impl Encoder<ReadyToEncode> {
     }
 }
 
-pub struct Encoding<InputDoneCb, OutputReadyCb>
+pub struct Encoding<OP: BufferHandles, P, InputDoneCb, OutputReadyCb>
 where
-    InputDoneCb: Fn(CompletedOutputBuffer),
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+    P: HandlesProvider,
+    InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
-    output_queue: Queue<Output, BuffersAllocated<UserPtr<Vec<u8>>>>,
+    output_queue: Queue<Output, BuffersAllocated<OP>>,
     input_done_cb: InputDoneCb,
     output_poller: Poller,
 
-    handle: JoinHandle<EncoderThread<OutputReadyCb>>,
+    handle: JoinHandle<EncoderThread<P, OutputReadyCb>>,
 }
-impl<InputDoneCb, OutputReadyCb> EncoderState for Encoding<InputDoneCb, OutputReadyCb>
+impl<OP, P, InputDoneCb, OutputReadyCb> EncoderState for Encoding<OP, P, InputDoneCb, OutputReadyCb>
 where
-    InputDoneCb: Fn(CompletedOutputBuffer),
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+    OP: BufferHandles,
+    P: HandlesProvider,
+    InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
 }
 
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
-type OutputBuffer<'a> = QBuffer<'a, Output, UserPtr<Vec<u8>>>;
-type DequeueOutputBufferError = DQBufError<DQBuffer<Output, UserPtr<Vec<u8>>>>;
+#[allow(type_alias_bounds)]
+type OutputBuffer<'a, OP: BufferHandles> = QBuffer<'a, Output, OP, OP>;
+#[allow(type_alias_bounds)]
+type DequeueOutputBufferError<OP: BufferHandles> = DQBufError<DQBuffer<Output, OP>>;
 
-pub enum CompletedOutputBuffer {
-    Dequeued(DQBuffer<Output, UserPtr<Vec<u8>>>),
-    Canceled(CanceledBuffer<UserPtr<Vec<u8>>>),
+pub enum CompletedOutputBuffer<OP: BufferHandles> {
+    Dequeued(DQBuffer<Output, OP>),
+    Canceled(CanceledBuffer<OP>),
 }
 
 #[derive(Debug, Error)]
-pub enum GetBufferError {
+pub enum GetBufferError<OP: BufferHandles + 'static> {
     #[error("Error while dequeueing buffer")]
-    DequeueError(#[from] DequeueOutputBufferError),
+    DequeueError(#[from] DequeueOutputBufferError<OP>),
     #[error("Error during poll")]
     PollError(#[from] io::Error),
     #[error("Error while obtaining buffer")]
     GetFreeBufferError(#[from] GetFreeBufferError),
 }
 
-impl<InputDoneCb, OutputReadyCb> Encoder<Encoding<InputDoneCb, OutputReadyCb>>
+impl<OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
-    InputDoneCb: Fn(CompletedOutputBuffer),
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+    OP: PrimitiveBufferHandles,
+    P: HandlesProvider,
+    InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
     /// Stop the encoder, and returns the encoder ready to be started again.
-    pub fn stop(self) -> Result<Encoder<ReadyToEncode>, ()> {
+    pub fn stop(self) -> Result<Encoder<ReadyToEncode<OP, P>>, ()> {
         ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false)).unwrap();
 
         // The encoder thread should receive the LAST buffer and exit on its own.
@@ -295,13 +308,14 @@ where
             state: ReadyToEncode {
                 output_queue: self.state.output_queue,
                 capture_queue: encoding_thread.capture_queue,
+                capture_memory_provider: encoding_thread.capture_memory_provider,
                 poll_wakeups_counter: None,
             },
         })
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError> {
+    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError<OP>> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -321,7 +335,7 @@ where
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
     // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
-    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
+    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
         for event in self.state.output_poller.poll(None)? {
             match event {
                 PollEvents::DEVICE_OUTPUT => {
@@ -339,7 +353,7 @@ where
     ///
     /// If all allocated buffers are currently queued, this method will wait for
     /// one to be available.
-    pub fn get_buffer(&mut self) -> Result<OutputBuffer, GetBufferError> {
+    pub fn get_buffer(&mut self) -> Result<OutputBuffer<OP>, GetBufferError<OP>> {
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.
@@ -351,42 +365,47 @@ where
     }
 }
 
-impl<'a, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError>
-    for Encoder<Encoding<InputDoneCb, OutputReadyCb>>
+impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<OP>>
+    for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
-    InputDoneCb: Fn(CompletedOutputBuffer),
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+    OP: PrimitiveBufferHandles + 'a,
+    P: HandlesProvider,
+    InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
-    type Queueable = OutputBuffer<'a>;
+    type Queueable = OutputBuffer<'a, OP>;
 
     /// Returns a V4L2 buffer to be filled with a frame to encode if one
     /// is available.
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
-    fn try_get_free_buffer(&self) -> Result<OutputBuffer, GetBufferError> {
+    fn try_get_free_buffer(&self) -> Result<OutputBuffer<OP>, GetBufferError<OP>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
 }
 
-struct EncoderThread<OutputReadyCb>
+struct EncoderThread<P, OutputReadyCb>
 where
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+    P: HandlesProvider,
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
-    capture_queue: Queue<Capture, BuffersAllocated<MMAP>>,
+    capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
+    capture_memory_provider: P,
     poller: Poller,
     output_ready_cb: OutputReadyCb,
-    // Number of times we have awaken from a poll, for stats purposes.
 }
 
-impl<OutputReadyCb> EncoderThread<OutputReadyCb>
+impl<P, OutputReadyCb> EncoderThread<P, OutputReadyCb>
 where
-    OutputReadyCb: FnMut(DQBuffer<Capture, MMAP>) + Send,
+    P: HandlesProvider,
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
     fn new(
         device: &Arc<Device>,
-        capture_queue: Queue<Capture, BuffersAllocated<MMAP>>,
+        capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
+        capture_memory_provider: P,
         output_ready_cb: OutputReadyCb,
     ) -> io::Result<Self> {
         let mut poller = Poller::new(Arc::clone(device))?;
@@ -398,6 +417,7 @@ where
 
         Ok(EncoderThread {
             capture_queue,
+            capture_memory_provider,
             poller,
             output_ready_cb,
         })
@@ -477,8 +497,13 @@ where
     }
 
     fn enqueue_capture_buffers(&mut self) {
-        while let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
-            buffer.auto_queue().unwrap();
+        while let Ok(mut buffer) = self.capture_queue.try_get_free_buffer() {
+            if let Some(handles) = self.capture_memory_provider.get_handles() {
+                while buffer.num_set_planes() < buffer.num_expected_planes() {
+                    buffer = buffer.add_plane(Plane::cap());
+                }
+                buffer.queue_with_handles(handles).unwrap();
+            }
         }
     }
 }

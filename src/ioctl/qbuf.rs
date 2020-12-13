@@ -1,6 +1,6 @@
 //! Safe wrapper for the VIDIOC_(D)QBUF and VIDIOC_QUERYBUF ioctls.
 use super::{is_multi_planar, PlaneData};
-use crate::memory::PlaneHandle;
+use crate::memory::{Memory, PlaneHandle};
 use crate::{bindings, QueueType};
 
 use bitflags::bitflags;
@@ -68,16 +68,20 @@ pub trait QBuf {
 }
 
 /// Representation of a single plane of a V4L2 buffer.
-pub struct QBufPlane(bindings::v4l2_plane);
+pub struct QBufPlane(pub bindings::v4l2_plane);
 
 impl QBufPlane {
-    pub fn new<H: PlaneHandle>(handle: &H, bytes_used: usize) -> Self {
-        let mut plane = QBufPlane(bindings::v4l2_plane {
+    // TODO remove as this is not safe - we should always specify a handle.
+    pub fn new(bytes_used: usize) -> Self {
+        QBufPlane(bindings::v4l2_plane {
             bytesused: bytes_used as u32,
             data_offset: 0,
             ..unsafe { mem::zeroed() }
-        });
+        })
+    }
 
+    pub fn new_from_handle<H: PlaneHandle>(handle: &H, bytes_used: usize) -> Self {
+        let mut plane = Self::new(bytes_used);
         handle.fill_v4l2_plane(&mut plane.0);
         plane
     }
@@ -133,9 +137,9 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         if plane.0.data_offset != 0 {
             return Err(QBufError::DataOffsetNotSupported);
         }
-        v4l2_buf.memory = H::MEMORY_TYPE as u32;
+        v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
         v4l2_buf.bytesused = plane.0.bytesused;
-        H::fill_v4l2_buffer(&plane.0, v4l2_buf);
+        H::fill_v4l2_splane_buffer(&plane.0, v4l2_buf);
 
         Ok(())
     }
@@ -158,7 +162,7 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
             ));
         }
 
-        v4l2_buf.memory = H::MEMORY_TYPE as u32;
+        v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
         v4l2_buf.length = self.planes.len() as u32;
         v4l2_planes
             .iter_mut()

@@ -5,12 +5,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
-use dual_queue::{DualAllocatedQueue, DualDQBuffer, DualQBuffer};
 use qbuf::{get_free::GetFreeBuffer, get_indexed::GetBufferByIndex, Plane};
-use v4l2::device::queue::*;
-use v4l2::device::*;
 use v4l2::memory::MemoryType;
-use v4l2::memory::{UserPtr, MMAP};
+use v4l2::{device::queue::*, memory::MMAPHandle};
+use v4l2::{
+    device::{
+        queue::dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType},
+        AllocatedQueue, Device, DeviceConfig, Stream, TryDequeue,
+    },
+    memory::UserPtrHandle,
+};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.
@@ -121,22 +125,18 @@ pub fn run<F: FnMut(&[u8])>(
 
     // Move the queues into their "allocated" state.
 
-    let output_queue = match output_mem {
-        MemoryType::MMAP => DualAllocatedQueue::from(
-            output_queue
-                .request_buffers::<MMAP>(2)
-                .expect("Failed to allocate output buffers"),
-        ),
-        MemoryType::UserPtr => DualAllocatedQueue::from(
-            output_queue
-                .request_buffers::<UserPtr<Vec<u8>>>(2)
-                .expect("Failed to allocate output buffers"),
-        ),
-        m => panic!("Unsupported output memory type {:?}", m),
+    let output_mem = match output_mem {
+        MemoryType::MMAP => DualSupportedMemoryType::MMAP,
+        MemoryType::UserPtr => DualSupportedMemoryType::UserPtr,
+        MemoryType::DMABuf => panic!("DMABuf is not supported yet!"),
     };
 
+    let output_queue = output_queue
+        .request_buffers_generic::<DualBufferHandles>(output_mem, 2)
+        .expect("Failed to allocate output buffers");
+
     let capture_queue = capture_queue
-        .request_buffers::<MMAP>(2)
+        .request_buffers::<Vec<MMAPHandle>>(2)
         .expect("Failed to allocate output buffers");
     println!(
         "Using {} output and {} capture buffers.",
@@ -145,9 +145,9 @@ pub fn run<F: FnMut(&[u8])>(
     );
 
     // If we use UserPtr OUTPUT buffers, create backing memory.
-    let mut output_frame = match output_queue {
-        DualAllocatedQueue::MMAP(_) => None,
-        DualAllocatedQueue::User(_) => Some(vec![0u8; output_image_size]),
+    let mut output_frame = match output_mem {
+        DualSupportedMemoryType::MMAP => None,
+        DualSupportedMemoryType::UserPtr => Some(vec![0u8; output_image_size]),
     };
 
     output_queue
@@ -171,7 +171,8 @@ pub fn run<F: FnMut(&[u8])>(
         capture_queue
             .try_get_free_buffer()
             .expect("Failed to obtain capture buffer")
-            .auto_queue()
+            .add_plane(Plane::cap())
+            .queue()
             .expect("Failed to queue capture buffer");
 
         // USERPTR output buffers, on the other hand, must be set up with
@@ -206,8 +207,8 @@ pub fn run<F: FnMut(&[u8])>(
                 );
 
                 let bytes_used = output_buffer_data.len();
-                buf.add_plane(Plane::out_from_handle(output_buffer_data, bytes_used))
-                    .queue()
+                buf.add_plane(Plane::out(bytes_used))
+                    .queue_with_handles(vec![UserPtrHandle::from(output_buffer_data)])
                     .expect("Failed to queue output buffer");
             }
         }
@@ -218,13 +219,13 @@ pub fn run<F: FnMut(&[u8])>(
             .try_dequeue()
             .expect("Failed to dequeue output buffer");
 
-        match &mut out_dqbuf {
+        match &mut out_dqbuf.plane_handles {
             // For MMAP buffers we can just drop the reference.
-            DualDQBuffer::MMAP(_) => (),
+            DualBufferHandles::MMAP(_) => (),
             // For UserPtr buffers, make the buffer data available again. It
             // should have been empty since the buffer was owned by the queue.
-            DualDQBuffer::User(u) => {
-                assert_eq!(output_frame.replace(u.plane_handles.remove(0)), None);
+            DualBufferHandles::User(u) => {
+                assert_eq!(output_frame.replace(u.remove(0).0), None);
             }
         }
 
@@ -237,11 +238,10 @@ pub fn run<F: FnMut(&[u8])>(
         total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
         let fps = cpt as f64 / elapsed.as_millis() as f64 * 1000.0;
-        let out_data = out_dqbuf.data();
         print!(
             "\rEncoded buffer {:#5}, {:#2} -> {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
             cap_dqbuf.data.sequence,
-            out_data.index,
+            out_dqbuf.data.index,
             cap_index,
             bytes_used,
             total_size,

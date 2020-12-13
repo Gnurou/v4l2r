@@ -1,12 +1,13 @@
 //! Provides types related to dequeuing buffers from a `Queue` object.
 use super::{
     direction::{Capture, Direction},
-    BufferStateFuse, BuffersAllocated, PlaneHandles, Queue,
+    BufferStateFuse, BuffersAllocated, Queue,
 };
-use crate::ioctl;
-use crate::memory::Memory;
-use crate::{device::Device, memory::Mappable};
-use ioctl::{PlaneMapping, QueryBuffer};
+use crate::ioctl::{self, PlaneMapping, QueryBuffer};
+use crate::{
+    device::Device,
+    memory::{BufferHandles, Mappable, PrimitiveBufferHandles},
+};
 use std::{
     fmt::Debug,
     sync::{Arc, Weak},
@@ -16,12 +17,11 @@ use std::{
 /// information as what the `ioctl` interface provides, but it also includes
 /// the plane handles that have been provided when the buffer was queued to
 /// return their ownership to the user.
-pub struct DQBuffer<D: Direction, M: Memory> {
+pub struct DQBuffer<D: Direction, P: BufferHandles> {
     /// Dequeued buffer information as reported by V4L2.
     pub data: ioctl::DQBuffer,
-    /// The backing memory that has been provided for this buffer. Only useful
-    /// if the buffers are of USERPTR type.
-    pub plane_handles: PlaneHandles<M>,
+    /// The backing memory that has been provided for this buffer.
+    pub plane_handles: P,
 
     device: Weak<Device>,
     buffer_info: Weak<QueryBuffer>,
@@ -29,23 +29,23 @@ pub struct DQBuffer<D: Direction, M: Memory> {
     drop_callbacks: Vec<Box<dyn FnOnce(&mut Self) + Send>>,
     /// Fuse that will put the buffer back into the `Free` state when this
     /// object is destroyed.
-    fuse: BufferStateFuse<M>,
+    fuse: BufferStateFuse<P>,
     _d: std::marker::PhantomData<D>,
 }
 
-impl<D: Direction, M: Memory> Debug for DQBuffer<D, M> {
+impl<D: Direction, P: BufferHandles> Debug for DQBuffer<D, P> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.data.fmt(f)
     }
 }
 
-impl<D: Direction, M: Memory> DQBuffer<D, M> {
+impl<D: Direction, P: BufferHandles> DQBuffer<D, P> {
     pub(super) fn new(
-        queue: &Queue<D, BuffersAllocated<M>>,
+        queue: &Queue<D, BuffersAllocated<P>>,
         buffer: &Arc<QueryBuffer>,
-        plane_handles: PlaneHandles<M>,
+        plane_handles: P,
         data: ioctl::DQBuffer,
-        fuse: BufferStateFuse<M>,
+        fuse: BufferStateFuse<P>,
     ) -> Self {
         DQBuffer {
             plane_handles,
@@ -67,7 +67,11 @@ impl<D: Direction, M: Memory> DQBuffer<D, M> {
     }
 }
 
-impl<M: Memory + Mappable> DQBuffer<Capture, M> {
+impl<P> DQBuffer<Capture, P>
+where
+    P: PrimitiveBufferHandles,
+    P::HandleType: Mappable,
+{
     // TODO returned mapping should be read-only!
     pub fn get_plane_mapping(&self, plane_index: usize) -> Option<PlaneMapping> {
         // We can only obtain a mapping if this buffer has not been deleted.
@@ -80,11 +84,11 @@ impl<M: Memory + Mappable> DQBuffer<Capture, M> {
         let start = plane_data.data_offset as usize;
         let end = start + plane_data.bytesused as usize;
 
-        Some(M::map(device.as_ref(), plane)?.restrict(start, end))
+        Some(P::HandleType::map(device.as_ref(), plane)?.restrict(start, end))
     }
 }
 
-impl<D: Direction, M: Memory> Drop for DQBuffer<D, M> {
+impl<D: Direction, P: BufferHandles> Drop for DQBuffer<D, P> {
     fn drop(&mut self) {
         // Make sure the buffer is returned to the free state before we call
         // the callbacks.

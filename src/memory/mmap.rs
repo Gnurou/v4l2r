@@ -1,35 +1,50 @@
 //! Operations specific to MMAP-type buffers.
 use super::*;
-use crate::{bindings, ioctl};
+use crate::{bindings, ioctl, Format};
 use std::fmt::Debug;
 
-/// Handle for a MMAP buffer. These buffers are backed by V4L2 itself, and
-/// thus we don't need to attach any extra handle information to them.
+#[derive(Default)]
+pub struct MMAP;
+
+impl Memory for MMAP {
+    const MEMORY_TYPE: MemoryType = MemoryType::MMAP;
+}
+
+impl SelfBacked for MMAP {}
+
+/// Dummy handle for a MMAP plane, to use with APIs that require handles. MMAP
+/// buffers are backed by the device, and thus we don't need to attach any extra
+/// information to them.
 #[derive(Default, Debug, Clone)]
 pub struct MMAPHandle;
 
+// There is no information to fill with MMAP buffers ; the index is enough.
 impl PlaneHandle for MMAPHandle {
-    const MEMORY_TYPE: MemoryType = MemoryType::MMAP;
+    type Memory = MMAP;
 
-    // There is no information to fill with MMAP buffers ; the index is enough.
-    fn fill_v4l2_buffer(_plane: &bindings::v4l2_plane, _buffer: &mut bindings::v4l2_buffer) {}
     fn fill_v4l2_plane(&self, _plane: &mut bindings::v4l2_plane) {}
+    fn fill_v4l2_splane_buffer(_plane: &bindings::v4l2_plane, _buffer: &mut bindings::v4l2_buffer) {
+    }
 }
 
-pub struct MMAP;
-
-/// MMAP buffers support for queues. These buffers are the easiest to support
-/// since V4L2 is the owner of the backing memory. Therefore we just need to
-/// make sure that userspace does not have access to any mapping while the
-/// buffer is being processed by the kernel.
-impl Memory for MMAP {
-    type HandleType = MMAPHandle;
-}
-
-impl Mappable for MMAP {
+impl Mappable for MMAPHandle {
     fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping> {
         Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
     }
 }
 
-impl SelfBacked for MMAP {}
+pub struct MMAPProvider(Vec<MMAPHandle>);
+
+impl MMAPProvider {
+    pub fn new(format: &Format) -> Self {
+        Self(vec![Default::default(); format.plane_fmt.len()])
+    }
+}
+
+impl super::HandlesProvider for MMAPProvider {
+    type HandleType = Vec<MMAPHandle>;
+
+    fn get_handles(&mut self) -> Option<Self::HandleType> {
+        Some(self.0.clone())
+    }
+}

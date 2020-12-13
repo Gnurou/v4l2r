@@ -1,6 +1,6 @@
 use ioctl::DQBufResult;
 
-use super::queue::{direction::Direction, qbuf::get_indexed::GetBufferByIndex, Queue, QueueInit};
+use super::queue::{direction::Direction, Queue, QueueInit};
 use crate::ioctl;
 use std::fmt::Debug;
 
@@ -45,9 +45,7 @@ pub struct FreeBuffersResult<D: Direction, S: Stream> {
 
 /// Trait for a configured queue, i.e. a queue on which we can queue and dequeue
 /// buffers.
-pub trait AllocatedQueue<'a, D: Direction>:
-    GetBufferByIndex<'a> + TryDequeue + Stream + Sized
-{
+pub trait AllocatedQueue<'a, D: Direction>: TryDequeue + Stream + Sized {
     /// Returns the total number of buffers allocated for this queue.
     fn num_buffers(&self) -> usize;
 

@@ -10,8 +10,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
-use v4l2::ioctl::*;
 use v4l2::memory::{MMAPHandle, MemoryType};
+use v4l2::{ioctl::*, memory::UserPtrHandle};
 use v4l2::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
@@ -160,10 +160,11 @@ pub fn run<F: FnMut(&[u8])>(
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
-    let mut output_buffers: Vec<Vec<u8>> = match output_mem {
+    let mut output_buffers: Vec<UserPtrHandle<Vec<u8>>> = match output_mem {
         MemoryType::MMAP => Default::default(),
         MemoryType::UserPtr => std::iter::repeat(vec![0u8; output_image_size])
             .take(num_output_buffers)
+            .map(UserPtrHandle::from)
             .collect(),
         _ => unreachable!(),
     };
@@ -199,10 +200,7 @@ pub fn run<F: FnMut(&[u8])>(
                 framegen::gen_pattern(&mut mapping, output_image_bytesperline, cpt as u32);
 
                 let out_qbuf = QBuffer::<MMAPHandle> {
-                    planes: vec![QBufPlane::new::<MMAPHandle>(
-                        &Default::default(),
-                        mapping.len(),
-                    )],
+                    planes: vec![QBufPlane::new(mapping.len())],
                     ..Default::default()
                 };
 
@@ -211,10 +209,13 @@ pub fn run<F: FnMut(&[u8])>(
             MemoryType::UserPtr => {
                 let output_buffer = &mut output_buffers[output_buffer_index];
 
-                framegen::gen_pattern(output_buffer, output_image_bytesperline, cpt as u32);
+                framegen::gen_pattern(&mut output_buffer.0, output_image_bytesperline, cpt as u32);
 
-                let out_qbuf = QBuffer::<Vec<u8>> {
-                    planes: vec![QBufPlane::new(output_buffer, output_buffer.len())],
+                let out_qbuf = QBuffer::<UserPtrHandle<Vec<u8>>> {
+                    planes: vec![QBufPlane::new_from_handle(
+                        output_buffer,
+                        output_buffer.0.len(),
+                    )],
                     ..Default::default()
                 };
 
@@ -225,7 +226,7 @@ pub fn run<F: FnMut(&[u8])>(
         .expect("Error queueing output buffer");
 
         let cap_qbuf = QBuffer::<MMAPHandle> {
-            planes: vec![QBufPlane::new::<MMAPHandle>(&Default::default(), 0)],
+            planes: vec![QBufPlane::new(0)],
             ..Default::default()
         };
         qbuf(&fd, capture_queue, capture_buffer_index, cap_qbuf)

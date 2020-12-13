@@ -1,7 +1,6 @@
 mod framegen;
 
 use framegen::FrameGenerator;
-use v4l2::encoder::*;
 
 use std::fs::File;
 use std::io::{self, Write};
@@ -10,14 +9,15 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
-use anyhow::ensure;
-
-use clap::{App, Arg};
 use v4l2::{
     device::queue::qbuf::Plane,
     device::queue::{direction::Capture, dqbuf::DQBuffer},
-    memory::MMAP,
+    encoder::*,
+    memory::{MMAPHandle, MMAPProvider, UserPtrHandle},
 };
+
+use anyhow::ensure;
+use clap::{App, Arg};
 
 const FRAME_SIZE: (usize, usize) = (640, 480);
 
@@ -103,12 +103,11 @@ fn main() {
         .get_output_format()
         .expect("Failed to get output format");
     println!("Adjusted output format: {:?}", output_format);
-    println!(
-        "Adjusted capture format: {:?}",
-        encoder
-            .get_capture_format()
-            .expect("Failed to get capture format")
-    );
+
+    let capture_format = encoder
+        .get_capture_format()
+        .expect("Failed to get capture format");
+    println!("Adjusted capture format: {:?}", capture_format);
 
     println!(
         "Configured encoder for {}x{} ({} bytes per line)",
@@ -130,19 +129,19 @@ fn main() {
             .collect();
     let free_buffers = RefCell::new(free_buffers);
 
-    let input_done_cb = |buffer: CompletedOutputBuffer| {
+    let input_done_cb = |buffer: CompletedOutputBuffer<Vec<UserPtrHandle<Vec<u8>>>>| {
         let mut handles = match buffer {
             CompletedOutputBuffer::Dequeued(mut buf) => std::mem::take(&mut buf.plane_handles),
             CompletedOutputBuffer::Canceled(buf) => buf.plane_handles,
         };
-        free_buffers.borrow_mut().push_back(handles.remove(0));
+        free_buffers.borrow_mut().push_back(handles.remove(0).0);
     };
 
     let mut total_size = 0usize;
     let start_time = Instant::now();
     let poll_count_reader = Arc::new(AtomicUsize::new(0));
     let poll_count_writer = Arc::clone(&poll_count_reader);
-    let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, MMAP>| {
+    let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, Vec<MMAPHandle>>| {
         let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
         total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
@@ -172,9 +171,9 @@ fn main() {
 
     let mut encoder = encoder
         // TODO split between allocate OUTPUT and allocate CAPTURE.
-        .allocate_output_buffers(NUM_BUFFERS)
+        .allocate_output_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(NUM_BUFFERS)
         .expect("Failed to allocate OUTPUT buffers")
-        .allocate_capture_buffers(NUM_BUFFERS)
+        .allocate_capture_buffers(NUM_BUFFERS, MMAPProvider::new(&capture_format))
         .expect("Failed to allocate CAPTURE buffers")
         .set_poll_counter(poll_count_writer)
         .start(input_done_cb, output_ready_cb)
@@ -203,8 +202,8 @@ fn main() {
             .expect("Failed to generate frame");
         let bytes_used = buffer.len();
         v4l2_buffer
-            .add_plane(Plane::out_from_handle(buffer, bytes_used))
-            .queue()
+            .add_plane(Plane::out(bytes_used))
+            .queue_with_handles(vec![UserPtrHandle::from(buffer)])
             .expect("Failed to queue input frame");
     }
 

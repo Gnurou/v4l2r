@@ -5,21 +5,22 @@ pub mod qbuf;
 pub mod states;
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::ioctl;
+use crate::ioctl::{
+    self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
+    StreamOnError, TryFmtError,
+};
 use crate::memory::*;
 use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
-use ioctl::{
-    DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError, StreamOnError,
-    TryFmtError,
-};
-use qbuf::*;
+use dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType};
 use qbuf::{
     get_free::{GetFreeBuffer, GetFreeBufferError},
     get_indexed::{GetBufferByIndex, TryGetBufferError},
+    *,
 };
-use states::{BufferInfo, BufferState};
+use states::*;
+
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::{
     cell::Cell,
@@ -228,15 +229,13 @@ impl<D: Direction> Queue<D, QueueInit> {
         })
     }
 
-    /// Allocate `count` buffers for this queue and make it transition to the
-    /// `BuffersAllocated` state.
-    pub fn request_buffers<M: Memory>(
+    pub fn request_buffers_generic<P: BufferHandles>(
         self,
+        memory_type: P::SupportedMemoryType,
         count: u32,
-    ) -> Result<Queue<D, BuffersAllocated<M>>, RequestBuffersError> {
+    ) -> Result<Queue<D, BuffersAllocated<P>>, RequestBuffersError> {
         let type_ = self.inner.type_;
-        let num_buffers: usize =
-            ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, count)?;
+        let num_buffers: usize = ioctl::reqbufs(&self.inner, type_, memory_type.into(), count)?;
 
         // The buffers have been allocated, now let's get their features.
         // We cannot use functional programming here because we need to return
@@ -258,10 +257,20 @@ impl<D: Direction> Queue<D, QueueInit> {
             inner: self.inner,
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
+                memory_type,
                 num_queued_buffers: Default::default(),
                 buffer_info,
             },
         })
+    }
+
+    /// Allocate `count` buffers for this queue and make it transition to the
+    /// `BuffersAllocated` state.
+    pub fn request_buffers<P: PrimitiveBufferHandles>(
+        self,
+        count: u32,
+    ) -> Result<Queue<D, BuffersAllocated<P>>, RequestBuffersError> {
+        self.request_buffers_generic(P::MEMORY_TYPE, count)
     }
 }
 
@@ -303,17 +312,18 @@ impl Queue<Capture, QueueInit> {
 
 /// Allocated state for a queue. A queue with its buffers allocated can be
 /// streamed on and off, and buffers can be queued and dequeued.
-pub struct BuffersAllocated<M: Memory> {
+pub struct BuffersAllocated<P: BufferHandles> {
+    memory_type: P::SupportedMemoryType,
     num_queued_buffers: Cell<usize>,
-    buffer_info: Vec<BufferInfo<M>>,
+    buffer_info: Vec<BufferInfo<P>>,
 }
-impl<M: Memory> QueueState for BuffersAllocated<M> {}
+impl<P: BufferHandles> QueueState for BuffersAllocated<P> {}
 
-impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
+impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
     /// Return all the currently queued buffers as CanceledBuffers. This can
     /// be called after a explicit or implicit streamoff to inform the client
     /// of which buffers have been canceled and return their handles.
-    fn cancel_queued_buffers(&self) -> Vec<CanceledBuffer<M>> {
+    fn cancel_queued_buffers(&self) -> Vec<CanceledBuffer<P>> {
         let canceled_buffers: Vec<_> = self
             .state
             .buffer_info
@@ -330,7 +340,7 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
                 // Set entry to Free state and steal its handles.
                 let old_state = std::mem::replace(&mut (*state), BufferState::Free);
 
-                Some(CanceledBuffer::<M> {
+                Some(CanceledBuffer {
                     index: buffer_index as u32,
                     plane_handles: match old_state {
                         // We have already tested for this state above, so this
@@ -349,9 +359,32 @@ impl<D: Direction, M: Memory> Queue<D, BuffersAllocated<M>> {
 
         canceled_buffers
     }
+
+    fn try_get_buffer_info(&self, index: usize) -> Result<&BufferInfo<P>, TryGetBufferError> {
+        let buffer_info = self
+            .state
+            .buffer_info
+            .get(index)
+            .ok_or(TryGetBufferError::InvalidIndex(index))?;
+
+        let mut buffer_state = buffer_info.state.lock().unwrap();
+        match *buffer_state {
+            BufferState::Free => (),
+            _ => return Err(TryGetBufferError::AlreadyUsed),
+        };
+
+        // The buffer will remain in PreQueue state until it is queued
+        // or the reference to it is lost.
+        *buffer_state = BufferState::PreQueue;
+        drop(buffer_state);
+
+        Ok(buffer_info)
+    }
 }
 
-impl<'a, D: Direction, M: Memory> AllocatedQueue<'a, D> for Queue<D, BuffersAllocated<M>> {
+impl<'a, D: Direction, P: BufferHandles + 'a> AllocatedQueue<'a, D>
+    for Queue<D, BuffersAllocated<P>>
+{
     fn num_buffers(&self) -> usize {
         self.state.buffer_info.len()
     }
@@ -362,7 +395,7 @@ impl<'a, D: Direction, M: Memory> AllocatedQueue<'a, D> for Queue<D, BuffersAllo
 
     fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
         let type_ = self.inner.type_;
-        ioctl::reqbufs(&self.inner, type_, M::HandleType::MEMORY_TYPE, 0)?;
+        ioctl::reqbufs(&self.inner, type_, self.state.memory_type.into(), 0)?;
 
         // reqbufs also performs an implicit streamoff, so return the cancelled
         // buffers.
@@ -381,15 +414,15 @@ impl<'a, D: Direction, M: Memory> AllocatedQueue<'a, D> for Queue<D, BuffersAllo
 
 /// Represents a queued buffer which has not been processed due to `streamoff`
 /// being called on a queue.
-pub struct CanceledBuffer<M: Memory> {
+pub struct CanceledBuffer<P: BufferHandles> {
     /// Index of the buffer,
     pub index: u32,
     /// Plane handles that were passed when the buffer has been queued.
-    pub plane_handles: PlaneHandles<M>,
+    pub plane_handles: P,
 }
 
-impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
-    type Canceled = CanceledBuffer<M>;
+impl<D: Direction, P: BufferHandles> Stream for Queue<D, BuffersAllocated<P>> {
+    type Canceled = CanceledBuffer<P>;
 
     fn stream_on(&self) -> Result<(), StreamOnError> {
         let type_ = self.inner.type_;
@@ -404,8 +437,8 @@ impl<D: Direction, M: Memory> Stream for Queue<D, BuffersAllocated<M>> {
     }
 }
 
-impl<D: Direction, M: Memory> TryDequeue for Queue<D, BuffersAllocated<M>> {
-    type Dequeued = DQBuffer<D, M>;
+impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>> {
+    type Dequeued = DQBuffer<D, P>;
 
     fn try_dequeue(&self) -> DQBufResult<Self::Dequeued> {
         let dqbuf: ioctl::DQBuffer;
@@ -452,34 +485,37 @@ impl<D: Direction, M: Memory> TryDequeue for Queue<D, BuffersAllocated<M>> {
     }
 }
 
-impl<'a, D: Direction, M: Memory> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<M>> {
-    type Queueable = QBuffer<'a, D, M>;
+impl<'a, D: Direction, P: PrimitiveBufferHandles + 'a> GetBufferByIndex<'a>
+    for Queue<D, BuffersAllocated<P>>
+{
+    type Queueable = QBuffer<'a, D, P, P>;
 
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
-        let buffer_info = self
-            .state
-            .buffer_info
-            .get(index)
-            .ok_or(TryGetBufferError::InvalidIndex(index))?;
-
-        let mut buffer_state = buffer_info.state.lock().unwrap();
-        match *buffer_state {
-            BufferState::Free => (),
-            _ => return Err(TryGetBufferError::AlreadyUsed),
-        };
-
-        // The buffer will remain in PreQueue state until it is queued
-        // or the reference to it is lost.
-        *buffer_state = BufferState::PreQueue;
-        drop(buffer_state);
-
-        Ok(QBuffer::new(self, buffer_info))
+        Ok(QBuffer::new(self, self.try_get_buffer_info(index)?))
     }
 }
 
-impl<'a, D: Direction, M: Memory> GetFreeBuffer<'a> for Queue<D, BuffersAllocated<M>> {
-    type Queueable = QBuffer<'a, D, M>;
+impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<DualBufferHandles>> {
+    type Queueable = DualQBuffer<'a, D>;
+
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+        let buffer_info = self.try_get_buffer_info(index)?;
+
+        Ok(match self.state.memory_type {
+            DualSupportedMemoryType::MMAP => DualQBuffer::MMAP(QBuffer::new(self, buffer_info)),
+            DualSupportedMemoryType::UserPtr => DualQBuffer::User(QBuffer::new(self, buffer_info)),
+        })
+    }
+}
+
+impl<'a, D, P> GetFreeBuffer<'a> for Queue<D, BuffersAllocated<P>>
+where
+    D: Direction,
+    P: BufferHandles + 'a,
+    Queue<D, BuffersAllocated<P>>: GetBufferByIndex<'a>,
+{
+    type Queueable = <Queue<D, BuffersAllocated<P>> as GetBufferByIndex<'a>>::Queueable;
 
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
         let res = self
@@ -498,14 +534,14 @@ impl<'a, D: Direction, M: Memory> GetFreeBuffer<'a> for Queue<D, BuffersAllocate
 
 /// A fuse that will return the buffer to the Free state when destroyed, unless
 /// it has been disarmed.
-struct BufferStateFuse<M: Memory> {
-    buffer_state: Weak<Mutex<BufferState<M>>>,
+struct BufferStateFuse<P: BufferHandles> {
+    buffer_state: Weak<Mutex<BufferState<P>>>,
 }
 
-impl<M: Memory> BufferStateFuse<M> {
+impl<P: BufferHandles> BufferStateFuse<P> {
     /// Create a new fuse that will set `state` to `BufferState::Free` if
     /// destroyed before `disarm()` has been called.
-    fn new(buffer_state: Weak<Mutex<BufferState<M>>>) -> Self {
+    fn new(buffer_state: Weak<Mutex<BufferState<P>>>) -> Self {
         BufferStateFuse { buffer_state }
     }
 
@@ -532,7 +568,7 @@ impl<M: Memory> BufferStateFuse<M> {
     }
 }
 
-impl<M: Memory> Drop for BufferStateFuse<M> {
+impl<P: BufferHandles> Drop for BufferStateFuse<P> {
     fn drop(&mut self) {
         self.trigger();
     }

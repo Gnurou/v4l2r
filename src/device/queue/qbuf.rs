@@ -1,6 +1,6 @@
 //! Provides types related to queuing buffers on a `Queue` object.
 use super::{states::BufferInfo, Capture, Direction, Output};
-use super::{BufferState, BufferStateFuse, BuffersAllocated, PlaneHandles, Queue};
+use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
 use crate::ioctl;
 use crate::memory::*;
 use std::cmp::Ordering;
@@ -19,19 +19,19 @@ pub mod get_indexed;
 /// returns the plane handles back to the user.
 #[derive(Error)]
 #[error("{}", self.error)]
-pub struct QueueError<M: Memory> {
+pub struct QueueError<P: PrimitiveBufferHandles> {
     pub error: QBufError,
-    pub plane_handles: PlaneHandles<M>,
+    pub plane_handles: P,
 }
 
-impl<M: Memory> Debug for QueueError<M> {
+impl<P: PrimitiveBufferHandles> Debug for QueueError<P> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         Debug::fmt(&self.error, f)
     }
 }
 
 #[allow(type_alias_bounds)]
-pub type QueueResult<M: Memory, R> = std::result::Result<R, QueueError<M>>;
+pub type QueueResult<P: PrimitiveBufferHandles, R> = std::result::Result<R, QueueError<P>>;
 
 /// A free buffer that has just been obtained from `Queue::get_buffer()` and
 /// which is being prepared to the queued.
@@ -61,18 +61,21 @@ pub type QueueResult<M: Memory, R> = std::result::Result<R, QueueError<M>>;
 /// queue or device cannot be changed while it is being used. Contrary to
 /// DQBuffer which can be freely duplicated and passed around, instances of this
 /// struct are supposed to be short-lived.
-pub struct QBuffer<'a, D: Direction, M: Memory> {
-    queue: &'a Queue<D, BuffersAllocated<M>>,
+pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> {
+    queue: &'a Queue<D, BuffersAllocated<Q>>,
     index: usize,
     num_planes: usize,
-    planes: Vec<Plane<D, M>>,
-    fuse: BufferStateFuse<M>,
+    planes: Vec<Plane<D>>,
+    fuse: BufferStateFuse<Q>,
+    _p: std::marker::PhantomData<P>,
 }
 
-impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
+impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QBuffer<'a, D, P, Q> {
     pub(super) fn new(
-        queue: &'a Queue<D, BuffersAllocated<M>>,
-        buffer_info: &BufferInfo<M>,
+        // TODO NOPE!! It should be BuffersAllocated<Q>!
+        // And we should ask to create a buffer of type P!
+        queue: &'a Queue<D, BuffersAllocated<Q>>,
+        buffer_info: &BufferInfo<Q>,
     ) -> Self {
         let buffer = &buffer_info.features;
         let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
@@ -83,6 +86,7 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
             num_planes: buffer.planes.len(),
             planes: Default::default(),
             fuse,
+            _p: std::marker::PhantomData,
         }
     }
 
@@ -104,38 +108,34 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
 
     /// Specify the next plane of this buffer.
     /// TODO Take a Plane as argument, build using dedicated constructors for Output and Capture queues.
-    pub fn add_plane(mut self, plane: Plane<D, M>) -> Self {
+    pub fn add_plane(mut self, plane: Plane<D>) -> Self {
         self.planes.push(plane);
         self
     }
 
-    /// Queue the buffer. The QBuffer object is consumed and the buffer won't
-    /// be available again until it has been dequeued and dropped, or a
-    /// `streamoff()` is performed.
-    pub fn queue(mut self) -> QueueResult<M, ()> {
-        let (planes, plane_handles): (Vec<_>, Vec<_>) =
-            self.planes.into_iter().map(|p| (p.plane, p.handle)).unzip();
-
-        let qbuffer: ioctl::QBuffer<M::HandleType> = ioctl::QBuffer::<M::HandleType> {
-            planes,
-            ..Default::default()
-        };
-
+    // TODO QueueResult is backwards??
+    fn queue_bound(mut self, plane_handles: P) -> QueueResult<P, ()> {
         // First check that the number of provided planes is what we expect.
-        match plane_handles.len().cmp(&self.num_planes) {
+        let num_planes = self.planes.len();
+        match num_planes.cmp(&self.num_planes) {
             Ordering::Less => {
                 return Err(QueueError {
-                    error: QBufError::NotEnoughPlanes(plane_handles.len(), self.num_planes),
+                    error: QBufError::NotEnoughPlanes(num_planes, self.num_planes),
                     plane_handles,
                 })
             }
             Ordering::Greater => {
                 return Err(QueueError {
-                    error: QBufError::TooManyPlanes(plane_handles.len(), self.num_planes),
+                    error: QBufError::TooManyPlanes(num_planes, self.num_planes),
                     plane_handles,
                 })
             }
             Ordering::Equal => (),
+        }
+
+        let qbuffer = ioctl::QBuffer::<P::HandleType> {
+            planes: self.planes.into_iter().map(|p| p.plane).collect(),
+            ..Default::default()
         };
 
         match ioctl::qbuf(
@@ -165,7 +165,7 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
             .state
             .lock()
             .unwrap();
-        *buffer_state = BufferState::Queued(plane_handles);
+        *buffer_state = BufferState::Queued(plane_handles.into());
         drop(buffer_state);
 
         let num_queued_buffers = self.queue.state.num_queued_buffers.take();
@@ -178,75 +178,96 @@ impl<'a, D: Direction, M: Memory> QBuffer<'a, D, M> {
     }
 }
 
-impl<'a, M: Memory + Mappable> QBuffer<'a, Output, M> {
-    pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
-        let buffer_info = self.queue.state.buffer_info.get(self.index)?;
-        let plane_info = buffer_info.features.planes.get(plane)?;
-        M::map(self.queue.inner.device.as_ref(), plane_info)
+impl<'a, D, P, Q> QBuffer<'a, D, P, Q>
+where
+    D: Direction,
+    P: PrimitiveBufferHandles + Default,
+    <P::HandleType as PlaneHandle>::Memory: SelfBacked,
+    Q: BufferHandles + From<P>,
+{
+    /// Queue a self-backed buffer that does not need handles. The QBuffer
+    /// object is consumed and the buffer won't be available again until it is
+    /// dequeued and dropped, or a `streamoff()` is performed.
+    pub fn queue(self) -> QueueResult<P, ()> {
+        self.queue_bound(Default::default())
     }
 }
 
-impl<'a> QBuffer<'a, Capture, MMAP> {
-    /// For Capture MMAP buffers, there is no point requesting the user to
-    /// provide as many empty handles as there are planes in the buffer. This
-    /// methods allows to queue them as soon as they are obtained.
-    pub fn auto_queue(mut self) -> QueueResult<MMAP, ()> {
-        while self.num_set_planes() < self.num_expected_planes() {
-            self = self.add_plane(Plane::cap());
+impl<'a, D, P, Q> QBuffer<'a, D, P, Q>
+where
+    D: Direction,
+    P: PrimitiveBufferHandles,
+    Q: BufferHandles + From<P>,
+{
+    /// Queue the buffer after binding `plane_handles`. The QBuffer object is
+    /// consumed and the buffer won't be available again until it is dequeued
+    /// and dropped, or a `streamoff()` is performed.
+    pub fn queue_with_handles(mut self, plane_handles: P) -> QueueResult<P, ()> {
+        // Check that we have provided the right number of handles for our planes.
+        let num_plane_handles = plane_handles.len();
+        match num_plane_handles.cmp(&self.num_planes) {
+            Ordering::Less => {
+                return Err(QueueError {
+                    error: QBufError::NotEnoughPlanes(num_plane_handles, self.num_planes),
+                    plane_handles,
+                })
+            }
+            Ordering::Greater => {
+                return Err(QueueError {
+                    error: QBufError::TooManyPlanes(num_plane_handles, self.num_planes),
+                    plane_handles,
+                })
+            }
+            Ordering::Equal => (),
+        };
+
+        for (index, plane) in self.planes.iter_mut().enumerate() {
+            // TODO take the QBufPlane as argument if possible?
+            plane_handles.fill_v4l2_plane(index, &mut plane.plane.0);
         }
-        self.queue()
+
+        self.queue_bound(plane_handles)
+    }
+}
+
+impl<'a, P, Q> QBuffer<'a, Output, P, Q>
+where
+    P: PrimitiveBufferHandles,
+    P::HandleType: Mappable,
+    Q: BufferHandles + From<P>,
+{
+    pub fn get_plane_mapping(&self, plane: usize) -> Option<PlaneMapping> {
+        let buffer_info = self.queue.state.buffer_info.get(self.index)?;
+        let plane_info = buffer_info.features.planes.get(plane)?;
+        P::HandleType::map(self.queue.inner.device.as_ref(), plane_info)
     }
 }
 
 /// Used to build plane information for a buffer about to be queued. This
 /// struct is specialized on direction and buffer type to only the relevant
 /// data can be set according to the current context.
-pub struct Plane<D: Direction, M: Memory> {
+pub struct Plane<D: Direction> {
     plane: ioctl::QBufPlane,
-    handle: M::HandleType,
     _d: std::marker::PhantomData<D>,
 }
 
-impl<M: Memory> Plane<Capture, M> {
+impl Plane<Capture> {
     /// Creates a new plane suitable for a bound capture queue.
-    /// Mandatory information is just a valid memory handle for the driver to
-    /// write into.
-    pub fn cap_from_handle(handle: M::HandleType) -> Self {
+    pub fn cap() -> Self {
         Self {
-            plane: ioctl::QBufPlane::new(&handle, 0),
-            handle,
+            plane: ioctl::QBufPlane::new(0),
             _d: std::marker::PhantomData,
         }
-    }
-
-    /// Creates a new plane builder suitable for a self-backed capture queue.
-    pub fn cap() -> Self
-    where
-        M: SelfBacked,
-        M::HandleType: Default,
-    {
-        Self::cap_from_handle(Default::default())
     }
 }
 
-impl<M: Memory> Plane<Output, M> {
+impl Plane<Output> {
     /// Creates a new plane builder suitable for an output queue.
-    /// Mandatory information include a memory handle, and the number of bytes
-    /// used within it.
-    pub fn out_from_handle(handle: M::HandleType, bytes_used: usize) -> Self {
+    /// Mandatory information include the number of bytes used.
+    pub fn out(bytes_used: usize) -> Self {
         Self {
-            plane: ioctl::QBufPlane::new(&handle, bytes_used),
-            handle,
+            plane: ioctl::QBufPlane::new(bytes_used),
             _d: std::marker::PhantomData,
         }
-    }
-
-    /// Creates a new plane builder suitable for a self-backed output queue.
-    pub fn out(bytes_used: usize) -> Self
-    where
-        M: SelfBacked,
-        M::HandleType: Default,
-    {
-        Self::out_from_handle(Default::default(), bytes_used)
     }
 }
