@@ -1,10 +1,10 @@
 use crate::Result;
-use std::os::unix::io::AsRawFd;
 use std::{
     cmp::{max, min},
     ops::Deref,
     slice,
 };
+use std::{ops::DerefMut, os::unix::io::AsRawFd};
 
 use nix::{
     libc::{c_void, off_t, size_t},
@@ -41,12 +41,17 @@ impl AsMut<[u8]> for PlaneMapping {
     }
 }
 
-/// To provide len() and is_empty().
 impl Deref for PlaneMapping {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
         &self.data[self.start..self.end]
+    }
+}
+
+impl DerefMut for PlaneMapping {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data[self.start..self.end]
     }
 }
 
