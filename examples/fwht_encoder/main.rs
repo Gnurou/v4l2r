@@ -131,7 +131,7 @@ fn main() {
 
     let input_done_cb = |buffer: CompletedOutputBuffer<Vec<UserPtrHandle<Vec<u8>>>>| {
         let mut handles = match buffer {
-            CompletedOutputBuffer::Dequeued(mut buf) => std::mem::take(&mut buf.plane_handles),
+            CompletedOutputBuffer::Dequeued(mut buf) => buf.take_handles().unwrap(),
             CompletedOutputBuffer::Canceled(buf) => buf.plane_handles,
         };
         free_buffers.borrow_mut().push_back(handles.remove(0).0);

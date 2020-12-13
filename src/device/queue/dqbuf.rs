@@ -21,7 +21,7 @@ pub struct DQBuffer<D: Direction, P: BufferHandles> {
     /// Dequeued buffer information as reported by V4L2.
     pub data: ioctl::DQBuffer,
     /// The backing memory that has been provided for this buffer.
-    pub plane_handles: P,
+    plane_handles: Option<P>,
 
     device: Weak<Device>,
     buffer_info: Weak<QueryBuffer>,
@@ -48,7 +48,7 @@ impl<D: Direction, P: BufferHandles> DQBuffer<D, P> {
         fuse: BufferStateFuse<P>,
     ) -> Self {
         DQBuffer {
-            plane_handles,
+            plane_handles: Some(plane_handles),
             data,
             device: Arc::downgrade(&queue.inner.device),
             buffer_info: Arc::downgrade(buffer),
@@ -64,6 +64,12 @@ impl<D: Direction, P: BufferHandles> DQBuffer<D, P> {
     /// the inverse order that they were added.
     pub fn add_drop_callback<F: FnOnce(&mut Self) + Send + 'static>(&mut self, callback: F) {
         self.drop_callbacks.push(Box::new(callback));
+    }
+
+    /// Return the plane handles of the buffer. This method is guaranteed to
+    /// return Some() the first time it is called, and None any subsequent times.
+    pub fn take_handles(&mut self) -> Option<P> {
+        self.plane_handles.take()
     }
 }
 

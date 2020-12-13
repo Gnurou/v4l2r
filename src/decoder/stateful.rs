@@ -276,7 +276,8 @@ where
         while output_queue.num_queued_buffers() > 0 {
             match output_queue.try_dequeue() {
                 Ok(mut buf) => {
-                    (self.state.input_done_cb)(&mut buf.plane_handles);
+                    // unwrap() is safe here as we just dequeued the buffer.
+                    (self.state.input_done_cb)(&mut buf.take_handles().unwrap());
                 }
                 Err(DQBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in

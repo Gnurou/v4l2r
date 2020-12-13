@@ -219,7 +219,8 @@ pub fn run<F: FnMut(&[u8])>(
             .try_dequeue()
             .expect("Failed to dequeue output buffer");
 
-        match &mut out_dqbuf.plane_handles {
+        // unwrap() is safe here as we just dequeued the buffer.
+        match &mut out_dqbuf.take_handles().unwrap() {
             // For MMAP buffers we can just drop the reference.
             DualBufferHandles::MMAP(_) => (),
             // For UserPtr buffers, make the buffer data available again. It
