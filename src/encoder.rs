@@ -370,7 +370,7 @@ where
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
-    fn try_get_free_buffer(&self) -> Result<QBuffer<Output, OP, OP>, GetBufferError<OP>> {
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
