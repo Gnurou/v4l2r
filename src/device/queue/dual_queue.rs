@@ -6,8 +6,8 @@ use crate::{
 use std::fmt::Debug;
 
 /// Supported memory types for `DualBufferHandles`.
-/// TODO: This is arbitrary. We want to make this generic in the future,
-/// probably using a macro?
+/// TODO: This should be renamed to "DynamicBufferHandles", and be constructed
+/// on-the-fly using a macro.
 #[derive(Debug, Clone, Copy)]
 pub enum DualSupportedMemoryType {
     MMAP,
