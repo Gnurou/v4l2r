@@ -4,6 +4,7 @@ use crate::{
         queue::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
+            dual_queue::{DualBufferHandles, DualQBuffer},
             qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
             qbuf::{Plane, QBuffer},
             BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
@@ -355,6 +356,7 @@ where
     }
 }
 
+/// Support for primitive plane handles on the OUTPUT queue.
 impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<OP>>
     for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
@@ -371,6 +373,27 @@ where
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
+        self.dequeue_output_buffers()?;
+        Ok(self.state.output_queue.try_get_free_buffer()?)
+    }
+}
+
+/// Support for dynamic plane handles on the OUTPUT queue.
+impl<'a, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<DualBufferHandles>>
+    for Encoder<Encoding<DualBufferHandles, P, InputDoneCb, OutputReadyCb>>
+where
+    P: HandlesProvider,
+    InputDoneCb: Fn(CompletedOutputBuffer<DualBufferHandles>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+{
+    type Queueable = DualQBuffer<'a, Output>;
+
+    /// Returns a V4L2 buffer to be filled with a frame to encode if one
+    /// is available.
+    ///
+    /// This method will return None immediately if all the allocated buffers
+    /// are currently queued.
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<DualBufferHandles>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
