@@ -69,7 +69,7 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum ReqbufsError {
-    #[error("Invalid buffer ({0}) or memory type ({1}) requested")]
+    #[error("Invalid buffer ({0}) or memory type ({1:?}) requested")]
     InvalidBufferType(QueueType, MemoryType),
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(Error),
