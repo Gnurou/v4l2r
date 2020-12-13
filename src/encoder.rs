@@ -129,8 +129,9 @@ pub struct AwaitingOutputBuffers {
 impl EncoderState for AwaitingOutputBuffers {}
 
 impl Encoder<AwaitingOutputBuffers> {
-    pub fn allocate_output_buffers<OP: PrimitiveBufferHandles>(
+    pub fn allocate_output_buffers_generic<OP: BufferHandles>(
         self,
+        memory_type: OP::SupportedMemoryType,
         num_output: usize,
     ) -> Result<Encoder<AwaitingCaptureBuffers<OP>>, RequestBuffersError> {
         Ok(Encoder {
@@ -139,10 +140,17 @@ impl Encoder<AwaitingOutputBuffers> {
                 output_queue: self
                     .state
                     .output_queue
-                    .request_buffers::<OP>(num_output as u32)?,
+                    .request_buffers_generic::<OP>(memory_type, num_output as u32)?,
                 capture_queue: self.state.capture_queue,
             },
         })
+    }
+
+    pub fn allocate_output_buffers<OP: PrimitiveBufferHandles>(
+        self,
+        num_output: usize,
+    ) -> Result<Encoder<AwaitingCaptureBuffers<OP>>, RequestBuffersError> {
+        self.allocate_output_buffers_generic(OP::MEMORY_TYPE, num_output)
     }
 
     pub fn get_output_format(&self) -> Result<Format, GFmtError> {
@@ -284,7 +292,7 @@ pub enum GetBufferError<OP: BufferHandles> {
 
 impl<OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
-    OP: PrimitiveBufferHandles,
+    OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
@@ -347,22 +355,6 @@ where
 
         Ok(())
     }
-
-    /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
-    /// one to be available if needed.
-    ///
-    /// If all allocated buffers are currently queued, this method will wait for
-    /// one to be available.
-    pub fn get_buffer(&mut self) -> Result<OutputBuffer<OP>, GetBufferError<OP>> {
-        let output_queue = &self.state.output_queue;
-
-        // If all our buffers are queued, wait until we can dequeue some.
-        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
-            self.wait_for_output_buffer()?;
-        }
-
-        self.try_get_free_buffer()
-    }
 }
 
 impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<OP>>
@@ -383,6 +375,36 @@ where
     fn try_get_free_buffer(&self) -> Result<OutputBuffer<OP>, GetBufferError<OP>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
+    }
+}
+
+// If `GetFreeBuffer` is implemented, we can also provide a blocking `get_buffer`
+// method.
+impl<'a, OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
+where
+    OP: BufferHandles,
+    P: HandlesProvider,
+    Self: GetFreeBuffer<'a, GetBufferError<OP>>,
+    InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+{
+    /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
+    /// one to be available if needed.
+    ///
+    /// Contrary to `try_get_free_buffer(), this method will wait for a buffer
+    /// to be available if needed.
+    pub fn get_buffer(
+        &'a mut self,
+    ) -> Result<<Self as GetFreeBuffer<'a, GetBufferError<OP>>>::Queueable, GetBufferError<OP>>
+    {
+        let output_queue = &self.state.output_queue;
+
+        // If all our buffers are queued, wait until we can dequeue some.
+        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
+            self.wait_for_output_buffer()?;
+        }
+
+        self.try_get_free_buffer()
     }
 }
 
