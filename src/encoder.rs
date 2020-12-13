@@ -271,8 +271,6 @@ where
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
 #[allow(type_alias_bounds)]
-type OutputBuffer<'a, OP: BufferHandles> = QBuffer<'a, Output, OP, OP>;
-#[allow(type_alias_bounds)]
 type DequeueOutputBufferError<OP: BufferHandles> = DQBufError<DQBuffer<Output, OP>>;
 
 pub enum CompletedOutputBuffer<OP: BufferHandles> {
@@ -365,14 +363,14 @@ where
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
-    type Queueable = OutputBuffer<'a, OP>;
+    type Queueable = QBuffer<'a, Output, OP, OP>;
 
     /// Returns a V4L2 buffer to be filled with a frame to encode if one
     /// is available.
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
-    fn try_get_free_buffer(&self) -> Result<OutputBuffer<OP>, GetBufferError<OP>> {
+    fn try_get_free_buffer(&self) -> Result<QBuffer<Output, OP, OP>, GetBufferError<OP>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
