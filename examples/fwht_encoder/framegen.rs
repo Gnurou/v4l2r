@@ -33,7 +33,9 @@ impl FrameGenerator {
         })
     }
 
-    pub fn next_frame(&mut self, frame: &mut [u8]) -> Result<(), GenerateFrameError> {
+    pub fn next_frame<S: AsMut<[u8]>>(&mut self, frame: &mut S) -> Result<(), GenerateFrameError> {
+        let frame = frame.as_mut();
+
         if frame.len() < self.stride * self.height {
             return Err(GenerateFrameError::BufferTooSmall);
         }

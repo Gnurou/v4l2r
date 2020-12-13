@@ -196,7 +196,7 @@ fn main() {
             .pop_front()
             .expect("No backing buffer to bind");
         frame_gen
-            .next_frame(&mut buffer[..])
+            .next_frame(&mut buffer)
             .expect("Failed to generate frame");
         let bytes_used = buffer.len();
         v4l2_buffer
