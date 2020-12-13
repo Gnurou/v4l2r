@@ -360,7 +360,7 @@ where
 impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<OP>>
     for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
-    OP: PrimitiveBufferHandles + 'a,
+    OP: PrimitiveBufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
