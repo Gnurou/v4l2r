@@ -130,7 +130,7 @@ impl<P: PlaneHandle> PrimitiveBufferHandles for Vec<P> {
 }
 
 pub trait HandlesProvider: Send + 'static {
-    type HandleType: PrimitiveBufferHandles;
+    type HandleType: BufferHandles;
 
     fn get_handles(&mut self) -> Option<Self::HandleType>;
 }

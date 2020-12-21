@@ -170,11 +170,16 @@ pub struct AwaitingCaptureBuffers<OP: BufferHandles> {
 impl<OP: BufferHandles> EncoderState for AwaitingCaptureBuffers<OP> {}
 
 impl<OP: BufferHandles> Encoder<AwaitingCaptureBuffers<OP>> {
-    pub fn allocate_capture_buffers<P: HandlesProvider>(
+    pub fn allocate_capture_buffers_generic<P: HandlesProvider>(
         self,
+        memory_type: <P::HandleType as BufferHandles>::SupportedMemoryType,
         num_capture: usize,
         capture_memory_provider: P,
-    ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError> {
+    ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError>
+    where
+        for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
+            GetFreeCaptureBuffer<'a, P::HandleType>,
+    {
         Ok(Encoder {
             device: self.device,
             state: ReadyToEncode {
@@ -182,11 +187,28 @@ impl<OP: BufferHandles> Encoder<AwaitingCaptureBuffers<OP>> {
                 capture_queue: self
                     .state
                     .capture_queue
-                    .request_buffers::<P::HandleType>(num_capture as u32)?,
+                    .request_buffers_generic::<P::HandleType>(memory_type, num_capture as u32)?,
                 capture_memory_provider,
                 poll_wakeups_counter: None,
             },
         })
+    }
+
+    pub fn allocate_capture_buffers<P: HandlesProvider>(
+        self,
+        num_capture: usize,
+        capture_memory_provider: P,
+    ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError>
+    where
+        P::HandleType: PrimitiveBufferHandles,
+        for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
+            GetFreeCaptureBuffer<'a, P::HandleType>,
+    {
+        self.allocate_capture_buffers_generic(
+            P::HandleType::MEMORY_TYPE,
+            num_capture,
+            capture_memory_provider,
+        )
     }
 }
 
@@ -198,7 +220,11 @@ pub struct ReadyToEncode<OP: BufferHandles, P: HandlesProvider> {
 }
 impl<OP: BufferHandles, P: HandlesProvider> EncoderState for ReadyToEncode<OP, P> {}
 
-impl<OP: BufferHandles, P: HandlesProvider> Encoder<ReadyToEncode<OP, P>> {
+impl<OP: BufferHandles, P: HandlesProvider> Encoder<ReadyToEncode<OP, P>>
+where
+    for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
+        GetFreeCaptureBuffer<'a, P::HandleType>,
+{
     pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
         self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
         self
@@ -447,6 +473,8 @@ impl<P, OutputReadyCb> EncoderThread<P, OutputReadyCb>
 where
     P: HandlesProvider,
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
+        GetFreeCaptureBuffer<'a, P::HandleType>,
 {
     fn new(
         device: &Arc<Device>,
