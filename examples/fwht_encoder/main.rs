@@ -10,8 +10,7 @@ use std::sync::Arc;
 use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
 use v4l2::{
-    device::queue::qbuf::Plane,
-    device::queue::{direction::Capture, dqbuf::DQBuffer},
+    device::queue::{direction::Capture, dqbuf::DQBuffer, qbuf::OutputQueueable},
     encoder::*,
     memory::{MMAPHandle, MMAPProvider, UserPtrHandle},
 };
@@ -200,8 +199,7 @@ fn main() {
             .expect("Failed to generate frame");
         let bytes_used = buffer.len();
         v4l2_buffer
-            .add_plane(Plane::out(bytes_used))
-            .queue_with_handles(vec![UserPtrHandle::from(buffer)])
+            .queue_with_handles(vec![UserPtrHandle::from(buffer)], &[bytes_used])
             .expect("Failed to queue input frame");
     }
 

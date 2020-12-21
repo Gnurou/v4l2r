@@ -5,8 +5,8 @@ use crate::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
             dual_queue::{DualBufferHandles, DualQBuffer},
-            qbuf::get_free::{GetFreeBuffer, GetFreeBufferError},
-            qbuf::{Plane, QBuffer},
+            qbuf::get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
+            qbuf::{CaptureQueueable, QBuffer},
             BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
         },
@@ -357,7 +357,7 @@ where
 }
 
 /// Support for primitive plane handles on the OUTPUT queue.
-impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<OP>>
+impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
     for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
     OP: PrimitiveBufferHandles,
@@ -379,7 +379,8 @@ where
 }
 
 /// Support for dynamic plane handles on the OUTPUT queue.
-impl<'a, P, InputDoneCb, OutputReadyCb> GetFreeBuffer<'a, GetBufferError<DualBufferHandles>>
+impl<'a, P, InputDoneCb, OutputReadyCb>
+    GetFreeOutputBuffer<'a, DualBufferHandles, GetBufferError<DualBufferHandles>>
     for Encoder<Encoding<DualBufferHandles, P, InputDoneCb, OutputReadyCb>>
 where
     P: HandlesProvider,
@@ -405,7 +406,7 @@ impl<'a, OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb,
 where
     OP: BufferHandles,
     P: HandlesProvider,
-    Self: GetFreeBuffer<'a, GetBufferError<OP>>,
+    Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
@@ -416,8 +417,10 @@ where
     /// to be available if needed.
     pub fn get_buffer(
         &'a mut self,
-    ) -> Result<<Self as GetFreeBuffer<'a, GetBufferError<OP>>>::Queueable, GetBufferError<OP>>
-    {
+    ) -> Result<
+        <Self as GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>>::Queueable,
+        GetBufferError<OP>,
+    > {
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.
@@ -540,11 +543,8 @@ where
     }
 
     fn enqueue_capture_buffers(&mut self) {
-        while let Ok(mut buffer) = self.capture_queue.try_get_free_buffer() {
+        while let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
             if let Some(handles) = self.capture_memory_provider.get_handles() {
-                while buffer.num_set_planes() < buffer.num_expected_planes() {
-                    buffer = buffer.add_plane(Plane::cap());
-                }
                 buffer.queue_with_handles(handles).unwrap();
             }
         }

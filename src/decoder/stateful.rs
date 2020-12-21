@@ -1,7 +1,6 @@
 use crate::{
-    device::queue::qbuf::get_free::GetFreeBuffer,
     device::queue::qbuf::get_free::GetFreeBufferError,
-    device::queue::qbuf::Plane,
+    device::queue::qbuf::get_free::GetFreeOutputBuffer,
     device::queue::qbuf::QBuffer,
     device::queue::{
         self, dqbuf::DQBuffer, BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
@@ -12,7 +11,7 @@ use crate::{
         queue::direction::{Capture, Output},
         AllocatedQueue,
     },
-    device::{DeviceOpenError, TryDequeue},
+    device::{queue::qbuf::CaptureQueueable, DeviceOpenError, TryDequeue},
     ioctl::DQBufError,
     ioctl::GFmtError,
     ioctl::{self, subscribe_event},
@@ -21,6 +20,7 @@ use crate::{
     Format,
 };
 
+use queue::qbuf::get_free::GetFreeCaptureBuffer;
 use std::{
     io,
     path::Path,
@@ -334,7 +334,8 @@ pub enum GetBufferError {
 pub type OutputBuffer<'a> =
     QBuffer<'a, Output, Vec<UserPtrHandle<Vec<u8>>>, Vec<UserPtrHandle<Vec<u8>>>>;
 
-impl<'a, InputDoneCb, OutputReadyCb, SetCaptureFormatCb> GetFreeBuffer<'a, GetBufferError>
+impl<'a, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    GetFreeOutputBuffer<'a, Vec<UserPtrHandle<Vec<u8>>>, GetBufferError>
     for Decoder<Decoding<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
     InputDoneCb: Fn(&mut Vec<UserPtrHandle<Vec<u8>>>),
@@ -406,6 +407,8 @@ enum ProcessEventsError {
 impl<OutputReadyCb, SetCaptureFormatCb> DecoderThread<OutputReadyCb, SetCaptureFormatCb>
 where
     OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
+    for<'a> Queue<Capture, BuffersAllocated<Vec<MMAPHandle>>>:
+        GetFreeCaptureBuffer<'a, Vec<MMAPHandle>>,
     SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
 {
     fn new(
@@ -636,11 +639,8 @@ where
 
     fn enqueue_capture_buffers(&mut self) {
         if let CaptureQueue::Decoding(capture_queue) = &self.capture_queue {
-            while let Ok(mut buffer) = capture_queue.try_get_free_buffer() {
-                for _ in 0..buffer.num_expected_planes() {
-                    buffer = buffer.add_plane(Plane::cap());
-                }
-                buffer.queue().unwrap();
+            while let Ok(buffer) = capture_queue.try_get_free_buffer() {
+                buffer.queue_with_handles(Default::default()).unwrap();
             }
         }
     }

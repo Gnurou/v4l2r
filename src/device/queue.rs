@@ -4,6 +4,8 @@ pub mod dual_queue;
 pub mod qbuf;
 pub mod states;
 
+use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
+
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::ioctl::{
     self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
@@ -15,8 +17,8 @@ use direction::*;
 use dqbuf::*;
 use dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType};
 use qbuf::{
-    get_free::{GetFreeBuffer, GetFreeBufferError},
-    get_indexed::{GetBufferByIndex, TryGetBufferError},
+    get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
+    get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
     *,
 };
 use states::*;
@@ -485,50 +487,118 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
     }
 }
 
-impl<'a, D: Direction, P: PrimitiveBufferHandles + 'a> GetBufferByIndex<'a>
-    for Queue<D, BuffersAllocated<P>>
+mod private {
+    use super::*;
+
+    pub trait GetBufferByIndex<'a> {
+        type Queueable: 'a;
+
+        fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
+    }
+
+    pub trait GetFreeBuffer<'a, ErrorType = GetFreeBufferError> {
+        type Queueable: 'a;
+
+        fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
+    }
+
+    impl<'a, D: Direction, P: PrimitiveBufferHandles> GetBufferByIndex<'a>
+        for Queue<D, BuffersAllocated<P>>
+    {
+        type Queueable = QBuffer<'a, D, P, P>;
+
+        // Take buffer `id` in order to prepare it for queueing, provided it is available.
+        fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+            Ok(QBuffer::new(self, self.try_get_buffer_info(index)?))
+        }
+    }
+
+    impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<DualBufferHandles>> {
+        type Queueable = DualQBuffer<'a, D>;
+
+        fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+            let buffer_info = self.try_get_buffer_info(index)?;
+
+            Ok(match self.state.memory_type {
+                DualSupportedMemoryType::MMAP => DualQBuffer::MMAP(QBuffer::new(self, buffer_info)),
+                DualSupportedMemoryType::UserPtr => {
+                    DualQBuffer::User(QBuffer::new(self, buffer_info))
+                }
+            })
+        }
+    }
+
+    impl<'a, D, P> GetFreeBuffer<'a> for Queue<D, BuffersAllocated<P>>
+    where
+        D: Direction,
+        P: BufferHandles,
+        Self: GetBufferByIndex<'a>,
+    {
+        type Queueable = <Queue<D, BuffersAllocated<P>> as GetBufferByIndex<'a>>::Queueable;
+
+        fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
+            let res = self
+                .state
+                .buffer_info
+                .iter()
+                .enumerate()
+                .find(|(_, s)| matches!(*s.state.lock().unwrap(), BufferState::Free));
+
+            match res {
+                None => Err(GetFreeBufferError::NoFreeBuffer),
+                Some((i, _)) => Ok(self.try_get_buffer(i).unwrap()),
+            }
+        }
+    }
+}
+
+impl<'a, P: BufferHandles> GetCaptureBufferByIndex<'a, P> for Queue<Capture, BuffersAllocated<P>>
+where
+    Self: private::GetBufferByIndex<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<P>,
 {
-    type Queueable = QBuffer<'a, D, P, P>;
+    type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
 
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
-        Ok(QBuffer::new(self, self.try_get_buffer_info(index)?))
+        <Self as private::GetBufferByIndex<'a>>::try_get_buffer(self, index)
     }
 }
 
-impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<DualBufferHandles>> {
-    type Queueable = DualQBuffer<'a, D>;
-
-    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
-        let buffer_info = self.try_get_buffer_info(index)?;
-
-        Ok(match self.state.memory_type {
-            DualSupportedMemoryType::MMAP => DualQBuffer::MMAP(QBuffer::new(self, buffer_info)),
-            DualSupportedMemoryType::UserPtr => DualQBuffer::User(QBuffer::new(self, buffer_info)),
-        })
-    }
-}
-
-impl<'a, D, P> GetFreeBuffer<'a> for Queue<D, BuffersAllocated<P>>
+impl<'a, P: BufferHandles> GetFreeCaptureBuffer<'a, P> for Queue<Capture, BuffersAllocated<P>>
 where
-    D: Direction,
-    P: BufferHandles + 'a,
-    Queue<D, BuffersAllocated<P>>: GetBufferByIndex<'a>,
+    Self: private::GetFreeBuffer<'a>,
+    <Self as private::GetFreeBuffer<'a>>::Queueable: CaptureQueueable<P>,
 {
-    type Queueable = <Queue<D, BuffersAllocated<P>> as GetBufferByIndex<'a>>::Queueable;
+    type Queueable = <Self as private::GetFreeBuffer<'a>>::Queueable;
 
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
-        let res = self
-            .state
-            .buffer_info
-            .iter()
-            .enumerate()
-            .find(|(_, s)| matches!(*s.state.lock().unwrap(), BufferState::Free));
+        <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
+    }
+}
 
-        match res {
-            None => Err(GetFreeBufferError::NoFreeBuffer),
-            Some((i, _)) => Ok(self.try_get_buffer(i).unwrap()),
-        }
+impl<'a, P: BufferHandles> GetOutputBufferByIndex<'a, P> for Queue<Output, BuffersAllocated<P>>
+where
+    Self: private::GetBufferByIndex<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<P>,
+{
+    type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
+
+    // Take buffer `id` in order to prepare it for queueing, provided it is available.
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+        <Self as private::GetBufferByIndex<'a>>::try_get_buffer(self, index)
+    }
+}
+
+impl<'a, P: BufferHandles> GetFreeOutputBuffer<'a, P> for Queue<Output, BuffersAllocated<P>>
+where
+    Self: private::GetFreeBuffer<'a>,
+    <Self as private::GetFreeBuffer<'a>>::Queueable: OutputQueueable<P>,
+{
+    type Queueable = <Self as private::GetFreeBuffer<'a>>::Queueable;
+
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
+        <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
     }
 }
 

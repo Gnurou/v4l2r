@@ -12,7 +12,7 @@ use std::{
 use anyhow::ensure;
 use v4l2::{
     decoder::format::fwht::FwhtFrameParser,
-    device::queue::{qbuf::Plane, FormatBuilder},
+    device::queue::{qbuf::OutputQueueable, FormatBuilder},
     memory::UserPtrHandle,
 };
 use v4l2::{
@@ -162,8 +162,7 @@ fn main() {
         };
 
         v4l2_buffer
-            .add_plane(Plane::out(bytes_used))
-            .queue_with_handles(vec![UserPtrHandle::from(frame)])
+            .queue_with_handles(vec![UserPtrHandle::from(frame)], &[bytes_used])
             .expect("Failed to queue input frame");
 
         total_size += bytes_used;

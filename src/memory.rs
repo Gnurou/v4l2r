@@ -58,7 +58,7 @@ pub trait Memory: 'static {
 }
 
 /// Trait for memory types that provide their own memory, i.e. MMAP.
-pub trait SelfBacked: Memory {}
+pub trait SelfBacked: Memory + Default {}
 
 /// Trait for memory types to which external memory must be attached to, i.e. UserPtr and
 /// DMABuf.

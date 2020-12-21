@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
-use qbuf::{get_free::GetFreeBuffer, get_indexed::GetBufferByIndex, Plane};
-use v4l2::memory::MemoryType;
+use qbuf::{get_free::GetFreeCaptureBuffer, get_indexed::GetOutputBufferByIndex};
+use v4l2::{device::queue::qbuf::OutputQueueable, memory::MemoryType};
 use v4l2::{device::queue::*, memory::MMAPHandle};
 use v4l2::{
     device::{
@@ -171,7 +171,6 @@ pub fn run<F: FnMut(&[u8])>(
         capture_queue
             .try_get_free_buffer()
             .expect("Failed to obtain capture buffer")
-            .add_plane(Plane::cap())
             .queue()
             .expect("Failed to queue capture buffer");
 
@@ -191,8 +190,7 @@ pub fn run<F: FnMut(&[u8])>(
 
                 framegen::gen_pattern(&mut mapping, output_image_bytesperline, cpt as u32);
 
-                buf.add_plane(Plane::out(mapping.len()))
-                    .queue()
+                buf.queue(&[mapping.len()])
                     .expect("Failed to queue output buffer");
             }
             DualQBuffer::User(buf) => {
@@ -207,9 +205,11 @@ pub fn run<F: FnMut(&[u8])>(
                 );
 
                 let bytes_used = output_buffer_data.len();
-                buf.add_plane(Plane::out(bytes_used))
-                    .queue_with_handles(vec![UserPtrHandle::from(output_buffer_data)])
-                    .expect("Failed to queue output buffer");
+                buf.queue_with_handles(
+                    DualBufferHandles::from(vec![UserPtrHandle::from(output_buffer_data)]),
+                    &[bytes_used],
+                )
+                .expect("Failed to queue output buffer");
             }
         }
 
