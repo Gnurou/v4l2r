@@ -54,7 +54,7 @@ fn main() {
                 .required(false)
                 .takes_value(true)
                 .default_value("mmap")
-                .help("Type of capture memory to use (mmap or user)"),
+                .help("Type of capture memory to use (mmap)"),
         )
         .get_matches();
 
@@ -77,7 +77,6 @@ fn main() {
     };
     let capture_mem = match matches.value_of("capture_mem") {
         Some("mmap") => MemoryType::MMAP,
-        Some("user") => MemoryType::UserPtr,
         _ => panic!("Invalid value for capture_mem"),
     };
 
