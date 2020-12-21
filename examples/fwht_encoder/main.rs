@@ -10,7 +10,12 @@ use std::sync::Arc;
 use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
 use v4l2::{
-    device::queue::{direction::Capture, dqbuf::DQBuffer, qbuf::OutputQueueable},
+    device::queue::{
+        direction::Capture,
+        dqbuf::DQBuffer,
+        dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType},
+        qbuf::OutputQueueable,
+    },
     encoder::*,
     memory::{MMAPHandle, MMAPProvider, UserPtrHandle},
 };
@@ -40,6 +45,14 @@ fn main() {
                 .takes_value(true)
                 .help("Save the encoded stream to a file"),
         )
+        .arg(
+            Arg::with_name("output_mem")
+                .long("output_mem")
+                .required(false)
+                .takes_value(true)
+                .default_value("user")
+                .help("Type of output memory to use (mmap or user)"),
+        )
         .get_matches();
 
     let device_path = matches.value_of("device").unwrap_or("/dev/video0");
@@ -53,6 +66,12 @@ fn main() {
     let mut output_file = matches
         .value_of("output_file")
         .map(|s| File::create(s).expect("Invalid output file specified."));
+
+    let output_mem = match matches.value_of("output_mem") {
+        Some("mmap") => DualSupportedMemoryType::MMAP,
+        Some("user") => DualSupportedMemoryType::UserPtr,
+        _ => panic!("Invalid value for output_mem"),
+    };
 
     let lets_quit = Arc::new(AtomicBool::new(false));
     // Setup the Ctrl+c handler.
@@ -120,18 +139,33 @@ fn main() {
 
     const NUM_BUFFERS: usize = 2;
 
-    let free_buffers: VecDeque<_> =
-        std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
-            .take(NUM_BUFFERS)
-            .collect();
+    let free_buffers: Option<VecDeque<_>> = match output_mem {
+        DualSupportedMemoryType::MMAP => None,
+        DualSupportedMemoryType::UserPtr => Some(
+            std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
+                .take(NUM_BUFFERS)
+                .collect(),
+        ),
+    };
     let free_buffers = RefCell::new(free_buffers);
 
-    let input_done_cb = |buffer: CompletedOutputBuffer<Vec<UserPtrHandle<Vec<u8>>>>| {
-        let mut handles = match buffer {
+    let input_done_cb = |buffer: CompletedOutputBuffer<DualBufferHandles>| {
+        let handles = match buffer {
             CompletedOutputBuffer::Dequeued(mut buf) => buf.take_handles().unwrap(),
             CompletedOutputBuffer::Canceled(buf) => buf.plane_handles,
         };
-        free_buffers.borrow_mut().push_back(handles.remove(0).0);
+        match handles {
+            // We have nothing to do for MMAP buffers.
+            DualBufferHandles::MMAP(_) => {}
+            // For user-allocated memory, return the buffer to the free list.
+            DualBufferHandles::User(mut u) => {
+                free_buffers
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .push_back(u.remove(0).0);
+            }
+        };
     };
 
     let mut total_size = 0usize;
@@ -167,8 +201,7 @@ fn main() {
     };
 
     let mut encoder = encoder
-        // TODO split between allocate OUTPUT and allocate CAPTURE.
-        .allocate_output_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(NUM_BUFFERS)
+        .allocate_output_buffers_generic::<DualBufferHandles>(output_mem, NUM_BUFFERS)
         .expect("Failed to allocate OUTPUT buffers")
         .allocate_capture_buffers(NUM_BUFFERS, MMAPProvider::new(&capture_format))
         .expect("Failed to allocate CAPTURE buffers")
@@ -190,17 +223,36 @@ fn main() {
             Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => break,
             Err(e) => panic!(e),
         };
-        let mut buffer = free_buffers
-            .borrow_mut()
-            .pop_front()
-            .expect("No backing buffer to bind");
-        frame_gen
-            .next_frame(&mut buffer)
-            .expect("Failed to generate frame");
-        let bytes_used = buffer.len();
-        v4l2_buffer
-            .queue_with_handles(vec![UserPtrHandle::from(buffer)], &[bytes_used])
-            .expect("Failed to queue input frame");
+        match v4l2_buffer {
+            DualQBuffer::MMAP(buf) => {
+                let mut mapping = buf
+                    .get_plane_mapping(0)
+                    .expect("Failed to get MMAP mapping");
+                frame_gen
+                    .next_frame(&mut mapping)
+                    .expect("Failed to generate frame");
+                let bytes_used = mapping.len();
+                buf.queue(&[bytes_used])
+                    .expect("Failed to queue input frame");
+            }
+            DualQBuffer::User(buf) => {
+                let mut buffer = free_buffers
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .pop_front()
+                    .expect("No backing buffer to bind");
+                frame_gen
+                    .next_frame(&mut buffer)
+                    .expect("Failed to generate frame");
+                let bytes_used = buffer.len();
+                buf.queue_with_handles(
+                    DualBufferHandles::from(vec![UserPtrHandle::from(buffer)]),
+                    &[bytes_used],
+                )
+                .expect("Failed to queue input frame");
+            }
+        }
     }
 
     encoder.stop().unwrap();
@@ -209,5 +261,5 @@ fn main() {
     println!();
 
     // All the OUTPUT buffers should have been returned
-    assert_eq!(free_buffers.borrow().len(), NUM_BUFFERS);
+    assert_eq!(free_buffers.borrow().as_ref().unwrap().len(), NUM_BUFFERS);
 }
