@@ -3,7 +3,6 @@ use super::{states::BufferInfo, Capture, Direction, Output};
 use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
 use crate::ioctl;
 use crate::memory::*;
-use std::cmp::Ordering;
 use std::{
     fmt::{self, Debug},
     sync::Arc,
@@ -117,20 +116,11 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
     fn queue_bound(mut self, plane_handles: P) -> QueueResult<P, ()> {
         // First check that the number of provided planes is what we expect.
         let num_planes = self.planes.len();
-        match num_planes.cmp(&self.num_planes) {
-            Ordering::Less => {
-                return Err(QueueError {
-                    error: QBufError::NotEnoughPlanes(num_planes, self.num_planes),
-                    plane_handles,
-                })
-            }
-            Ordering::Greater => {
-                return Err(QueueError {
-                    error: QBufError::TooManyPlanes(num_planes, self.num_planes),
-                    plane_handles,
-                })
-            }
-            Ordering::Equal => (),
+        if num_planes != self.num_planes {
+            return Err(QueueError {
+                error: QBufError::NumPlanesMismatch(num_planes, self.num_planes),
+                plane_handles,
+            });
         }
 
         let qbuffer = ioctl::QBuffer::<P::HandleType> {
@@ -205,21 +195,12 @@ where
     pub fn queue_with_handles(mut self, plane_handles: P) -> QueueResult<P, ()> {
         // Check that we have provided the right number of handles for our planes.
         let num_plane_handles = plane_handles.len();
-        match num_plane_handles.cmp(&self.num_planes) {
-            Ordering::Less => {
-                return Err(QueueError {
-                    error: QBufError::NotEnoughPlanes(num_plane_handles, self.num_planes),
-                    plane_handles,
-                })
-            }
-            Ordering::Greater => {
-                return Err(QueueError {
-                    error: QBufError::TooManyPlanes(num_plane_handles, self.num_planes),
-                    plane_handles,
-                })
-            }
-            Ordering::Equal => (),
-        };
+        if num_plane_handles != self.num_planes {
+            return Err(QueueError {
+                error: QBufError::NumPlanesMismatch(num_plane_handles, self.num_planes),
+                plane_handles,
+            });
+        }
 
         for (index, plane) in self.planes.iter_mut().enumerate() {
             // TODO take the QBufPlane as argument if possible?

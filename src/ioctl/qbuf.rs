@@ -5,7 +5,6 @@ use crate::{bindings, QueueType};
 
 use bitflags::bitflags;
 use nix::Error;
-use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -35,10 +34,8 @@ bitflags! {
 
 #[derive(Debug, Error)]
 pub enum QBufError {
-    #[error("Not enough planes specified for the buffer: got {0}, expected {1}")]
-    NotEnoughPlanes(usize, usize),
-    #[error("Too many planes specified for the buffer: got {0}, expected {1}")]
-    TooManyPlanes(usize, usize),
+    #[error("Invalid number of planes specified for the buffer: got {0}, expected {1}")]
+    NumPlanesMismatch(usize, usize),
     #[error("Data offset specified while using the single-planar API")]
     DataOffsetNotSupported,
     #[error("Unexpected ioctl error: {0}")]
@@ -127,11 +124,9 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
     ) -> Result<(), QBufError> {
-        match self.planes.len().cmp(&1) {
-            Ordering::Less => return Err(QBufError::NotEnoughPlanes(self.planes.len(), 1)),
-            Ordering::Greater => return Err(QBufError::TooManyPlanes(self.planes.len(), 1)),
-            Ordering::Equal => (),
-        };
+        if self.planes.len() != 1 {
+            return Err(QBufError::NumPlanesMismatch(self.planes.len(), 1));
+        }
 
         let plane = &self.planes[0];
         if plane.0.data_offset != 0 {
@@ -149,14 +144,8 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut PlaneData,
     ) -> Result<(), QBufError> {
-        if self.planes.is_empty() {
-            return Err(QBufError::NotEnoughPlanes(
-                self.planes.len(),
-                v4l2_planes.len(),
-            ));
-        }
-        if self.planes.len() > v4l2_planes.len() {
-            return Err(QBufError::TooManyPlanes(
+        if self.planes.is_empty() || self.planes.len() > v4l2_planes.len() {
+            return Err(QBufError::NumPlanesMismatch(
                 self.planes.len(),
                 v4l2_planes.len(),
             ));
