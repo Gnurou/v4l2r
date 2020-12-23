@@ -33,7 +33,7 @@ impl<P: BufferHandles> Debug for QueueError<P> {
 }
 
 #[allow(type_alias_bounds)]
-pub type QueueResult<P: BufferHandles, R> = std::result::Result<R, QueueError<P>>;
+pub type QueueResult<R, P: BufferHandles> = std::result::Result<R, QueueError<P>>;
 
 /// A free buffer that has just been obtained from `Queue::get_buffer()` and
 /// which is being prepared to the queued.
@@ -99,7 +99,6 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
         self.num_planes
     }
 
-    // TODO QueueResult is backwards??
     // R is meant to mean "either P or Q".
     // Caller is responsible for making sure that the number of planes and
     // plane_handles is the same as the number of expected planes for this
@@ -108,7 +107,7 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
         mut self,
         planes: Vec<ioctl::QBufPlane>,
         plane_handles: R,
-    ) -> QueueResult<R, ()> {
+    ) -> QueueResult<(), R> {
         let qbuffer = ioctl::QBuffer::<P::HandleType> {
             planes,
             ..Default::default()
@@ -172,7 +171,7 @@ where
 pub trait CaptureQueueable<Q: BufferHandles> {
     /// Queue the buffer after binding `handles`, consuming the object.
     /// The number of handles must match the buffer's expected number of planes.
-    fn queue_with_handles(self, handles: Q) -> QueueResult<Q, ()>;
+    fn queue_with_handles(self, handles: Q) -> QueueResult<(), Q>;
 }
 
 /// Trait for queueable OUTPUT buffers. The number of bytes used must be
@@ -182,14 +181,14 @@ pub trait OutputQueueable<Q: BufferHandles> {
     /// The number of handles must match the buffer's expected number of planes.
     /// `bytes_used` must be a slice with as many slices as there are handles,
     /// describing the amount of useful data in each of them.
-    fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<Q, ()>;
+    fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q>;
 }
 
 /// Any CAPTURE QBuffer implements CaptureQueueable.
 impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
     for QBuffer<'_, Capture, P, Q>
 {
-    fn queue_with_handles(self, handles: Q) -> QueueResult<Q, ()> {
+    fn queue_with_handles(self, handles: Q) -> QueueResult<(), Q> {
         if handles.len() != self.num_expected_planes() {
             return Err(QueueError {
                 error: ioctl::QBufError::NumPlanesMismatch(
@@ -220,7 +219,7 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
 impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
     for QBuffer<'_, Output, P, Q>
 {
-    fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<Q, ()> {
+    fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q> {
         if handles.len() != self.num_expected_planes() {
             return Err(QueueError {
                 error: ioctl::QBufError::NumPlanesMismatch(
@@ -260,7 +259,7 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
 
 /// Any CAPTURE DualQBuffer implements CaptureQueueable.
 impl CaptureQueueable<DualBufferHandles> for DualQBuffer<'_, Capture> {
-    fn queue_with_handles(self, handles: DualBufferHandles) -> QueueResult<DualBufferHandles, ()> {
+    fn queue_with_handles(self, handles: DualBufferHandles) -> QueueResult<(), DualBufferHandles> {
         match self {
             DualQBuffer::MMAP(m) => m.queue_with_handles(handles),
             DualQBuffer::User(u) => u.queue_with_handles(handles),
@@ -274,7 +273,7 @@ impl OutputQueueable<DualBufferHandles> for DualQBuffer<'_, Output> {
         self,
         handles: DualBufferHandles,
         bytes_used: &[usize],
-    ) -> QueueResult<DualBufferHandles, ()> {
+    ) -> QueueResult<(), DualBufferHandles> {
         match self {
             DualQBuffer::MMAP(m) => m.queue_with_handles(handles, bytes_used),
             DualQBuffer::User(u) => u.queue_with_handles(handles, bytes_used),
