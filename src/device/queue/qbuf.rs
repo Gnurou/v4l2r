@@ -1,9 +1,5 @@
 //! Provides types related to queuing buffers on a `Queue` object.
-use super::{
-    dual_queue::{DualBufferHandles, DualQBuffer},
-    states::BufferInfo,
-    Capture, Direction, Output,
-};
+use super::{states::BufferInfo, Capture, Direction, Output};
 use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
 use crate::ioctl;
 use crate::memory::*;
@@ -254,30 +250,6 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
         }
 
         self.queue_bound_planes(planes, handles)
-    }
-}
-
-/// Any CAPTURE DualQBuffer implements CaptureQueueable.
-impl CaptureQueueable<DualBufferHandles> for DualQBuffer<'_, Capture> {
-    fn queue_with_handles(self, handles: DualBufferHandles) -> QueueResult<(), DualBufferHandles> {
-        match self {
-            DualQBuffer::MMAP(m) => m.queue_with_handles(handles),
-            DualQBuffer::User(u) => u.queue_with_handles(handles),
-        }
-    }
-}
-
-/// Any OUTPUT DualQBuffer implements OutputQueueable.
-impl OutputQueueable<DualBufferHandles> for DualQBuffer<'_, Output> {
-    fn queue_with_handles(
-        self,
-        handles: DualBufferHandles,
-        bytes_used: &[usize],
-    ) -> QueueResult<(), DualBufferHandles> {
-        match self {
-            DualQBuffer::MMAP(m) => m.queue_with_handles(handles, bytes_used),
-            DualQBuffer::User(u) => u.queue_with_handles(handles, bytes_used),
-        }
     }
 }
 
