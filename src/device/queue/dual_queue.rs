@@ -11,7 +11,7 @@ use std::fmt::Debug;
 /// Supported memory types for `DualBufferHandles`.
 /// TODO: This should be renamed to "DynamicBufferHandles", and be constructed
 /// on-the-fly using a macro.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DualSupportedMemoryType {
     MMAP,
     UserPtr,

@@ -260,6 +260,8 @@ fn main() {
     // Insert new line since we were overwriting the same one
     println!();
 
-    // All the OUTPUT buffers should have been returned
-    assert_eq!(free_buffers.borrow().as_ref().unwrap().len(), NUM_BUFFERS);
+    if output_mem == DualSupportedMemoryType::UserPtr {
+        // All the OUTPUT buffers should have been returned
+        assert_eq!(free_buffers.borrow().as_ref().unwrap().len(), NUM_BUFFERS);
+    }
 }
