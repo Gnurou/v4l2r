@@ -640,7 +640,7 @@ where
     fn enqueue_capture_buffers(&mut self) {
         if let CaptureQueue::Decoding(capture_queue) = &self.capture_queue {
             while let Ok(buffer) = capture_queue.try_get_free_buffer() {
-                buffer.queue_with_handles(Default::default()).unwrap();
+                buffer.queue_with_handles(vec![Default::default()]).unwrap();
             }
         }
     }
