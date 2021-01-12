@@ -18,6 +18,7 @@ use crate::{
 };
 
 use std::{
+    any::Any,
     io,
     path::Path,
     sync::{atomic::AtomicUsize, Arc},
@@ -315,6 +316,18 @@ pub enum GetBufferError<OP: BufferHandles> {
     GetFreeBufferError(#[from] GetFreeBufferError),
 }
 
+#[derive(Debug, Error)]
+pub enum EncoderStopError {
+    #[error("Error while sending STOP command")]
+    EncoderCmdError(#[from] ioctl::EncoderCmdError),
+    #[error("Thread has panicked")]
+    ThreadPanickedError(Box<dyn Any + Send + 'static>),
+    #[error("Cannot streamoff capture queue")]
+    CaptureQueueStreamoffError(ioctl::StreamOffError),
+    #[error("Cannot streamoff output queue")]
+    OutputQueueStreamoffError(ioctl::StreamOffError),
+}
+
 impl<OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
     OP: BufferHandles,
@@ -323,15 +336,26 @@ where
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
     /// Stop the encoder, and returns the encoder ready to be started again.
-    pub fn stop(self) -> Result<Encoder<ReadyToEncode<OP, P>>, ()> {
-        ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false)).unwrap();
+    pub fn stop(self) -> Result<Encoder<ReadyToEncode<OP, P>>, EncoderStopError> {
+        ioctl::encoder_cmd(&*self.device, EncoderCommand::Stop(false))?;
 
         // The encoder thread should receive the LAST buffer and exit on its own.
-        let encoding_thread = self.state.handle.join().unwrap();
+        let encoding_thread = self
+            .state
+            .handle
+            .join()
+            .map_err(|e| EncoderStopError::ThreadPanickedError(e))?;
 
-        encoding_thread.capture_queue.stream_off().unwrap();
+        encoding_thread
+            .capture_queue
+            .stream_off()
+            .map_err(EncoderStopError::CaptureQueueStreamoffError)?;
         /* Return all canceled buffers to the client */
-        let canceled_buffers = self.state.output_queue.stream_off().unwrap();
+        let canceled_buffers = self
+            .state
+            .output_queue
+            .stream_off()
+            .map_err(EncoderStopError::OutputQueueStreamoffError)?;
         for buffer in canceled_buffers {
             (self.state.input_done_cb)(CompletedOutputBuffer::Canceled(buffer));
         }
