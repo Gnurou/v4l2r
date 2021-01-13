@@ -54,8 +54,7 @@ pub enum EncoderOpenError {
 impl Encoder<AwaitingCaptureFormat> {
     pub fn open(path: &Path) -> Result<Self, EncoderOpenError> {
         let config = DeviceConfig::new().non_blocking_dqbuf();
-        let device = Device::open(path, config)?;
-        let device = Arc::new(device);
+        let device = Arc::new(Device::open(path, config)?);
 
         // Check that the device is indeed an encoder.
         let capture_queue = Queue::get_capture_mplane_queue(device.clone())?;
@@ -83,6 +82,7 @@ impl Encoder<AwaitingCaptureFormat> {
         })
     }
 
+    // TODO merge with open and make anyhow a variant of the error type?
     pub fn set_capture_format<F>(mut self, f: F) -> anyhow::Result<Encoder<AwaitingOutputFormat>>
     where
         F: FnOnce(FormatBuilder) -> anyhow::Result<()>,
