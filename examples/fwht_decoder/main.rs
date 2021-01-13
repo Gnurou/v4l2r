@@ -120,7 +120,7 @@ fn main() {
             Ok(())
         })
         .expect("Failed to set output format")
-        .allocate_output_buffers(NUM_OUTPUT_BUFFERS)
+        .allocate_output_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(NUM_OUTPUT_BUFFERS)
         .expect("Failed to allocate output buffers")
         .set_poll_counter(poll_count_writer)
         .start(|_| (), output_ready_cb, set_capture_format_cb)

@@ -11,12 +11,19 @@ use crate::{
         queue::direction::{Capture, Output},
         AllocatedQueue,
     },
-    device::{queue::qbuf::CaptureQueueable, DeviceOpenError, TryDequeue},
+    device::{
+        queue::{
+            dual_queue::{DualBufferHandles, DualQBuffer},
+            qbuf::CaptureQueueable,
+            RequestBuffersError,
+        },
+        DeviceOpenError, TryDequeue,
+    },
     ioctl::DQBufError,
     ioctl::GFmtError,
     ioctl::{self, subscribe_event},
     ioctl::{BufferCapabilities, FormatFlags, StreamOnError},
-    memory::{MMAPHandle, UserPtrHandle},
+    memory::{BufferHandles, MMAPHandle, PrimitiveBufferHandles, UserPtrHandle},
     Format,
 };
 
@@ -95,7 +102,7 @@ impl Decoder<AwaitingOutputFormat> {
         })
     }
 
-    // TODO apply same change to encoder!
+    // TODO merge with open and make anyhow a variant of the error type?
     pub fn set_output_format<F>(mut self, f: F) -> anyhow::Result<Decoder<AwaitingOutputBuffers>>
     where
         F: FnOnce(FormatBuilder) -> anyhow::Result<()>,
@@ -120,32 +127,38 @@ pub struct AwaitingOutputBuffers {
 impl DecoderState for AwaitingOutputBuffers {}
 
 impl Decoder<AwaitingOutputBuffers> {
-    pub fn allocate_output_buffers(
+    pub fn allocate_output_buffers_generic<OP: BufferHandles>(
         self,
+        memory_type: OP::SupportedMemoryType,
         num_buffers: usize,
-    ) -> Result<Decoder<OutputBuffersAllocated>, queue::RequestBuffersError> {
-        let output_queue = self
-            .state
-            .output_queue
-            .request_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(num_buffers as u32)?;
-
+    ) -> Result<Decoder<OutputBuffersAllocated<OP>>, RequestBuffersError> {
         Ok(Decoder {
             device: self.device,
             state: OutputBuffersAllocated {
-                output_queue,
+                output_queue: self
+                    .state
+                    .output_queue
+                    .request_buffers_generic::<OP>(memory_type, num_buffers as u32)?,
                 capture_queue: self.state.capture_queue,
                 poll_wakeups_counter: None,
             },
         })
     }
+
+    pub fn allocate_output_buffers<OP: PrimitiveBufferHandles>(
+        self,
+        num_output: usize,
+    ) -> Result<Decoder<OutputBuffersAllocated<OP>>, RequestBuffersError> {
+        self.allocate_output_buffers_generic(OP::MEMORY_TYPE, num_output)
+    }
 }
 
-pub struct OutputBuffersAllocated {
-    output_queue: Queue<Output, BuffersAllocated<Vec<UserPtrHandle<Vec<u8>>>>>,
+pub struct OutputBuffersAllocated<OP: BufferHandles> {
+    output_queue: Queue<Output, BuffersAllocated<OP>>,
     capture_queue: Queue<Capture, QueueInit>,
     poll_wakeups_counter: Option<Arc<AtomicUsize>>,
 }
-impl DecoderState for OutputBuffersAllocated {}
+impl<OP: BufferHandles> DecoderState for OutputBuffersAllocated<OP> {}
 
 #[derive(Debug, Error)]
 pub enum StartDecoderError {
@@ -157,7 +170,7 @@ pub enum StartDecoderError {
     StreamOnError(#[from] StreamOnError),
 }
 
-impl Decoder<OutputBuffersAllocated> {
+impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
     pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
         self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
         self
@@ -168,9 +181,12 @@ impl Decoder<OutputBuffersAllocated> {
         input_done_cb: InputDoneCb,
         output_ready_cb: OutputReadyCb,
         set_capture_format_cb: SetCaptureFormatCb,
-    ) -> Result<Decoder<Decoding<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>, StartDecoderError>
+    ) -> Result<
+        Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>,
+        StartDecoderError,
+    >
     where
-        InputDoneCb: Fn(&mut Vec<UserPtrHandle<Vec<u8>>>),
+        InputDoneCb: Fn(&mut OP),
         OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send + 'static,
         SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()> + Send + 'static,
     {
@@ -214,33 +230,37 @@ impl Decoder<OutputBuffersAllocated> {
     }
 }
 
-pub struct Decoding<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+pub struct Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
-    InputDoneCb: Fn(&mut Vec<UserPtrHandle<Vec<u8>>>),
+    OP: BufferHandles,
+    InputDoneCb: Fn(&mut OP),
     OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
     SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
 {
-    output_queue: Queue<Output, BuffersAllocated<Vec<UserPtrHandle<Vec<u8>>>>>,
+    output_queue: Queue<Output, BuffersAllocated<OP>>,
     input_done_cb: InputDoneCb,
     output_poller: Poller,
 
     handle: JoinHandle<DecoderThread<OutputReadyCb, SetCaptureFormatCb>>,
 }
-impl<InputDoneCb, OutputReadyCb, SetCaptureFormatCb> DecoderState
-    for Decoding<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+impl<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb> DecoderState
+    for Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
-    InputDoneCb: Fn(&mut Vec<UserPtrHandle<Vec<u8>>>),
+    OP: BufferHandles,
+    InputDoneCb: Fn(&mut OP),
     OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
     SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
 {
 }
 
-type DequeueOutputBufferError = DQBufError<DQBuffer<Output, Vec<UserPtrHandle<Vec<u8>>>>>;
+#[allow(type_alias_bounds)]
+type DequeueOutputBufferError<OP: BufferHandles> = DQBufError<DQBuffer<Output, OP>>;
 
-impl<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
-    Decoder<Decoding<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+impl<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
-    InputDoneCb: Fn(&mut Vec<UserPtrHandle<Vec<u8>>>),
+    OP: BufferHandles,
+    InputDoneCb: Fn(&mut OP),
     OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
     SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
 {
@@ -270,7 +290,7 @@ where
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError> {
+    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError<OP>> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -291,7 +311,7 @@ where
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
     // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
-    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
+    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
         for event in self.state.output_poller.poll(None)? {
             match event {
                 PollEvents::DEVICE_OUTPUT => {
@@ -303,28 +323,12 @@ where
 
         Ok(())
     }
-
-    /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
-    /// one to be available if needed.
-    ///
-    /// If all allocated buffers are currently queued, this method will wait for
-    /// one to be available.
-    pub fn get_buffer(&mut self) -> Result<OutputBuffer, GetBufferError> {
-        let output_queue = &self.state.output_queue;
-
-        // If all our buffers are queued, wait until we can dequeue some.
-        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
-            self.wait_for_output_buffer()?;
-        }
-
-        self.try_get_free_buffer()
-    }
 }
 
 #[derive(Debug, Error)]
-pub enum GetBufferError {
+pub enum GetBufferError<OP: BufferHandles> {
     #[error("Error while dequeueing buffer")]
-    DequeueError(#[from] DequeueOutputBufferError),
+    DequeueError(#[from] DequeueOutputBufferError<OP>),
     #[error("Error during poll")]
     PollError(#[from] io::Error),
     #[error("Error while obtaining buffer")]
@@ -334,19 +338,81 @@ pub enum GetBufferError {
 pub type OutputBuffer<'a> =
     QBuffer<'a, Output, Vec<UserPtrHandle<Vec<u8>>>, Vec<UserPtrHandle<Vec<u8>>>>;
 
-impl<'a, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
-    GetFreeOutputBuffer<'a, Vec<UserPtrHandle<Vec<u8>>>, GetBufferError>
-    for Decoder<Decoding<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+/// Support for primitive plane handles on the OUTPUT queue.
+impl<'a, OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
+    for Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
-    InputDoneCb: Fn(&mut Vec<UserPtrHandle<Vec<u8>>>),
+    OP: PrimitiveBufferHandles,
+    InputDoneCb: Fn(&mut OP),
     OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
     SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
 {
-    type Queueable = OutputBuffer<'a>;
+    type Queueable = QBuffer<'a, Output, OP, OP>;
 
-    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError> {
-        while self.state.output_queue.try_dequeue().is_ok() {}
+    /// Returns a V4L2 buffer to be filled with a frame to encode if one
+    /// is available.
+    ///
+    /// This method will return None immediately if all the allocated buffers
+    /// are currently queued.
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
+        self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
+    }
+}
+
+/// Support for dynamic plane handles on the OUTPUT queue.
+impl<'a, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    GetFreeOutputBuffer<'a, DualBufferHandles, GetBufferError<DualBufferHandles>>
+    for Decoder<Decoding<DualBufferHandles, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+where
+    InputDoneCb: Fn(&mut DualBufferHandles),
+    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
+    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+{
+    type Queueable = DualQBuffer<'a, Output>;
+
+    /// Returns a V4L2 buffer to be filled with a frame to encode if one
+    /// is available.
+    ///
+    /// This method will return None immediately if all the allocated buffers
+    /// are currently queued.
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<DualBufferHandles>> {
+        self.dequeue_output_buffers()?;
+        Ok(self.state.output_queue.try_get_free_buffer()?)
+    }
+}
+
+// If `GetFreeBuffer` is implemented, we can also provide a blocking `get_buffer`
+// method.
+impl<'a, OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+where
+    Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
+    OP: BufferHandles,
+    InputDoneCb: Fn(&mut OP),
+    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
+    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+{
+    /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
+    /// one to be available if needed.
+    ///
+    /// Contrary to `try_get_free_buffer(), this method will wait for a buffer
+    /// to be available if needed.
+    pub fn get_buffer(
+        &'a mut self,
+    ) -> Result<
+        <Self as GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>>::Queueable,
+        GetBufferError<OP>,
+    > {
+        let output_queue = &self.state.output_queue;
+
+        // If all our buffers are queued, wait until we can dequeue some.
+        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
+            self.wait_for_output_buffer()?;
+        }
+
+        self.try_get_free_buffer()
     }
 }
 
