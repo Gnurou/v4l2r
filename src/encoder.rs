@@ -454,9 +454,9 @@ where
 // method.
 impl<'a, OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
+    Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
     OP: BufferHandles,
     P: HandlesProvider,
-    Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
