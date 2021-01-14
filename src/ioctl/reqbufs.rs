@@ -3,8 +3,7 @@ use crate::bindings;
 use crate::memory::MemoryType;
 use crate::QueueType;
 use bitflags::bitflags;
-use nix::errno::Errno;
-use nix::Error;
+use nix::{self, errno::Errno};
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
@@ -72,7 +71,7 @@ pub enum ReqbufsError {
     #[error("Invalid buffer ({0}) or memory type ({1:?}) requested")]
     InvalidBufferType(QueueType, MemoryType),
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(nix::Error),
 }
 
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
@@ -91,7 +90,7 @@ pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) } {
         Ok(_) => Ok(T::from(reqbufs)),
-        Err(Error::Sys(Errno::EINVAL)) => Err(ReqbufsError::InvalidBufferType(queue, memory)),
+        Err(nix::Error::Sys(Errno::EINVAL)) => Err(ReqbufsError::InvalidBufferType(queue, memory)),
         Err(e) => Err(ReqbufsError::IoctlError(e)),
     }
 }
