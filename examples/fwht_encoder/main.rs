@@ -223,6 +223,7 @@ fn main() {
             Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => break,
             Err(e) => panic!(e),
         };
+        let bytes_used = frame_gen.frame_size();
         match v4l2_buffer {
             DualQBuffer::MMAP(buf) => {
                 let mut mapping = buf
@@ -231,7 +232,6 @@ fn main() {
                 frame_gen
                     .next_frame(&mut mapping)
                     .expect("Failed to generate frame");
-                let bytes_used = mapping.len();
                 buf.queue(&[bytes_used])
                     .expect("Failed to queue input frame");
             }
@@ -245,7 +245,6 @@ fn main() {
                 frame_gen
                     .next_frame(&mut buffer)
                     .expect("Failed to generate frame");
-                let bytes_used = buffer.len();
                 buf.queue_with_handles(
                     DualBufferHandles::from(vec![UserPtrHandle::from(buffer)]),
                     &[bytes_used],
