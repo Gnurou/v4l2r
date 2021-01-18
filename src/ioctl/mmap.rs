@@ -1,4 +1,3 @@
-use crate::Result;
 use std::{
     cmp::{max, min},
     ops::Deref,
@@ -10,6 +9,7 @@ use nix::{
     libc::{c_void, off_t, size_t},
     sys::mman,
 };
+use thiserror::Error;
 
 pub struct PlaneMapping {
     // A mapping remains valid until we munmap it, that is, until the
@@ -66,9 +66,15 @@ impl Drop for PlaneMapping {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum MMAPError {
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(#[from] nix::Error),
+}
+
 // TODO should be unsafe because the mapping can be used after a buffer is queued?
 // Or not, since this cannot cause a crash...
-pub fn mmap<F: AsRawFd>(fd: &F, mem_offset: u32, length: u32) -> Result<PlaneMapping> {
+pub fn mmap<F: AsRawFd>(fd: &F, mem_offset: u32, length: u32) -> Result<PlaneMapping, MMAPError> {
     let data = unsafe {
         mman::mmap(
             std::ptr::null_mut::<c_void>(),
