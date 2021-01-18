@@ -1,6 +1,6 @@
 //! Operations specific to DMABuf-type buffers.
 use super::*;
-use crate::bindings;
+use crate::{bindings, ioctl};
 use std::os::unix::io::AsRawFd;
 
 pub struct DMABuf;
@@ -54,5 +54,13 @@ impl<T: DMABufSource + 'static> PlaneHandle for DMABufHandle<T> {
     fn fill_v4l2_splane_buffer(plane: &bindings::v4l2_plane, buffer: &mut bindings::v4l2_buffer) {
         buffer.m.fd = unsafe { plane.m.fd };
         buffer.length = plane.length;
+    }
+}
+
+impl<T: DMABufSource> DMABufHandle<T> {
+    pub fn map(&self) -> Result<PlaneMapping, ioctl::MMAPError> {
+        let len = self.0.len();
+
+        ioctl::mmap(&self.0, 0, len as u32)
     }
 }
