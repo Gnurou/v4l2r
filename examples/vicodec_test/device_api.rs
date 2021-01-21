@@ -148,6 +148,7 @@ pub fn run<F: FnMut(&[u8])>(
     let mut output_frame = match output_mem {
         DualSupportedMemoryType::MMAP => None,
         DualSupportedMemoryType::UserPtr => Some(vec![0u8; output_image_size]),
+        DualSupportedMemoryType::DMABuf => todo!(),
     };
 
     output_queue
@@ -211,6 +212,7 @@ pub fn run<F: FnMut(&[u8])>(
                 )
                 .expect("Failed to queue output buffer");
             }
+            DualQBuffer::DMABuf(_) => todo!(),
         }
 
         // Now dequeue the work that we just scheduled.
@@ -228,6 +230,7 @@ pub fn run<F: FnMut(&[u8])>(
             DualBufferHandles::User(u) => {
                 assert_eq!(output_frame.replace(u.remove(0).0), None);
             }
+            DualBufferHandles::DMABuf(_) => todo!(),
         }
 
         let cap_dqbuf = capture_queue

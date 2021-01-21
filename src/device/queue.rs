@@ -524,6 +524,9 @@ mod private {
                 DualSupportedMemoryType::UserPtr => {
                     DualQBuffer::User(QBuffer::new(self, buffer_info))
                 }
+                DualSupportedMemoryType::DMABuf => {
+                    DualQBuffer::DMABuf(QBuffer::new(self, buffer_info))
+                }
             })
         }
     }

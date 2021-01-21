@@ -1,12 +1,15 @@
-use crate::device::queue::{
-    direction::{Capture, Direction, Output},
-    qbuf::{CaptureQueueable, OutputQueueable, QBuffer, QueueResult},
+use crate::{
+    device::queue::{
+        direction::{Capture, Direction, Output},
+        qbuf::{CaptureQueueable, OutputQueueable, QBuffer, QueueResult},
+    },
+    memory::DMABufHandle,
 };
 use crate::{
     memory::MMAPHandle,
     memory::{BufferHandles, MemoryType, UserPtrHandle},
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, fs::File};
 
 /// Supported memory types for `DualBufferHandles`.
 /// TODO: This should be renamed to "DynamicBufferHandles", and be constructed
@@ -15,6 +18,7 @@ use std::fmt::Debug;
 pub enum DualSupportedMemoryType {
     MMAP,
     UserPtr,
+    DMABuf,
 }
 
 impl Into<MemoryType> for DualSupportedMemoryType {
@@ -22,6 +26,7 @@ impl Into<MemoryType> for DualSupportedMemoryType {
         match self {
             DualSupportedMemoryType::MMAP => MemoryType::MMAP,
             DualSupportedMemoryType::UserPtr => MemoryType::UserPtr,
+            DualSupportedMemoryType::DMABuf => MemoryType::DMABuf,
         }
     }
 }
@@ -32,6 +37,7 @@ impl Into<MemoryType> for DualSupportedMemoryType {
 pub enum DualBufferHandles {
     MMAP(Vec<MMAPHandle>),
     User(Vec<UserPtrHandle<Vec<u8>>>),
+    DMABuf(Vec<DMABufHandle<File>>),
 }
 
 impl From<Vec<MMAPHandle>> for DualBufferHandles {
@@ -46,6 +52,12 @@ impl From<Vec<UserPtrHandle<Vec<u8>>>> for DualBufferHandles {
     }
 }
 
+impl From<Vec<DMABufHandle<File>>> for DualBufferHandles {
+    fn from(d: Vec<DMABufHandle<File>>) -> Self {
+        Self::DMABuf(d)
+    }
+}
+
 impl BufferHandles for DualBufferHandles {
     type SupportedMemoryType = DualSupportedMemoryType;
 
@@ -53,6 +65,7 @@ impl BufferHandles for DualBufferHandles {
         match self {
             DualBufferHandles::MMAP(m) => m.len(),
             DualBufferHandles::User(u) => u.len(),
+            DualBufferHandles::DMABuf(d) => d.len(),
         }
     }
 
@@ -60,6 +73,7 @@ impl BufferHandles for DualBufferHandles {
         match self {
             DualBufferHandles::MMAP(m) => m.fill_v4l2_plane(index, plane),
             DualBufferHandles::User(u) => u.fill_v4l2_plane(index, plane),
+            DualBufferHandles::DMABuf(d) => d.fill_v4l2_plane(index, plane),
         }
     }
 }
@@ -69,6 +83,7 @@ impl BufferHandles for DualBufferHandles {
 pub enum DualQBuffer<'a, D: Direction> {
     MMAP(QBuffer<'a, D, Vec<MMAPHandle>, DualBufferHandles>),
     User(QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, DualBufferHandles>),
+    DMABuf(QBuffer<'a, D, Vec<DMABufHandle<File>>, DualBufferHandles>),
 }
 
 impl<'a, D: Direction> From<QBuffer<'a, D, Vec<MMAPHandle>, DualBufferHandles>>
@@ -87,12 +102,21 @@ impl<'a, D: Direction> From<QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, DualBuff
     }
 }
 
+impl<'a, D: Direction> From<QBuffer<'a, D, Vec<DMABufHandle<File>>, DualBufferHandles>>
+    for DualQBuffer<'a, D>
+{
+    fn from(qb: QBuffer<'a, D, Vec<DMABufHandle<File>>, DualBufferHandles>) -> Self {
+        DualQBuffer::DMABuf(qb)
+    }
+}
+
 /// Any CAPTURE DualQBuffer implements CaptureQueueable.
 impl CaptureQueueable<DualBufferHandles> for DualQBuffer<'_, Capture> {
     fn queue_with_handles(self, handles: DualBufferHandles) -> QueueResult<(), DualBufferHandles> {
         match self {
             DualQBuffer::MMAP(m) => m.queue_with_handles(handles),
             DualQBuffer::User(u) => u.queue_with_handles(handles),
+            DualQBuffer::DMABuf(d) => d.queue_with_handles(handles),
         }
     }
 }
@@ -107,6 +131,7 @@ impl OutputQueueable<DualBufferHandles> for DualQBuffer<'_, Output> {
         match self {
             DualQBuffer::MMAP(m) => m.queue_with_handles(handles, bytes_used),
             DualQBuffer::User(u) => u.queue_with_handles(handles, bytes_used),
+            DualQBuffer::DMABuf(d) => d.queue_with_handles(handles, bytes_used),
         }
     }
 }

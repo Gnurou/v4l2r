@@ -1,3 +1,4 @@
+mod dmabuf_exporter;
 mod framegen;
 
 use framegen::FrameGenerator;
@@ -17,7 +18,7 @@ use v4l2::{
         qbuf::OutputQueueable,
     },
     encoder::*,
-    memory::{MMAPHandle, MMAPProvider, UserPtrHandle},
+    memory::{DMABufHandle, MMAPHandle, MMAPProvider, UserPtrHandle},
 };
 
 use anyhow::ensure;
@@ -70,6 +71,7 @@ fn main() {
     let output_mem = match matches.value_of("output_mem") {
         Some("mmap") => DualSupportedMemoryType::MMAP,
         Some("user") => DualSupportedMemoryType::UserPtr,
+        Some("dmabuf") => DualSupportedMemoryType::DMABuf,
         _ => panic!("Invalid value for output_mem"),
     };
 
@@ -120,6 +122,12 @@ fn main() {
         .expect("Failed to get output format");
     println!("Adjusted output format: {:?}", output_format);
 
+    let dmabuf_fds =
+        dmabuf_exporter::export_dmabufs(&Path::new(&device_path), &output_format, NUM_BUFFERS)
+            .unwrap();
+    println!("DMABufs: {:?}", dmabuf_fds);
+    let dmabufs: RefCell<VecDeque<_>> = RefCell::new(dmabuf_fds.into_iter().collect());
+
     let capture_format = encoder
         .get_capture_format()
         .expect("Failed to get capture format");
@@ -140,7 +148,7 @@ fn main() {
     const NUM_BUFFERS: usize = 2;
 
     let free_buffers: Option<VecDeque<_>> = match output_mem {
-        DualSupportedMemoryType::MMAP => None,
+        DualSupportedMemoryType::MMAP | DualSupportedMemoryType::DMABuf => None,
         DualSupportedMemoryType::UserPtr => Some(
             std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
                 .take(NUM_BUFFERS)
@@ -164,6 +172,9 @@ fn main() {
                     .as_mut()
                     .unwrap()
                     .push_back(u.remove(0).0);
+            }
+            DualBufferHandles::DMABuf(mut d) => {
+                dmabufs.borrow_mut().push_back(d.remove(0).0);
             }
         };
     };
@@ -250,6 +261,19 @@ fn main() {
                     &[bytes_used],
                 )
                 .expect("Failed to queue input frame");
+            }
+            DualQBuffer::DMABuf(buf) => {
+                let buffer = dmabufs
+                    .borrow_mut()
+                    .pop_front()
+                    .expect("No backing dmabuf to bind");
+                let buffer = DMABufHandle::from(buffer);
+                let mut mapping = buffer.map().unwrap();
+                frame_gen
+                    .next_frame(&mut mapping)
+                    .expect("Failed to generate frame");
+                buf.queue_with_handles(DualBufferHandles::from(vec![buffer]), &[bytes_used])
+                    .expect("Failed to queue input frame");
             }
         }
     }
