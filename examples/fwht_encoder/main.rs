@@ -14,7 +14,7 @@ use v4l2::{
     device::queue::{
         direction::Capture,
         dqbuf::DQBuffer,
-        dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType},
+        generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
         qbuf::OutputQueueable,
     },
     encoder::*,
@@ -69,9 +69,9 @@ fn main() {
         .map(|s| File::create(s).expect("Invalid output file specified."));
 
     let output_mem = match matches.value_of("output_mem") {
-        Some("mmap") => DualSupportedMemoryType::MMAP,
-        Some("user") => DualSupportedMemoryType::UserPtr,
-        Some("dmabuf") => DualSupportedMemoryType::DMABuf,
+        Some("mmap") => GenericSupportedMemoryType::MMAP,
+        Some("user") => GenericSupportedMemoryType::UserPtr,
+        Some("dmabuf") => GenericSupportedMemoryType::DMABuf,
         _ => panic!("Invalid value for output_mem"),
     };
 
@@ -148,8 +148,8 @@ fn main() {
     const NUM_BUFFERS: usize = 2;
 
     let free_buffers: Option<VecDeque<_>> = match output_mem {
-        DualSupportedMemoryType::MMAP | DualSupportedMemoryType::DMABuf => None,
-        DualSupportedMemoryType::UserPtr => Some(
+        GenericSupportedMemoryType::MMAP | GenericSupportedMemoryType::DMABuf => None,
+        GenericSupportedMemoryType::UserPtr => Some(
             std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
                 .take(NUM_BUFFERS)
                 .collect(),
@@ -157,23 +157,23 @@ fn main() {
     };
     let free_buffers = RefCell::new(free_buffers);
 
-    let input_done_cb = |buffer: CompletedOutputBuffer<DualBufferHandles>| {
+    let input_done_cb = |buffer: CompletedOutputBuffer<GenericBufferHandles>| {
         let handles = match buffer {
             CompletedOutputBuffer::Dequeued(mut buf) => buf.take_handles().unwrap(),
             CompletedOutputBuffer::Canceled(buf) => buf.plane_handles,
         };
         match handles {
             // We have nothing to do for MMAP buffers.
-            DualBufferHandles::MMAP(_) => {}
+            GenericBufferHandles::MMAP(_) => {}
             // For user-allocated memory, return the buffer to the free list.
-            DualBufferHandles::User(mut u) => {
+            GenericBufferHandles::User(mut u) => {
                 free_buffers
                     .borrow_mut()
                     .as_mut()
                     .unwrap()
                     .push_back(u.remove(0).0);
             }
-            DualBufferHandles::DMABuf(mut d) => {
+            GenericBufferHandles::DMABuf(mut d) => {
                 dmabufs.borrow_mut().push_back(d.remove(0).0);
             }
         };
@@ -212,7 +212,7 @@ fn main() {
     };
 
     let mut encoder = encoder
-        .allocate_output_buffers_generic::<DualBufferHandles>(output_mem, NUM_BUFFERS)
+        .allocate_output_buffers_generic::<GenericBufferHandles>(output_mem, NUM_BUFFERS)
         .expect("Failed to allocate OUTPUT buffers")
         .allocate_capture_buffers(NUM_BUFFERS, MMAPProvider::new(&capture_format))
         .expect("Failed to allocate CAPTURE buffers")
@@ -236,7 +236,7 @@ fn main() {
         };
         let bytes_used = frame_gen.frame_size();
         match v4l2_buffer {
-            DualQBuffer::MMAP(buf) => {
+            GenericQBuffer::MMAP(buf) => {
                 let mut mapping = buf
                     .get_plane_mapping(0)
                     .expect("Failed to get MMAP mapping");
@@ -246,7 +246,7 @@ fn main() {
                 buf.queue(&[bytes_used])
                     .expect("Failed to queue input frame");
             }
-            DualQBuffer::User(buf) => {
+            GenericQBuffer::User(buf) => {
                 let mut buffer = free_buffers
                     .borrow_mut()
                     .as_mut()
@@ -257,12 +257,12 @@ fn main() {
                     .next_frame(&mut buffer)
                     .expect("Failed to generate frame");
                 buf.queue_with_handles(
-                    DualBufferHandles::from(vec![UserPtrHandle::from(buffer)]),
+                    GenericBufferHandles::from(vec![UserPtrHandle::from(buffer)]),
                     &[bytes_used],
                 )
                 .expect("Failed to queue input frame");
             }
-            DualQBuffer::DMABuf(buf) => {
+            GenericQBuffer::DMABuf(buf) => {
                 let buffer = dmabufs
                     .borrow_mut()
                     .pop_front()
@@ -272,7 +272,7 @@ fn main() {
                 frame_gen
                     .next_frame(&mut mapping)
                     .expect("Failed to generate frame");
-                buf.queue_with_handles(DualBufferHandles::from(vec![buffer]), &[bytes_used])
+                buf.queue_with_handles(GenericBufferHandles::from(vec![buffer]), &[bytes_used])
                     .expect("Failed to queue input frame");
             }
         }
@@ -283,7 +283,7 @@ fn main() {
     // Insert new line since we were overwriting the same one
     println!();
 
-    if output_mem == DualSupportedMemoryType::UserPtr {
+    if output_mem == GenericSupportedMemoryType::UserPtr {
         // All the OUTPUT buffers should have been returned
         assert_eq!(free_buffers.borrow().as_ref().unwrap().len(), NUM_BUFFERS);
     }

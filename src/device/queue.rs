@@ -1,6 +1,6 @@
 pub mod direction;
 pub mod dqbuf;
-pub mod dual_queue;
+pub mod generic;
 pub mod qbuf;
 pub mod states;
 
@@ -15,7 +15,7 @@ use crate::memory::*;
 use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
-use dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType};
+use generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType};
 use qbuf::{
     get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
     get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
@@ -513,19 +513,21 @@ mod private {
         }
     }
 
-    impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<DualBufferHandles>> {
-        type Queueable = DualQBuffer<'a, D>;
+    impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
+        type Queueable = GenericQBuffer<'a, D>;
 
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
             let buffer_info = self.try_get_buffer_info(index)?;
 
             Ok(match self.state.memory_type {
-                DualSupportedMemoryType::MMAP => DualQBuffer::MMAP(QBuffer::new(self, buffer_info)),
-                DualSupportedMemoryType::UserPtr => {
-                    DualQBuffer::User(QBuffer::new(self, buffer_info))
+                GenericSupportedMemoryType::MMAP => {
+                    GenericQBuffer::MMAP(QBuffer::new(self, buffer_info))
                 }
-                DualSupportedMemoryType::DMABuf => {
-                    DualQBuffer::DMABuf(QBuffer::new(self, buffer_info))
+                GenericSupportedMemoryType::UserPtr => {
+                    GenericQBuffer::User(QBuffer::new(self, buffer_info))
+                }
+                GenericSupportedMemoryType::DMABuf => {
+                    GenericQBuffer::DMABuf(QBuffer::new(self, buffer_info))
                 }
             })
         }

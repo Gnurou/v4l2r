@@ -10,7 +10,7 @@ use v4l2::{device::queue::qbuf::OutputQueueable, memory::MemoryType};
 use v4l2::{device::queue::*, memory::MMAPHandle};
 use v4l2::{
     device::{
-        queue::dual_queue::{DualBufferHandles, DualQBuffer, DualSupportedMemoryType},
+        queue::generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
         AllocatedQueue, Device, DeviceConfig, Stream, TryDequeue,
     },
     memory::UserPtrHandle,
@@ -126,13 +126,13 @@ pub fn run<F: FnMut(&[u8])>(
     // Move the queues into their "allocated" state.
 
     let output_mem = match output_mem {
-        MemoryType::MMAP => DualSupportedMemoryType::MMAP,
-        MemoryType::UserPtr => DualSupportedMemoryType::UserPtr,
+        MemoryType::MMAP => GenericSupportedMemoryType::MMAP,
+        MemoryType::UserPtr => GenericSupportedMemoryType::UserPtr,
         MemoryType::DMABuf => panic!("DMABuf is not supported yet!"),
     };
 
     let output_queue = output_queue
-        .request_buffers_generic::<DualBufferHandles>(output_mem, 2)
+        .request_buffers_generic::<GenericBufferHandles>(output_mem, 2)
         .expect("Failed to allocate output buffers");
 
     let capture_queue = capture_queue
@@ -146,9 +146,9 @@ pub fn run<F: FnMut(&[u8])>(
 
     // If we use UserPtr OUTPUT buffers, create backing memory.
     let mut output_frame = match output_mem {
-        DualSupportedMemoryType::MMAP => None,
-        DualSupportedMemoryType::UserPtr => Some(vec![0u8; output_image_size]),
-        DualSupportedMemoryType::DMABuf => todo!(),
+        GenericSupportedMemoryType::MMAP => None,
+        GenericSupportedMemoryType::UserPtr => Some(vec![0u8; output_image_size]),
+        GenericSupportedMemoryType::DMABuf => todo!(),
     };
 
     output_queue
@@ -184,7 +184,7 @@ pub fn run<F: FnMut(&[u8])>(
             .expect("Failed to obtain output buffer");
 
         match output_buffer {
-            DualQBuffer::MMAP(buf) => {
+            GenericQBuffer::MMAP(buf) => {
                 let mut mapping = buf
                     .get_plane_mapping(0)
                     .expect("Failed to get MMAP mapping");
@@ -194,7 +194,7 @@ pub fn run<F: FnMut(&[u8])>(
                 buf.queue(&[mapping.len()])
                     .expect("Failed to queue output buffer");
             }
-            DualQBuffer::User(buf) => {
+            GenericQBuffer::User(buf) => {
                 let mut output_buffer_data = output_frame
                     .take()
                     .expect("Output buffer not available. This is a bug.");
@@ -207,12 +207,12 @@ pub fn run<F: FnMut(&[u8])>(
 
                 let bytes_used = output_buffer_data.len();
                 buf.queue_with_handles(
-                    DualBufferHandles::from(vec![UserPtrHandle::from(output_buffer_data)]),
+                    GenericBufferHandles::from(vec![UserPtrHandle::from(output_buffer_data)]),
                     &[bytes_used],
                 )
                 .expect("Failed to queue output buffer");
             }
-            DualQBuffer::DMABuf(_) => todo!(),
+            GenericQBuffer::DMABuf(_) => todo!(),
         }
 
         // Now dequeue the work that we just scheduled.
@@ -224,13 +224,13 @@ pub fn run<F: FnMut(&[u8])>(
         // unwrap() is safe here as we just dequeued the buffer.
         match &mut out_dqbuf.take_handles().unwrap() {
             // For MMAP buffers we can just drop the reference.
-            DualBufferHandles::MMAP(_) => (),
+            GenericBufferHandles::MMAP(_) => (),
             // For UserPtr buffers, make the buffer data available again. It
             // should have been empty since the buffer was owned by the queue.
-            DualBufferHandles::User(u) => {
+            GenericBufferHandles::User(u) => {
                 assert_eq!(output_frame.replace(u.remove(0).0), None);
             }
-            DualBufferHandles::DMABuf(_) => todo!(),
+            GenericBufferHandles::DMABuf(_) => todo!(),
         }
 
         let cap_dqbuf = capture_queue
