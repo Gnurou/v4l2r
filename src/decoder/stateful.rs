@@ -1,33 +1,25 @@
 use crate::{
-    device::queue::qbuf::get_free::GetFreeBufferError,
-    device::queue::qbuf::get_free::GetFreeOutputBuffer,
-    device::queue::qbuf::QBuffer,
-    device::queue::{
-        self, dqbuf::DQBuffer, BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
-    },
-    device::Stream,
     device::{
         poller::{DeviceEvent, PollEvents, Poller},
         queue::direction::{Capture, Output},
-        AllocatedQueue,
-    },
-    device::{
         queue::{
+            self,
+            dqbuf::DQBuffer,
             generic::{GenericBufferHandles, GenericQBuffer},
-            qbuf::CaptureQueueable,
+            qbuf::{
+                get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
+                CaptureQueueable, QBuffer,
+            },
+            BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
         },
-        DeviceOpenError, TryDequeue,
+        AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::DQBufError,
-    ioctl::GFmtError,
-    ioctl::{self, subscribe_event},
-    ioctl::{BufferCapabilities, FormatFlags, StreamOnError},
+    ioctl::{self, subscribe_event, BufferCapabilities, FormatFlags, StreamOnError},
     memory::{BufferHandles, MMAPHandle, PrimitiveBufferHandles, UserPtrHandle},
     Format,
 };
 
-use queue::qbuf::get_free::GetFreeCaptureBuffer;
 use std::{
     io,
     path::Path,
@@ -35,8 +27,6 @@ use std::{
     thread::JoinHandle,
 };
 use thiserror::Error;
-
-use crate::device::{Device, DeviceConfig};
 
 // Trait implemented by all states of the decoder.
 pub trait DecoderState {}
@@ -254,7 +244,7 @@ where
 }
 
 #[allow(type_alias_bounds)]
-type DequeueOutputBufferError<OP: BufferHandles> = DQBufError<DQBuffer<Output, OP>>;
+type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DQBufError<DQBuffer<Output, OP>>;
 
 impl<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
@@ -268,7 +258,7 @@ where
         self.state.output_queue.num_buffers()
     }
 
-    pub fn get_output_format(&self) -> Result<Format, GFmtError> {
+    pub fn get_output_format(&self) -> Result<Format, ioctl::GFmtError> {
         self.state.output_queue.get_format()
     }
 
@@ -299,7 +289,7 @@ where
                     // unwrap() is safe here as we just dequeued the buffer.
                     (self.state.input_done_cb)(&mut buf.take_handles().unwrap());
                 }
-                Err(DQBufError::NotReady) => break,
+                Err(ioctl::DQBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in
                 // a fatal error!
                 Err(e) => return Err(e),
