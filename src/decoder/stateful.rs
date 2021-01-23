@@ -16,7 +16,10 @@ use crate::{
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
     ioctl::{self, subscribe_event, BufferCapabilities, FormatFlags, StreamOnError},
-    memory::{BufferHandles, MMAPHandle, PrimitiveBufferHandles, UserPtrHandle},
+    memory::{
+        BufferHandles, HandlesProvider, MMAPHandle, MMAPProvider, PrimitiveBufferHandles,
+        UserPtrHandle,
+    },
     Format,
 };
 
@@ -270,8 +273,8 @@ where
         let decoding_thread = self.state.handle.join().unwrap();
 
         match &decoding_thread.capture_queue {
-            CaptureQueue::Decoding(queue) => {
-                queue.stream_off().unwrap();
+            CaptureQueue::Decoding { capture_queue, .. } => {
+                capture_queue.stream_off().unwrap();
             }
             _ => todo!(),
         }
@@ -408,25 +411,12 @@ where
     }
 }
 
-/*
-enum CaptureState {
-    AwaitingResolution {
-        capture_queue: Queue<Capture, QueueInit>,
-        // Poller used to detect the initial resolution change event.
-        poller: Poller,
-    },
-    Running {
-        capture_queue: Queue<Capture, BuffersAllocated<Vec<MMAPHandle>>>,
-        // Poller used to be notified of CAPTURE buffers being ready to dequeue
-        // or re-enqueue after being given to the client.
-        poller: Poller,
-    },
-}
-*/
-
 enum CaptureQueue {
     AwaitingResolution(Queue<Capture, QueueInit>),
-    Decoding(Queue<Capture, BuffersAllocated<Vec<MMAPHandle>>>),
+    Decoding {
+        capture_queue: Queue<Capture, BuffersAllocated<Vec<MMAPHandle>>>,
+        provider: MMAPProvider,
+    },
 }
 
 struct DecoderThread<OutputReadyCb, SetCaptureFormatCb>
@@ -500,15 +490,16 @@ where
             // Initial resolution
             CaptureQueue::AwaitingResolution(queue) => queue,
             // Dynamic resolution change
-            CaptureQueue::Decoding(queue) => {
+            CaptureQueue::Decoding { capture_queue, .. } => {
                 // TODO remove unwrap.
                 // TODO must do complete flush sequence before this...
-                queue.stream_off().unwrap();
-                queue.free_buffers().unwrap().queue
+                capture_queue.stream_off().unwrap();
+                capture_queue.free_buffers().unwrap().queue
             }
         };
 
         (self.set_capture_format_cb)(capture_queue.change_format()?).unwrap();
+        let capture_format = capture_queue.get_format().unwrap();
 
         let capture_queue = capture_queue.request_buffers::<Vec<MMAPHandle>>(4)?;
         println!("Allocated {} buffers", capture_queue.num_buffers());
@@ -525,7 +516,10 @@ where
         capture_queue.stream_on()?;
 
         let mut new_self = Self {
-            capture_queue: CaptureQueue::Decoding(capture_queue),
+            capture_queue: CaptureQueue::Decoding {
+                capture_queue,
+                provider: MMAPProvider::new(&capture_format),
+            },
             poller,
             ..self
         };
@@ -562,7 +556,7 @@ where
 
     fn process_capture_buffer(&mut self) -> bool {
         match &mut self.capture_queue {
-            CaptureQueue::Decoding(capture_queue) => {
+            CaptureQueue::Decoding { capture_queue, .. } => {
                 if let Ok(mut cap_buf) = capture_queue.try_dequeue() {
                     let is_last = cap_buf.data.flags.contains(ioctl::BufferFlags::LAST);
                     let is_empty = cap_buf.data.planes[0].bytesused == 0;
@@ -632,7 +626,7 @@ where
                     // Here we only check for the resolution change event and
                     // set a bool if we get it.
                 }
-                CaptureQueue::Decoding(_capture_queue) => {
+                CaptureQueue::Decoding { .. } => {
                     // Here we process buffers as usual while looking for the
                     // LAST buffer and checking if we need to res change (and
                     // set the boolean if we do.
@@ -645,7 +639,7 @@ where
             // TODO redesign PollEvents as an iterator so we can check events
             // one by one and detect unexpected ones.
 
-            if let CaptureQueue::Decoding(capture_queue) = &self.capture_queue {
+            if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
                 match capture_queue.num_queued_buffers() {
                     // If there are no buffers on the CAPTURE queue, poll() will return
                     // immediately with EPOLLERR and we would loop indefinitely.
@@ -696,9 +690,15 @@ where
     }
 
     fn enqueue_capture_buffers(&mut self) {
-        if let CaptureQueue::Decoding(capture_queue) = &self.capture_queue {
+        if let CaptureQueue::Decoding {
+            capture_queue,
+            provider,
+        } = &mut self.capture_queue
+        {
             while let Ok(buffer) = capture_queue.try_get_free_buffer() {
-                buffer.queue_with_handles(vec![Default::default()]).unwrap();
+                if let Some(handles) = provider.get_handles() {
+                    buffer.queue_with_handles(handles).unwrap();
+                }
             }
         }
     }
