@@ -95,7 +95,6 @@ impl Decoder<AwaitingOutputFormat> {
         })
     }
 
-    // TODO merge with open and make anyhow a variant of the error type?
     pub fn set_output_format<F>(mut self, f: F) -> anyhow::Result<Decoder<AwaitingOutputBuffers>>
     where
         F: FnOnce(FormatBuilder) -> anyhow::Result<()>,

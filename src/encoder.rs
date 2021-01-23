@@ -82,7 +82,6 @@ impl Encoder<AwaitingCaptureFormat> {
         })
     }
 
-    // TODO merge with open and make anyhow a variant of the error type?
     pub fn set_capture_format<F>(mut self, f: F) -> anyhow::Result<Encoder<AwaitingOutputFormat>>
     where
         F: FnOnce(FormatBuilder) -> anyhow::Result<()>,
