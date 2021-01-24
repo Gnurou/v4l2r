@@ -30,12 +30,14 @@
 //! `PlaneHandle` type and by transition its `Memory` type.
 mod dmabuf;
 mod mmap;
-pub mod pooled_provider;
 mod userptr;
 
 pub use dmabuf::*;
 pub use mmap::*;
 pub use userptr::*;
+
+pub mod dmabuf_exporter;
+pub mod pooled_provider;
 
 use crate::{
     bindings,

@@ -1,4 +1,3 @@
-mod dmabuf_exporter;
 mod framegen;
 
 use framegen::FrameGenerator;
@@ -18,7 +17,7 @@ use v4l2::{
         qbuf::OutputQueueable,
     },
     encoder::*,
-    memory::{DMABufHandle, MMAPHandle, MMAPProvider, UserPtrHandle},
+    memory::{dmabuf_exporter, DMABufHandle, MMAPHandle, MMAPProvider, UserPtrHandle},
     QueueType,
 };
 
