@@ -9,7 +9,12 @@ use v4l2::{
 
 use anyhow::Result;
 
-pub fn export_dmabufs(device_path: &Path, format: &Format, nb_buffers: usize) -> Result<Vec<File>> {
+pub fn export_dmabufs(
+    device_path: &Path,
+    queue: QueueType,
+    format: &Format,
+    nb_buffers: usize,
+) -> Result<Vec<File>> {
     let device = Arc::new(Device::open(device_path, Default::default())?);
     let mut output_queue = Queue::get_output_mplane_queue(device.clone())?;
 
@@ -20,16 +25,7 @@ pub fn export_dmabufs(device_path: &Path, format: &Format, nb_buffers: usize) ->
 
     let fds: Vec<File> = (0..output_queue.num_buffers())
         .into_iter()
-        .map(|i| {
-            ioctl::expbuf::<Device, File>(
-                &*device,
-                QueueType::VideoOutputMplane,
-                i,
-                0,
-                ExpbufFlags::RDWR,
-            )
-            .unwrap()
-        })
+        .map(|i| ioctl::expbuf::<Device, File>(&*device, queue, i, 0, ExpbufFlags::RDWR).unwrap())
         .collect();
 
     // We can close the device now, the exported buffers will remain alive as
