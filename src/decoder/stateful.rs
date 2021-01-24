@@ -1,9 +1,9 @@
 use crate::{
     device::{
         poller::{DeviceEvent, PollEvents, Poller},
-        queue::direction::{Capture, Output},
         queue::{
             self,
+            direction::{Capture, Output},
             dqbuf::DQBuffer,
             generic::{GenericBufferHandles, GenericQBuffer},
             qbuf::{
@@ -16,7 +16,7 @@ use crate::{
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
     ioctl::{self, subscribe_event, BufferCapabilities, FormatFlags, StreamOnError},
-    memory::{BufferHandles, HandlesProvider, PrimitiveBufferHandles, UserPtrHandle},
+    memory::{BufferHandles, HandlesProvider, PrimitiveBufferHandles},
     Format,
 };
 
@@ -367,9 +367,6 @@ pub enum GetBufferError<OP: BufferHandles> {
     GetFreeBufferError(#[from] GetFreeBufferError),
 }
 
-pub type OutputBuffer<'a> =
-    QBuffer<'a, Output, Vec<UserPtrHandle<Vec<u8>>>, Vec<UserPtrHandle<Vec<u8>>>>;
-
 /// Support for primitive plane handles on the OUTPUT queue.
 impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
@@ -674,68 +671,60 @@ where
     fn run(mut self) -> Self {
         'polling: loop {
             match &self.capture_queue {
-                CaptureQueue::AwaitingResolution(_capture_queue) => {
-                    // Here we only check for the resolution change event and
-                    // set a bool if we get it.
+                CaptureQueue::AwaitingResolution(_) => {
+                    // Here we only check for the initial resolution change
+                    // event.
+
+                    // TODO remove this unwrap.
+                    let events = self.poller.poll(None).unwrap();
+                    if events.contains(PollEvents::DEVICE_EVENT) {
+                        self = self.process_events().unwrap();
+                    }
                 }
-                CaptureQueue::Decoding { .. } => {
+                CaptureQueue::Decoding { capture_queue, .. } => {
                     // Here we process buffers as usual while looking for the
                     // LAST buffer and checking if we need to res change (and
                     // set the boolean if we do.
+                    match capture_queue.num_queued_buffers() {
+                        // If there are no buffers on the CAPTURE queue, poll() will return
+                        // immediately with EPOLLERR and we would loop indefinitely.
+                        // Prevent this by temporarily disabling polling the CAPTURE queue
+                        // in such cases.
+                        0 => {
+                            self.poller
+                                .disable_event(DeviceEvent::CaptureReady)
+                                .unwrap();
+                        }
+                        // If device polling was disabled and we have buffers queued, we
+                        // can reenable it as poll will now wait for a CAPTURE buffer to
+                        // be ready for dequeue.
+                        _ => {
+                            self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
+                        }
+                    }
+
+                    // TODO remove this unwrap.
+                    let events = self.poller.poll(None).unwrap();
+                    if events.contains(PollEvents::DEVICE_CAPTURE) {
+                        let do_exit = self.process_capture_buffer();
+                        if do_exit {
+                            break 'polling;
+                        }
+                    }
+                    // TODO when doing DRC, it can happen that buffers from the previous
+                    // resolution are released and trigger this. We need to make the
+                    // old waker a no-op (maybe by reinitializing it to a new file?)
+                    // before streaming the CAPTURE queue off. Maybe allocate a new Poller
+                    // as we morph our queue type?
+                    if events.contains(PollEvents::WAKER) {
+                        // Requeue all available CAPTURE buffers.
+                        self.enqueue_capture_buffers();
+                    }
                 }
             }
-
-            // Check if we need to change resolution and do so taking ownership
-            // over the capture queue and returning a new one.
 
             // TODO redesign PollEvents as an iterator so we can check events
             // one by one and detect unexpected ones.
-
-            if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
-                match capture_queue.num_queued_buffers() {
-                    // If there are no buffers on the CAPTURE queue, poll() will return
-                    // immediately with EPOLLERR and we would loop indefinitely.
-                    // Prevent this by temporarily disabling polling the CAPTURE queue
-                    // in such cases.
-                    0 => {
-                        self.poller
-                            .disable_event(DeviceEvent::CaptureReady)
-                            .unwrap();
-                    }
-                    // If device polling was disabled and we have buffers queued, we
-                    // can reenable it as poll will now wait for a CAPTURE buffer to
-                    // be ready for dequeue.
-                    _ => {
-                        self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
-                    }
-                }
-            }
-
-            // TODO remove this unwrap.
-            let events = self.poller.poll(None).unwrap();
-
-            if events.contains(PollEvents::DEVICE_CAPTURE) {
-                let do_exit = self.process_capture_buffer();
-                if do_exit {
-                    break 'polling;
-                }
-            }
-
-            // TODO only do this while we are waiting for the initial resolution?
-            // Afterwards we can dequeue events when we get a LAST buffer.
-            if events.contains(PollEvents::DEVICE_EVENT) {
-                self = self.process_events().unwrap();
-            }
-
-            // TODO when doing DRC, it can happen that buffers from the previous
-            // resolution are released and trigger this. We need to make the
-            // old waker a no-op (maybe by reinitializing it to a new file?)
-            // before streaming the CAPTURE queue off. Maybe allocate a new Poller
-            // as we morph our queue type?
-            if events.contains(PollEvents::WAKER) {
-                // Requeue all available CAPTURE buffers.
-                self.enqueue_capture_buffers();
-            }
         }
 
         self
