@@ -10,16 +10,17 @@ use std::{
 };
 
 use anyhow::ensure;
-use v4l2::decoder::stateful::GetBufferError;
 use v4l2::{
     decoder::stateful::Decoder,
     device::queue::{direction::Capture, dqbuf::DQBuffer},
+    memory::{DMABufHandle, DMABufferHandles},
 };
+use v4l2::{decoder::stateful::GetBufferError, memory::dmabuf_exporter, QueueType};
 use v4l2::{
     decoder::{format::fwht::FwhtFrameParser, stateful::SetCaptureFormatRet},
     device::queue::{qbuf::OutputQueueable, FormatBuilder},
     memory::{
-        pooled_provider::{PooledHandles, PooledHandlesProvider, UserBufferHandles},
+        pooled_provider::{PooledHandles, PooledHandlesProvider},
         MemoryType, UserPtrHandle,
     },
 };
@@ -79,7 +80,7 @@ fn main() {
     let start_time = std::time::Instant::now();
     let mut output_buffer_size = 0usize;
     let output_ready_cb =
-        move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<UserBufferHandles<Vec<u8>>>>| {
+        move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<DMABufferHandles<File>>>| {
             let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
             let elapsed = start_time.elapsed();
             let frame_nb = cap_dqbuf.data.sequence + 1;
@@ -94,36 +95,35 @@ fn main() {
             if let Some(ref mut output) = output_file {
                 let pooled_handles = cap_dqbuf.take_handles().unwrap();
                 let handles = pooled_handles.handles();
-                /*
-                let mapping = cap_dqbuf
-                    .get_plane_mapping(0)
-                    .expect("Failed to map capture buffer");
-                    */
+                let mapping = handles[0].map().expect("Failed to map capture buffer");
                 output
-                    .write_all(handles[0].as_ref())
+                    .write_all(&mapping)
                     .expect("Error while writing output data");
             }
         };
-    type PooledUserHandlesProvider = PooledHandlesProvider<Vec<UserPtrHandle<Vec<u8>>>>;
+    type PooledDMABufHandlesProvider = PooledHandlesProvider<Vec<DMABufHandle<File>>>;
+    let device_path_cb = String::from(device_path);
     let set_capture_format_cb =
-        |f: FormatBuilder,
-         min_num_buffers: usize|
-         -> anyhow::Result<SetCaptureFormatRet<PooledUserHandlesProvider>> {
+        move |f: FormatBuilder,
+              min_num_buffers: usize|
+              -> anyhow::Result<SetCaptureFormatRet<PooledDMABufHandlesProvider>> {
             let format = f.set_pixelformat(b"RGB3").apply()?;
 
             println!("New CAPTURE format: {:?}", format);
-            let buffers = std::iter::repeat(
-                format
-                    .plane_fmt
-                    .iter()
-                    .map(|p| UserPtrHandle(vec![0u8; p.sizeimage as usize]))
-                    .collect::<Vec<_>>(),
+
+            let dmabuf_fds: Vec<Vec<_>> = dmabuf_exporter::export_dmabufs(
+                &Path::new(&device_path_cb),
+                QueueType::VideoCaptureMplane,
+                &format,
+                min_num_buffers,
             )
-            .take(min_num_buffers);
+            .unwrap();
 
             Ok(SetCaptureFormatRet {
-                provider: PooledHandlesProvider::new(buffers),
-                mem_type: MemoryType::UserPtr,
+                provider: PooledHandlesProvider::new(dmabuf_fds),
+                // TODO: can't the provider report the memory type that it is
+                // actually serving itself?
+                mem_type: MemoryType::DMABuf,
                 num_buffers: min_num_buffers,
             })
         };

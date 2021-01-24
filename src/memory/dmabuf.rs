@@ -5,6 +5,8 @@ use std::os::unix::io::AsRawFd;
 
 pub struct DMABuf;
 
+pub type DMABufferHandles<T> = Vec<DMABufHandle<T>>;
+
 impl Memory for DMABuf {
     const MEMORY_TYPE: MemoryType = MemoryType::DMABuf;
 }
