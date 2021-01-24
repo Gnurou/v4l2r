@@ -22,6 +22,18 @@ impl Imported for UserPtr {}
 #[derive(Debug)]
 pub struct UserPtrHandle<T: AsRef<[u8]> + Debug + Send + 'static>(pub T);
 
+impl<T: AsRef<[u8]> + Debug + Send + Clone> Clone for UserPtrHandle<T> {
+    fn clone(&self) -> Self {
+        UserPtrHandle(self.0.clone())
+    }
+}
+
+impl<T: AsRef<[u8]> + Debug + Send + 'static> AsRef<[u8]> for UserPtrHandle<T> {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
 impl<T: AsRef<[u8]> + Debug + Send> From<T> for UserPtrHandle<T> {
     fn from(buffer: T) -> Self {
         UserPtrHandle(buffer)
