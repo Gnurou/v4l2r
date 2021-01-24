@@ -10,16 +10,19 @@ use std::{
 };
 
 use anyhow::ensure;
-use v4l2::{
-    decoder::format::fwht::FwhtFrameParser,
-    device::queue::{qbuf::OutputQueueable, FormatBuilder},
-    memory::UserPtrHandle,
-};
+use v4l2::decoder::stateful::GetBufferError;
 use v4l2::{
     decoder::stateful::Decoder,
     device::queue::{direction::Capture, dqbuf::DQBuffer},
 };
-use v4l2::{decoder::stateful::GetBufferError, memory::MMAPHandle};
+use v4l2::{
+    decoder::{format::fwht::FwhtFrameParser, stateful::SetCaptureFormatRet},
+    device::queue::{qbuf::OutputQueueable, FormatBuilder},
+    memory::{
+        pooled_provider::{PooledHandles, PooledHandlesProvider, UserBufferHandles},
+        MemoryType, UserPtrHandle,
+    },
+};
 
 use clap::{App, Arg};
 
@@ -75,33 +78,55 @@ fn main() {
     let poll_count_writer = Arc::clone(&poll_count_reader);
     let start_time = std::time::Instant::now();
     let mut output_buffer_size = 0usize;
-    let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, Vec<MMAPHandle>>| {
-        let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
-        let elapsed = start_time.elapsed();
-        let frame_nb = cap_dqbuf.data.sequence + 1;
-        let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
-        let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_nb as f32;
-        print!(
-            "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} fps: {:#5.2} ppf: {:#4.2}",
-            cap_dqbuf.data.sequence, cap_dqbuf.data.index, bytes_used, fps, ppf,
-        );
-        io::stdout().flush().unwrap();
+    let output_ready_cb =
+        move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<UserBufferHandles<Vec<u8>>>>| {
+            let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
+            let elapsed = start_time.elapsed();
+            let frame_nb = cap_dqbuf.data.sequence + 1;
+            let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
+            let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_nb as f32;
+            print!(
+                "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} fps: {:#5.2} ppf: {:#4.2}",
+                cap_dqbuf.data.sequence, cap_dqbuf.data.index, bytes_used, fps, ppf,
+            );
+            io::stdout().flush().unwrap();
 
-        if let Some(ref mut output) = output_file {
-            let mapping = cap_dqbuf
-                .get_plane_mapping(0)
-                .expect("Failed to map capture buffer");
-            output
-                .write_all(mapping.as_ref())
-                .expect("Error while writing output data");
-        }
-    };
-    let set_capture_format_cb = |f: FormatBuilder| -> anyhow::Result<()> {
-        let capture_format = f.set_pixelformat(b"RGB3").apply()?;
+            if let Some(ref mut output) = output_file {
+                let pooled_handles = cap_dqbuf.take_handles().unwrap();
+                let handles = pooled_handles.handles();
+                /*
+                let mapping = cap_dqbuf
+                    .get_plane_mapping(0)
+                    .expect("Failed to map capture buffer");
+                    */
+                output
+                    .write_all(handles[0].as_ref())
+                    .expect("Error while writing output data");
+            }
+        };
+    type PooledUserHandlesProvider = PooledHandlesProvider<Vec<UserPtrHandle<Vec<u8>>>>;
+    let set_capture_format_cb =
+        |f: FormatBuilder,
+         min_num_buffers: usize|
+         -> anyhow::Result<SetCaptureFormatRet<PooledUserHandlesProvider>> {
+            let format = f.set_pixelformat(b"RGB3").apply()?;
 
-        println!("New CAPTURE format: {:?}", capture_format);
-        Ok(())
-    };
+            println!("New CAPTURE format: {:?}", format);
+            let buffers = std::iter::repeat(
+                format
+                    .plane_fmt
+                    .iter()
+                    .map(|p| UserPtrHandle(vec![0u8; p.sizeimage as usize]))
+                    .collect::<Vec<_>>(),
+            )
+            .take(min_num_buffers);
+
+            Ok(SetCaptureFormatRet {
+                provider: PooledHandlesProvider::new(buffers),
+                mem_type: MemoryType::UserPtr,
+                num_buffers: min_num_buffers,
+            })
+        };
 
     let mut decoder = Decoder::open(&Path::new(&device_path))
         .expect("Failed to open device")
@@ -125,10 +150,6 @@ fn main() {
         .set_poll_counter(poll_count_writer)
         .start(|_| (), output_ready_cb, set_capture_format_cb)
         .expect("Failed to start decoder");
-    // TODO we also need a way to provide the buffers to the CAPTURE queue.
-    // Probably need to design a new buffer provider interface for that.
-    // i.e. BackingMemoryProvider<Vec<u8>>
-    // For now let's just use MMAP.
 
     // Remove mutability.
     let output_buffer_size = output_buffer_size;

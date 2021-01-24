@@ -16,10 +16,7 @@ use crate::{
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
     ioctl::{self, subscribe_event, BufferCapabilities, FormatFlags, StreamOnError},
-    memory::{
-        BufferHandles, HandlesProvider, MMAPHandle, MMAPProvider, PrimitiveBufferHandles,
-        UserPtrHandle,
-    },
+    memory::{BufferHandles, HandlesProvider, PrimitiveBufferHandles, UserPtrHandle},
     Format,
 };
 
@@ -162,25 +159,65 @@ pub enum StartDecoderError {
     StreamOnError(#[from] StreamOnError),
 }
 
+pub trait InputDoneCallback<OP: BufferHandles>: Fn(&mut OP) {}
+impl<OP, F> InputDoneCallback<OP> for F
+where
+    OP: BufferHandles,
+    F: Fn(&mut OP),
+{
+}
+
+pub trait OutputReadyCallback<P: HandlesProvider>:
+    FnMut(DQBuffer<Capture, P::HandleType>) + Send + 'static
+{
+}
+impl<P, F> OutputReadyCallback<P> for F
+where
+    P: HandlesProvider,
+    F: FnMut(DQBuffer<Capture, P::HandleType>) + Send + 'static,
+{
+}
+
+pub struct SetCaptureFormatRet<P: HandlesProvider> {
+    pub provider: P,
+    pub mem_type: <P::HandleType as BufferHandles>::SupportedMemoryType,
+    pub num_buffers: usize,
+}
+
+pub trait SetCaptureFormatCallback<P: HandlesProvider>:
+    Fn(FormatBuilder, usize) -> anyhow::Result<SetCaptureFormatRet<P>> + Send + 'static
+{
+}
+impl<P, F> SetCaptureFormatCallback<P> for F
+where
+    P: HandlesProvider,
+    F: Fn(FormatBuilder, usize) -> anyhow::Result<SetCaptureFormatRet<P>> + Send + 'static,
+{
+}
+
 impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
     pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
         self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
         self
     }
 
-    pub fn start<InputDoneCb, OutputReadyCb, SetCaptureFormatCb>(
+    #[allow(clippy::type_complexity)]
+    pub fn start<P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>(
         self,
         input_done_cb: InputDoneCb,
         output_ready_cb: OutputReadyCb,
         set_capture_format_cb: SetCaptureFormatCb,
     ) -> Result<
-        Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>,
+        Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>,
         StartDecoderError,
     >
     where
-        InputDoneCb: Fn(&mut OP),
-        OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send + 'static,
-        SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()> + Send + 'static,
+        P: HandlesProvider,
+        InputDoneCb: InputDoneCallback<OP>,
+        OutputReadyCb: OutputReadyCallback<P>,
+        SetCaptureFormatCb: SetCaptureFormatCallback<P>,
+        for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
+            GetFreeCaptureBuffer<'a, P::HandleType>,
     {
         // We are interested in all resolution change events.
         subscribe_event(
@@ -222,39 +259,42 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
     }
 }
 
-pub struct Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+pub struct Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
     OP: BufferHandles,
+    P: HandlesProvider,
     InputDoneCb: Fn(&mut OP),
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     output_queue: Queue<Output, BuffersAllocated<OP>>,
     input_done_cb: InputDoneCb,
     output_poller: Poller,
 
-    handle: JoinHandle<DecoderThread<OutputReadyCb, SetCaptureFormatCb>>,
+    handle: JoinHandle<DecoderThread<P, OutputReadyCb, SetCaptureFormatCb>>,
 }
-impl<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb> DecoderState
-    for Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+impl<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb> DecoderState
+    for Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
     OP: BufferHandles,
+    P: HandlesProvider,
     InputDoneCb: Fn(&mut OP),
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
 }
 
 #[allow(type_alias_bounds)]
 type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DQBufError<DQBuffer<Output, OP>>;
 
-impl<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
-    Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+impl<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
     OP: BufferHandles,
+    P: HandlesProvider,
     InputDoneCb: Fn(&mut OP),
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     pub fn num_output_buffers(&self) -> usize {
         self.state.output_queue.num_buffers()
@@ -331,14 +371,15 @@ pub type OutputBuffer<'a> =
     QBuffer<'a, Output, Vec<UserPtrHandle<Vec<u8>>>, Vec<UserPtrHandle<Vec<u8>>>>;
 
 /// Support for primitive plane handles on the OUTPUT queue.
-impl<'a, OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
-    for Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+    for Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
     OP: PrimitiveBufferHandles,
+    P: HandlesProvider,
     InputDoneCb: Fn(&mut OP),
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     type Queueable = QBuffer<'a, Output, OP, OP>;
 
@@ -354,13 +395,14 @@ where
 }
 
 /// Support for dynamic plane handles on the OUTPUT queue.
-impl<'a, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+impl<'a, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     GetFreeOutputBuffer<'a, GenericBufferHandles, GetBufferError<GenericBufferHandles>>
-    for Decoder<Decoding<GenericBufferHandles, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+    for Decoder<Decoding<GenericBufferHandles, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
+    P: HandlesProvider,
     InputDoneCb: Fn(&mut GenericBufferHandles),
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     type Queueable = GenericQBuffer<'a, Output>;
 
@@ -379,14 +421,15 @@ where
 
 // If `GetFreeBuffer` is implemented, we can also provide a blocking `get_buffer`
 // method.
-impl<'a, OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
-    Decoder<Decoding<OP, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
+    Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
     Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
     OP: BufferHandles,
+    P: HandlesProvider,
     InputDoneCb: Fn(&mut OP),
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
     /// one to be available if needed.
@@ -410,20 +453,22 @@ where
     }
 }
 
-enum CaptureQueue {
+enum CaptureQueue<P: HandlesProvider> {
     AwaitingResolution(Queue<Capture, QueueInit>),
     Decoding {
-        capture_queue: Queue<Capture, BuffersAllocated<Vec<MMAPHandle>>>,
-        provider: MMAPProvider,
+        capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
+        provider: P,
     },
 }
 
-struct DecoderThread<OutputReadyCb, SetCaptureFormatCb>
+struct DecoderThread<P, OutputReadyCb, SetCaptureFormatCb>
 where
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
+    P: HandlesProvider,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     device: Arc<Device>,
-    capture_queue: CaptureQueue,
+    capture_queue: CaptureQueue<P>,
     poller: Poller,
     output_ready_cb: OutputReadyCb,
     set_capture_format_cb: SetCaptureFormatCb,
@@ -451,12 +496,13 @@ enum ProcessEventsError {
     UpdateCapture(#[from] UpdateCaptureError),
 }
 
-impl<OutputReadyCb, SetCaptureFormatCb> DecoderThread<OutputReadyCb, SetCaptureFormatCb>
+impl<P, OutputReadyCb, SetCaptureFormatCb> DecoderThread<P, OutputReadyCb, SetCaptureFormatCb>
 where
-    OutputReadyCb: FnMut(DQBuffer<Capture, Vec<MMAPHandle>>) + Send,
-    for<'a> Queue<Capture, BuffersAllocated<Vec<MMAPHandle>>>:
-        GetFreeCaptureBuffer<'a, Vec<MMAPHandle>>,
-    SetCaptureFormatCb: Fn(FormatBuilder) -> anyhow::Result<()>,
+    P: HandlesProvider,
+    OutputReadyCb: OutputReadyCallback<P>,
+    for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
+        GetFreeCaptureBuffer<'a, P::HandleType>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     fn new(
         device: &Arc<Device>,
@@ -497,10 +543,17 @@ where
             }
         };
 
-        (self.set_capture_format_cb)(capture_queue.change_format()?).unwrap();
-        let capture_format = capture_queue.get_format().unwrap();
+        // TODO use the proper control to get the right value.
+        let min_num_buffers = 4usize;
 
-        let capture_queue = capture_queue.request_buffers::<Vec<MMAPHandle>>(4)?;
+        let SetCaptureFormatRet {
+            provider,
+            mem_type,
+            num_buffers,
+        } = (self.set_capture_format_cb)(capture_queue.change_format()?, min_num_buffers).unwrap();
+
+        let capture_queue =
+            capture_queue.request_buffers_generic::<P::HandleType>(mem_type, num_buffers as u32)?;
         println!("Allocated {} buffers", capture_queue.num_buffers());
 
         // TODO use two closures, one to set the format, another one to decide
@@ -517,7 +570,7 @@ where
         let mut new_self = Self {
             capture_queue: CaptureQueue::Decoding {
                 capture_queue,
-                provider: MMAPProvider::new(&capture_format),
+                provider,
             },
             poller,
             ..self
