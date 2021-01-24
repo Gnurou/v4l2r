@@ -178,7 +178,7 @@ fn main() {
                     .push_back(u.remove(0).0);
             }
             GenericBufferHandles::DMABuf(mut d) => {
-                dmabufs.borrow_mut().push_back(d.remove(0).0);
+                dmabufs.borrow_mut().push_back(d.remove(0));
             }
         };
     };
@@ -271,7 +271,6 @@ fn main() {
                     .borrow_mut()
                     .pop_front()
                     .expect("No backing dmabuf to bind");
-                let buffer = DMABufHandle::from(buffer);
                 let mut mapping = buffer.map().unwrap();
                 frame_gen
                     .next_frame(&mut mapping)
