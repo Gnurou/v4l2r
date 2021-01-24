@@ -17,7 +17,7 @@ use v4l2::{
         qbuf::OutputQueueable,
     },
     encoder::*,
-    memory::{dmabuf_exporter, DMABufHandle, MMAPHandle, MMAPProvider, UserPtrHandle},
+    memory::{dmabuf_exporter, MMAPHandle, MMAPProvider, UserPtrHandle},
     QueueType,
 };
 
@@ -177,8 +177,8 @@ fn main() {
                     .unwrap()
                     .push_back(u.remove(0).0);
             }
-            GenericBufferHandles::DMABuf(mut d) => {
-                dmabufs.borrow_mut().push_back(d.remove(0));
+            GenericBufferHandles::DMABuf(d) => {
+                dmabufs.borrow_mut().push_back(d);
             }
         };
     };
@@ -271,11 +271,11 @@ fn main() {
                     .borrow_mut()
                     .pop_front()
                     .expect("No backing dmabuf to bind");
-                let mut mapping = buffer.map().unwrap();
+                let mut mapping = buffer[0].map().unwrap();
                 frame_gen
                     .next_frame(&mut mapping)
                     .expect("Failed to generate frame");
-                buf.queue_with_handles(GenericBufferHandles::from(vec![buffer]), &[bytes_used])
+                buf.queue_with_handles(GenericBufferHandles::from(buffer), &[bytes_used])
                     .expect("Failed to queue input frame");
             }
         }

@@ -15,7 +15,7 @@ pub fn export_dmabufs(
     queue: QueueType,
     format: &Format,
     nb_buffers: usize,
-) -> Result<Vec<DMABufHandle<File>>> {
+) -> Result<Vec<Vec<DMABufHandle<File>>>> {
     let mut device = Device::open(device_path, Default::default())?;
 
     // TODO: check that the requested format has been set.
@@ -23,12 +23,12 @@ pub fn export_dmabufs(
     let nb_buffers: usize =
         ioctl::reqbufs(&device, queue, MemoryType::MMAP, nb_buffers as u32).unwrap();
 
-    let fds: Vec<DMABufHandle<File>> = (0..nb_buffers)
+    let fds: Vec<Vec<DMABufHandle<File>>> = (0..nb_buffers)
         .into_iter()
         .map(|i| {
-            DMABufHandle::from(
+            vec![DMABufHandle::from(
                 ioctl::expbuf::<Device, File>(&device, queue, i, 0, ExpbufFlags::RDWR).unwrap(),
-            )
+            )]
         })
         .collect();
 
