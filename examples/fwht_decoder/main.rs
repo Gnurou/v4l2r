@@ -162,7 +162,7 @@ fn main() {
 
     let mut total_size: usize = 0;
 
-    for (_cpt, mut frame) in parser.enumerate() {
+    'mainloop: for (_cpt, mut frame) in parser.enumerate() {
         // Ctrl-c ?
         if lets_quit.load(Ordering::SeqCst) {
             break;
@@ -178,7 +178,9 @@ fn main() {
         let v4l2_buffer = match decoder.get_buffer() {
             Ok(buffer) => buffer,
             // If we got interrupted while waiting for a buffer, just exit normally.
-            Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => break,
+            Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => {
+                break 'mainloop
+            }
             Err(e) => panic!(e),
         };
 
