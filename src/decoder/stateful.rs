@@ -263,7 +263,7 @@ pub struct Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
     OP: BufferHandles,
     P: HandlesProvider,
-    InputDoneCb: Fn(&mut OP),
+    InputDoneCb: InputDoneCallback<OP>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
@@ -278,7 +278,7 @@ impl<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb> DecoderState
 where
     OP: BufferHandles,
     P: HandlesProvider,
-    InputDoneCb: Fn(&mut OP),
+    InputDoneCb: InputDoneCallback<OP>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
@@ -292,7 +292,7 @@ impl<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
     OP: BufferHandles,
     P: HandlesProvider,
-    InputDoneCb: Fn(&mut OP),
+    InputDoneCb: InputDoneCallback<OP>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
@@ -374,7 +374,7 @@ impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
 where
     OP: PrimitiveBufferHandles,
     P: HandlesProvider,
-    InputDoneCb: Fn(&mut OP),
+    InputDoneCb: InputDoneCallback<OP>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
@@ -397,7 +397,7 @@ impl<'a, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     for Decoder<Decoding<GenericBufferHandles, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
     P: HandlesProvider,
-    InputDoneCb: Fn(&mut GenericBufferHandles),
+    InputDoneCb: InputDoneCallback<GenericBufferHandles>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
@@ -424,7 +424,7 @@ where
     Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
     OP: BufferHandles,
     P: HandlesProvider,
-    InputDoneCb: Fn(&mut OP),
+    InputDoneCb: InputDoneCallback<OP>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
