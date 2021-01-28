@@ -307,6 +307,9 @@ where
     pub fn stop(self) -> Result<(), ioctl::DecoderCmdError> {
         // TODO if the CAPTURE queue is not running, we cannot dequeue the
         // LAST buffer. In this case we need another way to stop the thread.
+        // It's probably better to just signal the decoder thread we want to
+        // stop, and let it manage the situation as it sees fit (CMD_STOP or
+        // just exit).
         ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop)?;
 
         let decoding_thread = self.state.handle.join().unwrap();
