@@ -2,9 +2,10 @@
 // acourbot: changed name of library to "libv4l2_rust" to avoid colliding with
 // the libv4l2 of v4l-utils
 
-rust_library {
+rust_ffi_static {
     name: "libv4l2_rust",
     host_supported: true,
+    vendor_available: true,
     crate_name: "v4l2",
     srcs: ["src/lib.rs"],
     edition: "2018",
