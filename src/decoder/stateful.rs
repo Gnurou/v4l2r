@@ -321,6 +321,8 @@ where
             _ => todo!(),
         }
 
+        self.state.output_queue.stream_off().unwrap();
+
         Ok(())
     }
 
