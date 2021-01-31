@@ -46,7 +46,7 @@ pub struct DQBufPlane {
 
 /// Contains all the information from a dequeued buffer. Safe variant of
 /// `struct v4l2_buffer`.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DQBuffer {
     pub index: u32,
     pub flags: BufferFlags,
