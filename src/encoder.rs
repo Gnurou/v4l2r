@@ -562,8 +562,8 @@ where
                         // Get the encoded buffer
                         // TODO Manage errors here, including corrupted buffers!
                         if let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
-                            let is_last = cap_buf.data.flags.contains(BufferFlags::LAST);
-                            let is_empty = cap_buf.data.planes[0].bytesused == 0;
+                            let is_last = cap_buf.data.flags().contains(BufferFlags::LAST);
+                            let is_empty = cap_buf.data.get_first_plane().bytesused() == 0;
 
                             // Add a drop callback to the dequeued buffer so we
                             // re-queue it as soon as it is dropped.

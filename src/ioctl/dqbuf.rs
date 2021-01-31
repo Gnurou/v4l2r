@@ -12,75 +12,163 @@ use thiserror::Error;
 pub trait DQBuf: Sized {
     /// Try to retrieve the data from `v4l2_buf`. If `v4l2_planes` is `None`,
     /// then the buffer is single-planar. If it has data, the buffer is
-    /// multi-planar and the array of `struct v4l2_plane` shall be used to
-    /// retrieve the plane data.
-    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self;
+    /// multi-planar and `v4l2_planes` shall be used to retrieve the plane data.
+    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, v4l2_planes: Option<PlaneData>) -> Self;
 }
 
 /// Allows to dequeue a buffer without caring for any of its data.
 impl DQBuf for () {
-    fn from_v4l2_buffer(
-        _v4l2_buf: &bindings::v4l2_buffer,
-        _v4l2_planes: Option<&PlaneData>,
-    ) -> Self {
+    fn from_v4l2_buffer(_v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
     }
 }
 
 /// Useful for the case where we are only interested in the index of a dequeued
 /// buffer
 impl DQBuf for u32 {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        _v4l2_planes: Option<&PlaneData>,
-    ) -> Self {
+    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
         v4l2_buf.index
     }
 }
 
-#[derive(Debug)]
-pub struct DQBufPlane {
-    pub length: u32,
-    pub bytesused: u32,
-    pub data_offset: u32,
+/// Information about a single plane of a dequeued buffer.
+pub struct DQBufPlane<'a> {
+    plane: &'a bindings::v4l2_plane,
 }
 
-/// Contains all the information from a dequeued buffer. Safe variant of
-/// `struct v4l2_buffer`.
-#[derive(Debug)]
+impl<'a> Debug for DQBufPlane<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DQBufPlane")
+            .field("length", &self.length())
+            .field("bytesused", &self.bytesused())
+            .field("data_offset", &self.data_offset())
+            .finish()
+    }
+}
+
+impl<'a> DQBufPlane<'a> {
+    pub fn length(&self) -> u32 {
+        self.plane.length
+    }
+
+    pub fn bytesused(&self) -> u32 {
+        self.plane.bytesused
+    }
+
+    pub fn data_offset(&self) -> u32 {
+        self.plane.data_offset
+    }
+}
+
+/// Information for a dequeued buffer. Safe variant of `struct v4l2_buffer`.
 pub struct DQBuffer {
-    pub index: u32,
-    pub flags: BufferFlags,
-    pub field: u32,
-    pub sequence: u32,
-    pub planes: Vec<DQBufPlane>,
+    v4l2_buffer: bindings::v4l2_buffer,
+    v4l2_planes: PlaneData,
+}
+
+/// DQBuffer is safe to send across threads.
+unsafe impl Send for DQBuffer {}
+
+impl Debug for DQBuffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DQBuffer")
+            .field("index", &self.index())
+            .field("flags", &self.flags())
+            .field("sequence", &self.sequence())
+            .finish()
+    }
+}
+
+impl DQBuffer {
+    pub fn index(&self) -> u32 {
+        self.v4l2_buffer.index
+    }
+
+    pub fn flags(&self) -> BufferFlags {
+        BufferFlags::from_bits_truncate(self.v4l2_buffer.flags)
+    }
+
+    pub fn sequence(&self) -> u32 {
+        self.v4l2_buffer.sequence
+    }
+
+    pub fn is_multi_planar(&self) -> bool {
+        matches!(
+            self.v4l2_buffer.type_,
+            bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
+                | bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+        )
+    }
+
+    pub fn num_planes(&self) -> usize {
+        if self.is_multi_planar() {
+            self.v4l2_buffer.length as usize
+        } else {
+            1
+        }
+    }
+
+    /// Returns the first plane of the buffer. This method is guaranteed to
+    /// succeed because every buffer has at least one plane.
+    pub fn get_first_plane(&self) -> DQBufPlane {
+        DQBufPlane {
+            plane: &self.v4l2_planes[0],
+        }
+    }
+
+    /// Returns plane `index` of the buffer, or `None` if `index` is larger than
+    /// the number of planes in this buffer.
+    pub fn get_plane(&self, index: usize) -> Option<DQBufPlane> {
+        if index < self.num_planes() {
+            Some(DQBufPlane {
+                plane: &self.v4l2_planes[index],
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Returns the raw v4l2_buffer as a pointer. Useful to pass to unsafe
+    /// non-Rust code.
+    pub fn as_raw_v4l2_buffer(&self) -> *const bindings::v4l2_buffer {
+        &self.v4l2_buffer
+    }
 }
 
 impl DQBuf for DQBuffer {
-    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self {
-        let planes = match v4l2_planes {
-            None => vec![DQBufPlane {
-                length: v4l2_buf.length,
-                bytesused: v4l2_buf.bytesused,
-                data_offset: 0,
-            }],
-            Some(v4l2_planes) => v4l2_planes
-                .iter()
-                .take(v4l2_buf.length as usize)
-                .map(|v4l2_plane| DQBufPlane {
-                    length: v4l2_plane.length,
-                    bytesused: v4l2_plane.bytesused,
-                    data_offset: v4l2_plane.data_offset,
-                })
-                .collect(),
+    fn from_v4l2_buffer(
+        v4l2_buffer: bindings::v4l2_buffer,
+        v4l2_planes: Option<PlaneData>,
+    ) -> Self {
+        let mut dqbuf = DQBuffer {
+            v4l2_buffer,
+            v4l2_planes: match v4l2_planes {
+                Some(planes) => planes,
+                // In single-plane mode, reproduce the buffer information into
+                // a v4l2_plane in order to present a unified interface.
+                None => {
+                    let mut pdata: PlaneData = Default::default();
+                    pdata[0] = bindings::v4l2_plane {
+                        bytesused: v4l2_buffer.bytesused,
+                        length: v4l2_buffer.length,
+                        data_offset: 0,
+                        reserved: Default::default(),
+                        // Safe because both unions have the same members and
+                        // layout in single-plane mode.
+                        m: unsafe { std::mem::transmute(v4l2_buffer.m) },
+                    };
+
+                    pdata
+                }
+            },
         };
 
-        DQBuffer {
-            index: v4l2_buf.index as u32,
-            flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
-            field: v4l2_buf.field,
-            sequence: v4l2_buf.sequence,
-            planes,
+        // Since the planes have moved, update the planes pointer if we are
+        // using multi-planar.
+        if dqbuf.is_multi_planar() {
+            dqbuf.v4l2_buffer.m.planes = dqbuf.v4l2_planes.as_mut_ptr()
         }
+
+        dqbuf
     }
 }
 
@@ -127,10 +215,10 @@ pub fn dqbuf<T: DQBuf + Debug, F: AsRawFd>(fd: &F, queue: QueueType) -> DQBufRes
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))
+        T::from_v4l2_buffer(v4l2_buf, Some(plane_data))
     } else {
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::from_v4l2_buffer(&v4l2_buf, None)
+        T::from_v4l2_buffer(v4l2_buf, None)
     };
 
     Ok(dequeued_buffer)

@@ -241,18 +241,18 @@ pub fn run<F: FnMut(&[u8])>(
         // The CAPTURE buffer, on the other hand, we want to examine more closely.
         let cap_dqbuf: DQBuffer =
             dqbuf(&fd, capture_queue).expect("Failed to dequeue capture buffer");
-        let bytes_used = cap_dqbuf.planes[0].bytesused as usize;
+        let bytes_used = cap_dqbuf.get_first_plane().bytesused() as usize;
 
         total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
         let fps = cpt as f64 / elapsed.as_millis() as f64 * 1000.0;
         print!(
             "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2}",
-            cap_dqbuf.sequence, cap_dqbuf.index, bytes_used, total_size, fps
+            cap_dqbuf.sequence(), cap_dqbuf.index(), bytes_used, total_size, fps
         );
         io::stdout().flush().unwrap();
 
-        save_output(&capture_mappings[cap_dqbuf.index as usize].as_ref()[0..bytes_used]);
+        save_output(&capture_mappings[cap_dqbuf.index() as usize].as_ref()[0..bytes_used]);
 
         cpt = cpt.wrapping_add(1);
     }

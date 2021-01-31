@@ -612,8 +612,8 @@ where
         match &mut self.capture_queue {
             CaptureQueue::Decoding { capture_queue, .. } => {
                 if let Ok(mut cap_buf) = capture_queue.try_dequeue() {
-                    let is_last = cap_buf.data.flags.contains(ioctl::BufferFlags::LAST);
-                    let is_empty = cap_buf.data.planes[0].bytesused == 0;
+                    let is_last = cap_buf.data.flags().contains(ioctl::BufferFlags::LAST);
+                    let is_empty = cap_buf.data.get_first_plane().bytesused() == 0;
 
                     // Add a drop callback to the dequeued buffer so we
                     // re-queue it as soon as it is dropped.

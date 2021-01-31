@@ -457,7 +457,7 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
             Err(DQBufError::IoctlError(e)) => return Err(DQBufError::IoctlError(e)),
         };
 
-        let id = dqbuf.index as usize;
+        let id = dqbuf.index() as usize;
 
         let buffer_info = self
             .state

@@ -188,16 +188,16 @@ fn main() {
     let poll_count_reader = Arc::new(AtomicUsize::new(0));
     let poll_count_writer = Arc::clone(&poll_count_reader);
     let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, Vec<MMAPHandle>>| {
-        let bytes_used = cap_dqbuf.data.planes[0].bytesused as usize;
+        let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
         total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();
-        let frame_nb = cap_dqbuf.data.sequence + 1;
+        let frame_nb = cap_dqbuf.data.sequence() + 1;
         let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
         let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_nb as f32;
         print!(
             "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} total encoded size:{:#8} fps: {:#5.2} ppf: {:#4.2}" ,
-            cap_dqbuf.data.sequence,
-            cap_dqbuf.data.index,
+            cap_dqbuf.data.sequence(),
+            cap_dqbuf.data.index(),
             bytes_used,
             total_size,
             fps,
