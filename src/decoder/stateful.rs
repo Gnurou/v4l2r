@@ -159,11 +159,11 @@ pub enum StartDecoderError {
     StreamOnError(#[from] StreamOnError),
 }
 
-pub trait InputDoneCallback<OP: BufferHandles>: Fn(&mut OP) {}
+pub trait InputDoneCallback<OP: BufferHandles>: Fn(DQBuffer<Output, OP>) {}
 impl<OP, F> InputDoneCallback<OP> for F
 where
     OP: BufferHandles,
-    F: Fn(&mut OP),
+    F: Fn(DQBuffer<Output, OP>),
 {
 }
 
@@ -332,9 +332,9 @@ where
 
         while output_queue.num_queued_buffers() > 0 {
             match output_queue.try_dequeue() {
-                Ok(mut buf) => {
+                Ok(buf) => {
                     // unwrap() is safe here as we just dequeued the buffer.
-                    (self.state.input_done_cb)(&mut buf.take_handles().unwrap());
+                    (self.state.input_done_cb)(buf);
                 }
                 Err(ioctl::DQBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in
