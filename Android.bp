@@ -4,7 +4,6 @@
 
 rust_ffi_static {
     name: "libv4l2_rust",
-    host_supported: true,
     vendor_available: true,
     crate_name: "v4l2",
     srcs: ["src/lib.rs"],
