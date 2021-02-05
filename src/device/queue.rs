@@ -7,11 +7,14 @@ pub mod states;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::ioctl::{
-    self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
-    StreamOnError, TryFmtError,
-};
 use crate::memory::*;
+use crate::{
+    ioctl::{
+        self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
+        StreamOnError, TryFmtError,
+    },
+    PlaneLayout,
+};
 use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
@@ -148,6 +151,11 @@ impl<'a> FormatBuilder<'a> {
 
     pub fn set_pixelformat(mut self, pixel_format: impl Into<PixelFormat>) -> Self {
         self.format.pixelformat = pixel_format.into();
+        self
+    }
+
+    pub fn set_planes_layout<P: IntoIterator<Item = PlaneLayout>>(mut self, planes: P) -> Self {
+        self.format.plane_fmt = planes.into_iter().collect();
         self
     }
 
