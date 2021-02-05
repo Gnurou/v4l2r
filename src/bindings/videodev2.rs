@@ -2276,7 +2276,6 @@ pub struct v4l2_pix_format {
 pub union v4l2_pix_format__bindgen_ty_1 {
     pub ycbcr_enc: __u32,
     pub hsv_enc: __u32,
-    _bindgen_union_align: u32,
 }
 #[test]
 fn bindgen_test_layout_v4l2_pix_format__bindgen_ty_1() {
@@ -2669,7 +2668,6 @@ pub struct v4l2_frmsizeenum {
 pub union v4l2_frmsizeenum__bindgen_ty_1 {
     pub discrete: v4l2_frmsize_discrete,
     pub stepwise: v4l2_frmsize_stepwise,
-    _bindgen_union_align: [u32; 6usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_frmsizeenum__bindgen_ty_1() {
@@ -2831,7 +2829,6 @@ pub struct v4l2_frmivalenum {
 pub union v4l2_frmivalenum__bindgen_ty_1 {
     pub discrete: v4l2_fract,
     pub stepwise: v4l2_frmival_stepwise,
-    _bindgen_union_align: [u32; 6usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_frmivalenum__bindgen_ty_1() {
@@ -3240,7 +3237,6 @@ pub union v4l2_plane__bindgen_ty_1 {
     pub mem_offset: __u32,
     pub userptr: ::std::os::raw::c_ulong,
     pub fd: __s32,
-    _bindgen_union_align: u64,
 }
 #[test]
 fn bindgen_test_layout_v4l2_plane__bindgen_ty_1() {
@@ -3405,7 +3401,6 @@ pub union v4l2_buffer__bindgen_ty_1 {
     pub userptr: ::std::os::raw::c_ulong,
     pub planes: *mut v4l2_plane,
     pub fd: __s32,
-    _bindgen_union_align: u64,
 }
 #[test]
 fn bindgen_test_layout_v4l2_buffer__bindgen_ty_1() {
@@ -3471,7 +3466,6 @@ fn bindgen_test_layout_v4l2_buffer__bindgen_ty_1() {
 pub union v4l2_buffer__bindgen_ty_2 {
     pub request_fd: __s32,
     pub reserved: __u32,
-    _bindgen_union_align: u32,
 }
 #[test]
 fn bindgen_test_layout_v4l2_buffer__bindgen_ty_2() {
@@ -4779,7 +4773,6 @@ pub struct v4l2_dv_timings {
 pub union v4l2_dv_timings__bindgen_ty_1 {
     pub bt: v4l2_bt_timings,
     pub reserved: [__u32; 32usize],
-    _bindgen_union_align: [u32; 32usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_dv_timings__bindgen_ty_1() {
@@ -5058,7 +5051,6 @@ pub struct v4l2_dv_timings_cap {
 pub union v4l2_dv_timings_cap__bindgen_ty_1 {
     pub bt: v4l2_bt_timings_cap,
     pub raw_data: [__u32; 32usize],
-    _bindgen_union_align: [u32; 32usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_dv_timings_cap__bindgen_ty_1() {
@@ -5422,7 +5414,6 @@ pub union v4l2_ext_control__bindgen_ty_1 {
     pub p_u16: *mut __u16,
     pub p_u32: *mut __u32,
     pub ptr: *mut ::std::os::raw::c_void,
-    _bindgen_union_align: u64,
 }
 #[test]
 fn bindgen_test_layout_v4l2_ext_control__bindgen_ty_1() {
@@ -5579,7 +5570,6 @@ pub struct v4l2_ext_controls {
 pub union v4l2_ext_controls__bindgen_ty_1 {
     pub ctrl_class: __u32,
     pub which: __u32,
-    _bindgen_union_align: u32,
 }
 #[test]
 fn bindgen_test_layout_v4l2_ext_controls__bindgen_ty_1() {
@@ -5987,7 +5977,6 @@ pub struct v4l2_querymenu {
 pub union v4l2_querymenu__bindgen_ty_1 {
     pub name: [__u8; 32usize],
     pub value: __s64,
-    _bindgen_union_align: [u64; 4usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_querymenu__bindgen_ty_1() {
@@ -6921,7 +6910,6 @@ pub struct v4l2_encoder_cmd {
 #[derive(Copy, Clone)]
 pub union v4l2_encoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1,
-    _bindgen_union_align: [u32; 8usize],
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -7031,7 +7019,6 @@ pub union v4l2_decoder_cmd__bindgen_ty_1 {
     pub stop: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1,
     pub start: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2,
     pub raw: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3,
-    _bindgen_union_align: [u64; 8usize],
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -7664,7 +7651,6 @@ pub struct v4l2_mpeg_vbi_fmt_ivtv {
 pub union v4l2_mpeg_vbi_fmt_ivtv__bindgen_ty_1 {
     pub itv0: v4l2_mpeg_vbi_itv0,
     pub ITV0: v4l2_mpeg_vbi_ITV0,
-    _bindgen_union_align: [u8; 1548usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv__bindgen_ty_1() {
@@ -7824,7 +7810,6 @@ pub struct v4l2_pix_format_mplane {
 pub union v4l2_pix_format_mplane__bindgen_ty_1 {
     pub ycbcr_enc: __u8,
     pub hsv_enc: __u8,
-    _bindgen_union_align: u8,
 }
 #[test]
 fn bindgen_test_layout_v4l2_pix_format_mplane__bindgen_ty_1() {
@@ -8126,7 +8111,6 @@ pub union v4l2_format__bindgen_ty_1 {
     pub sdr: v4l2_sdr_format,
     pub meta: v4l2_meta_format,
     pub raw_data: [__u8; 200usize],
-    _bindgen_union_align: [u64; 25usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_format__bindgen_ty_1() {
@@ -8272,7 +8256,6 @@ pub union v4l2_streamparm__bindgen_ty_1 {
     pub capture: v4l2_captureparm,
     pub output: v4l2_outputparm,
     pub raw_data: [__u8; 200usize],
-    _bindgen_union_align: [u32; 50usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_streamparm__bindgen_ty_1() {
@@ -8401,7 +8384,6 @@ pub struct v4l2_event_ctrl {
 pub union v4l2_event_ctrl__bindgen_ty_1 {
     pub value: __s32,
     pub value64: __s64,
-    _bindgen_union_align: u64,
 }
 #[test]
 fn bindgen_test_layout_v4l2_event_ctrl__bindgen_ty_1() {
@@ -8660,7 +8642,6 @@ pub union v4l2_event__bindgen_ty_1 {
     pub src_change: v4l2_event_src_change,
     pub motion_det: v4l2_event_motion_det,
     pub data: [__u8; 64usize],
-    _bindgen_union_align: [u64; 8usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_event__bindgen_ty_1() {
@@ -8898,7 +8879,6 @@ pub struct v4l2_dbg_match {
 pub union v4l2_dbg_match__bindgen_ty_1 {
     pub addr: __u32,
     pub name: [::std::os::raw::c_char; 32usize],
-    _bindgen_union_align: [u32; 8usize],
 }
 #[test]
 fn bindgen_test_layout_v4l2_dbg_match__bindgen_ty_1() {
