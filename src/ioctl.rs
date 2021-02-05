@@ -38,7 +38,7 @@ pub use subscribe_event::*;
 use crate::bindings;
 use crate::QueueType;
 use crate::Result;
-use std::ffi::CStr;
+use std::{ffi::CStr, mem};
 
 /// Utility function for sub-modules.
 /// Constructs an owned String instance from a slice containing a nul-terminated
@@ -94,6 +94,13 @@ mod tests {
 /// A memory area we can pass to ioctls in order to get/set plane information
 /// with the multi-planar API.
 type PlaneData = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
+
+/// For simple initialization of `PlaneData`.
+impl Default for bindings::v4l2_plane {
+    fn default() -> Self {
+        unsafe { mem::zeroed() }
+    }
+}
 
 /// Returns whether the given queue type can handle multi-planar formats.
 fn is_multi_planar(queue: QueueType) -> bool {

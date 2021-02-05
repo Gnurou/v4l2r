@@ -10,13 +10,6 @@ use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-/// For simple initialization of `PlaneData`.
-impl Default for bindings::v4l2_plane {
-    fn default() -> Self {
-        unsafe { mem::zeroed() }
-    }
-}
-
 bitflags! {
     /// Flags corresponding to the `flags` field of `struct v4l2_buffer`.
     /// TODO split into two types, one for the user -> kernel and another for
