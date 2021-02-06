@@ -90,7 +90,7 @@ fn main() {
             let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
             let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_nb as f32;
             print!(
-                "\rEncoded buffer {:#5}, index: {:#2}), bytes used:{:#6} fps: {:#5.2} ppf: {:#4.2}",
+                "\rDecoded buffer {:#5}, index: {:#2}), bytes used:{:#6} fps: {:#5.2} ppf: {:#4.2}",
                 cap_dqbuf.data.sequence(),
                 cap_dqbuf.data.index(),
                 bytes_used,
