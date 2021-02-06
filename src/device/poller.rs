@@ -117,7 +117,13 @@ impl Waker {
     /// called again.
     fn reset(&self) -> io::Result<()> {
         let mut buf = 0u64.to_ne_bytes();
-        (&self.fd).read(&mut buf).map(|_| ())
+        match (&self.fd).read(&mut buf).map(|_| ()) {
+            Ok(_) => Ok(()),
+            // If the counter was already zero, it is already reset so this is
+            // not an error.
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(()),
+            Err(e) => Err(e),
+        }
     }
 }
 
