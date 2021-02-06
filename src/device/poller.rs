@@ -11,8 +11,7 @@ use std::{
     io::{self, Read, Write},
     mem,
     os::unix::io::{AsRawFd, FromRawFd},
-    sync::atomic::AtomicUsize,
-    sync::atomic::Ordering,
+    sync::atomic::{AtomicUsize, Ordering},
     sync::Arc,
 };
 
@@ -231,6 +230,28 @@ impl Poller {
                 io::ErrorKind::AlreadyExists,
                 format!("A waker with id {} is already registered", id),
             )),
+        }
+    }
+
+    pub fn remove_waker(&mut self, id: u32) -> io::Result<Arc<Waker>> {
+        match self.wakers.entry(id) {
+            std::collections::btree_map::Entry::Vacant(_) => Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                format!("No waker with id {} in this poller", id),
+            )),
+            std::collections::btree_map::Entry::Occupied(entry) => {
+                syscall!(epoll_ctl(
+                    self.epoll.as_raw_fd(),
+                    libc::EPOLL_CTL_DEL,
+                    entry.get().fd.as_raw_fd(),
+                    &mut libc::epoll_event {
+                        events: libc::EPOLLIN as u32,
+                        u64: FIRST_WAKER_ID + id as u64,
+                    }
+                ))?;
+
+                Ok(entry.remove())
+            }
         }
     }
 

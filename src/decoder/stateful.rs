@@ -458,6 +458,7 @@ enum CaptureQueue<P: HandlesProvider> {
     Decoding {
         capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
         provider: P,
+        cap_buffer_waker: Arc<Waker>,
     },
 }
 
@@ -470,7 +471,6 @@ where
     device: Arc<Device>,
     capture_queue: CaptureQueue<P>,
     poller: Poller,
-    cap_buffer_waker: Arc<Waker>,
     stop_waker: Arc<Waker>,
     output_ready_cb: OutputReadyCb,
     set_capture_format_cb: SetCaptureFormatCb,
@@ -515,18 +515,17 @@ where
         output_ready_cb: OutputReadyCb,
         set_capture_format_cb: SetCaptureFormatCb,
     ) -> io::Result<Self> {
-        let mut poller = Poller::new(Arc::clone(device))?;
         // Start by only listening to V4L2 events in order to catch the initial
-        // resolution change.
+        // resolution change, and to the stop waker in case the user had a
+        // change of heart about decoding something now.
+        let mut poller = Poller::new(Arc::clone(device))?;
         poller.enable_event(DeviceEvent::V4L2Event)?;
-        let cap_buffer_waker = poller.add_waker(CAPTURE_READY)?;
         let stop_waker = poller.add_waker(STOP_DECODING)?;
 
         let decoder_thread = DecoderThread {
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
-            cap_buffer_waker,
             stop_waker,
             output_ready_cb,
             set_capture_format_cb,
@@ -539,12 +538,13 @@ where
         self.poller.set_poll_counter(poll_wakeups_counter);
     }
 
-    fn update_capture_resolution(self) -> Result<Self, UpdateCaptureError> {
+    fn update_capture_resolution(mut self) -> Result<Self, UpdateCaptureError> {
         let mut capture_queue = match self.capture_queue {
             // Initial resolution
             CaptureQueue::AwaitingResolution { capture_queue } => capture_queue,
             // Dynamic resolution change
             CaptureQueue::Decoding { capture_queue, .. } => {
+                self.poller.remove_waker(CAPTURE_READY).unwrap();
                 // TODO remove unwrap.
                 // TODO must do complete flush sequence before this...
                 capture_queue.stream_off().unwrap();
@@ -573,6 +573,7 @@ where
         let mut poller = self.poller;
         poller.enable_event(DeviceEvent::CaptureReady).unwrap();
         poller.disable_event(DeviceEvent::V4L2Event).unwrap();
+        let cap_buffer_waker = poller.add_waker(CAPTURE_READY).unwrap();
 
         capture_queue.stream_on()?;
 
@@ -580,6 +581,7 @@ where
             capture_queue: CaptureQueue::Decoding {
                 capture_queue,
                 provider,
+                cap_buffer_waker,
             },
             poller,
             ..self
@@ -617,14 +619,18 @@ where
 
     fn process_capture_buffer(&mut self) -> bool {
         match &mut self.capture_queue {
-            CaptureQueue::Decoding { capture_queue, .. } => {
+            CaptureQueue::Decoding {
+                capture_queue,
+                cap_buffer_waker,
+                ..
+            } => {
                 if let Ok(mut cap_buf) = capture_queue.try_dequeue() {
                     let is_last = cap_buf.data.flags().contains(ioctl::BufferFlags::LAST);
                     let is_empty = cap_buf.data.get_first_plane().bytesused() == 0;
 
                     // Add a drop callback to the dequeued buffer so we
                     // re-queue it as soon as it is dropped.
-                    let cap_waker = Arc::clone(&self.cap_buffer_waker);
+                    let cap_waker = Arc::clone(&cap_buffer_waker);
                     cap_buf.add_drop_callback(move |_dqbuf| {
                         // Intentionally ignore the result here.
                         let _ = cap_waker.wake();
@@ -768,6 +774,13 @@ where
                         capture_queue.free_buffers().unwrap().queue
                     },
                 },
+                poller: {
+                    let mut poller = self.poller;
+                    poller.disable_event(DeviceEvent::CaptureReady).unwrap();
+                    poller.enable_event(DeviceEvent::V4L2Event).unwrap();
+                    poller.remove_waker(CAPTURE_READY).unwrap();
+                    poller
+                },
                 ..self
             },
         }
@@ -777,6 +790,7 @@ where
         if let CaptureQueue::Decoding {
             capture_queue,
             provider,
+            ..
         } = &mut self.capture_queue
         {
             while let Ok(buffer) = capture_queue.try_get_free_buffer() {
