@@ -452,7 +452,9 @@ where
 // TODO use ::new functions that take the queue and configure the state properly, with
 // the poller, wakers, and all.
 enum CaptureQueue<P: HandlesProvider> {
-    AwaitingResolution(Queue<Capture, QueueInit>),
+    AwaitingResolution {
+        capture_queue: Queue<Capture, QueueInit>,
+    },
     Decoding {
         capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
         provider: P,
@@ -522,7 +524,7 @@ where
 
         let decoder_thread = DecoderThread {
             device: Arc::clone(&device),
-            capture_queue: CaptureQueue::AwaitingResolution(capture_queue),
+            capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
             cap_buffer_waker,
             stop_waker,
@@ -540,7 +542,7 @@ where
     fn update_capture_resolution(self) -> Result<Self, UpdateCaptureError> {
         let mut capture_queue = match self.capture_queue {
             // Initial resolution
-            CaptureQueue::AwaitingResolution(queue) => queue,
+            CaptureQueue::AwaitingResolution { capture_queue } => capture_queue,
             // Dynamic resolution change
             CaptureQueue::Decoding { capture_queue, .. } => {
                 // TODO remove unwrap.
@@ -681,7 +683,7 @@ where
     fn run(mut self) -> Self {
         'polling: loop {
             match &self.capture_queue {
-                CaptureQueue::AwaitingResolution(_) => {
+                CaptureQueue::AwaitingResolution { .. } => {
                     // Here we only check for the initial resolution change
                     // event.
 
@@ -758,12 +760,14 @@ where
 
         // Return the decoder to the awaiting resolution state.
         match self.capture_queue {
-            CaptureQueue::AwaitingResolution(_) => self,
+            CaptureQueue::AwaitingResolution { .. } => self,
             CaptureQueue::Decoding { capture_queue, .. } => Self {
-                capture_queue: CaptureQueue::AwaitingResolution({
-                    capture_queue.stream_off().unwrap();
-                    capture_queue.free_buffers().unwrap().queue
-                }),
+                capture_queue: CaptureQueue::AwaitingResolution {
+                    capture_queue: {
+                        capture_queue.stream_off().unwrap();
+                        capture_queue.free_buffers().unwrap().queue
+                    },
+                },
                 ..self
             },
         }
