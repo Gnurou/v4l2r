@@ -1,6 +1,6 @@
 use crate::{
     device::{
-        poller::{DeviceEvent, PollEvents, Poller},
+        poller::{DeviceEvent, PollEvent, Poller, Waker},
         queue::{
             self,
             direction::{Capture, Output},
@@ -351,7 +351,7 @@ where
     fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
         for event in self.state.output_poller.poll(None)? {
             match event {
-                PollEvents::DEVICE_OUTPUT => {
+                PollEvent::Device(DeviceEvent::OutputReady) => {
                     self.dequeue_output_buffers()?;
                 }
                 _ => panic!("Unexpected return from OUTPUT queue poll!"),
@@ -472,6 +472,7 @@ where
     device: Arc<Device>,
     capture_queue: CaptureQueue<P>,
     poller: Poller,
+    waker: Arc<Waker>,
     output_ready_cb: OutputReadyCb,
     set_capture_format_cb: SetCaptureFormatCb,
 }
@@ -516,11 +517,13 @@ where
         // Start by only listening to V4L2 events in order to catch the initial
         // resolution change.
         poller.enable_event(DeviceEvent::V4L2Event)?;
+        let waker = poller.add_waker(0)?;
 
         let decoder_thread = DecoderThread {
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution(capture_queue),
             poller,
+            waker,
             output_ready_cb,
             set_capture_format_cb,
         };
@@ -617,7 +620,7 @@ where
 
                     // Add a drop callback to the dequeued buffer so we
                     // re-queue it as soon as it is dropped.
-                    let cap_waker = Arc::clone(self.poller.get_waker());
+                    let cap_waker = Arc::clone(&self.waker);
                     cap_buf.add_drop_callback(move |_dqbuf| {
                         // Intentionally ignore the result here.
                         let _ = cap_waker.wake();
@@ -683,7 +686,9 @@ where
                     // TODO remove this unwrap.
                     for event in self.poller.poll(None).unwrap() {
                         match event {
-                            PollEvents::DEVICE_EVENT => self = self.process_events().unwrap(),
+                            PollEvent::Device(DeviceEvent::V4L2Event) => {
+                                self = self.process_events().unwrap()
+                            }
                             _ => panic!("Unexpected event!"),
                         }
                     }
@@ -713,7 +718,7 @@ where
                     // TODO remove this unwrap.
                     for event in self.poller.poll(None).unwrap() {
                         match event {
-                            PollEvents::DEVICE_CAPTURE => {
+                            PollEvent::Device(DeviceEvent::CaptureReady) => {
                                 let do_exit = self.process_capture_buffer();
                                 if do_exit {
                                     break 'polling;
@@ -725,7 +730,7 @@ where
                             // old waker a no-op (maybe by reinitializing it to a new file?)
                             // before streaming the CAPTURE queue off. Maybe allocate a new Poller
                             // as we morph our queue type?
-                            PollEvents::WAKER => {
+                            PollEvent::Waker(0) => {
                                 // Requeue all available CAPTURE buffers.
                                 self.enqueue_capture_buffers();
                             }

@@ -1,6 +1,6 @@
 use crate::{
     device::{
-        poller::{DeviceEvent, PollEvents, Poller},
+        poller::{DeviceEvent, PollEvent, Poller, Waker},
         queue::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
@@ -394,7 +394,7 @@ where
     fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
         for event in self.state.output_poller.poll(None)? {
             match event {
-                PollEvents::DEVICE_OUTPUT => {
+                PollEvent::Device(DeviceEvent::OutputReady) => {
                     self.dequeue_output_buffers()?;
                 }
                 _ => panic!("Unexpected return from OUTPUT queue poll!"),
@@ -491,6 +491,7 @@ where
     capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
     capture_memory_provider: P,
     poller: Poller,
+    waker: Arc<Waker>,
     output_ready_cb: OutputReadyCb,
 }
 
@@ -513,11 +514,13 @@ where
         // register the V4L2 FD *before* queuing any capture buffers, so the
         // edge monitoring starts before any buffer can possibly be completed.
         poller.enable_event(DeviceEvent::CaptureReady)?;
+        let waker = poller.add_waker(0)?;
 
         Ok(EncoderThread {
             capture_queue,
             capture_memory_provider,
             poller,
+            waker,
             output_ready_cb,
         })
     }
@@ -553,12 +556,12 @@ where
             for event in self.poller.poll(None).unwrap() {
                 match event {
                     // A CAPTURE buffer has been released by the client.
-                    PollEvents::WAKER => {
+                    PollEvent::Waker(0) => {
                         // Requeue all available CAPTURE buffers.
                         self.enqueue_capture_buffers();
                     }
                     // A CAPTURE buffer is ready to be dequeued.
-                    PollEvents::DEVICE_CAPTURE => {
+                    PollEvent::Device(DeviceEvent::CaptureReady) => {
                         // Get the encoded buffer
                         // TODO Manage errors here, including corrupted buffers!
                         if let Ok(mut cap_buf) = self.capture_queue.try_dequeue() {
@@ -567,7 +570,7 @@ where
 
                             // Add a drop callback to the dequeued buffer so we
                             // re-queue it as soon as it is dropped.
-                            let cap_waker = Arc::clone(self.poller.get_waker());
+                            let cap_waker = Arc::clone(&self.waker);
                             cap_buf.add_drop_callback(move |_dqbuf| {
                                 // Intentionally ignore the result here.
                                 let _ = cap_waker.wake();
