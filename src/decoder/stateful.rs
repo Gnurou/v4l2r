@@ -681,9 +681,11 @@ where
                     // event.
 
                     // TODO remove this unwrap.
-                    let events = self.poller.poll(None).unwrap();
-                    if events.contains(PollEvents::DEVICE_EVENT) {
-                        self = self.process_events().unwrap();
+                    for event in self.poller.poll(None).unwrap() {
+                        match event {
+                            PollEvents::DEVICE_EVENT => self = self.process_events().unwrap(),
+                            _ => panic!("Unexpected event!"),
+                        }
                     }
                 }
                 CaptureQueue::Decoding { capture_queue, .. } => {
@@ -709,27 +711,29 @@ where
                     }
 
                     // TODO remove this unwrap.
-                    let events = self.poller.poll(None).unwrap();
-                    if events.contains(PollEvents::DEVICE_CAPTURE) {
-                        let do_exit = self.process_capture_buffer();
-                        if do_exit {
-                            break 'polling;
+                    for event in self.poller.poll(None).unwrap() {
+                        match event {
+                            PollEvents::DEVICE_CAPTURE => {
+                                let do_exit = self.process_capture_buffer();
+                                if do_exit {
+                                    break 'polling;
+                                }
+                            }
+
+                            // TODO when doing DRC, it can happen that buffers from the previous
+                            // resolution are released and trigger this. We need to make the
+                            // old waker a no-op (maybe by reinitializing it to a new file?)
+                            // before streaming the CAPTURE queue off. Maybe allocate a new Poller
+                            // as we morph our queue type?
+                            PollEvents::WAKER => {
+                                // Requeue all available CAPTURE buffers.
+                                self.enqueue_capture_buffers();
+                            }
+                            _ => panic!("Unexpected event!"),
                         }
-                    }
-                    // TODO when doing DRC, it can happen that buffers from the previous
-                    // resolution are released and trigger this. We need to make the
-                    // old waker a no-op (maybe by reinitializing it to a new file?)
-                    // before streaming the CAPTURE queue off. Maybe allocate a new Poller
-                    // as we morph our queue type?
-                    if events.contains(PollEvents::WAKER) {
-                        // Requeue all available CAPTURE buffers.
-                        self.enqueue_capture_buffers();
                     }
                 }
             }
-
-            // TODO redesign PollEvents as an iterator so we can check events
-            // one by one and detect unexpected ones.
         }
 
         self
