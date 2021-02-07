@@ -8,6 +8,7 @@ use std::{
     sync::Arc,
 };
 
+use nix::sys::time::{TimeVal, TimeValLike};
 use thiserror::Error;
 
 pub mod get_free;
@@ -63,6 +64,7 @@ pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles
     queue: &'a Queue<D, BuffersAllocated<Q>>,
     index: usize,
     num_planes: usize,
+    timestamp: TimeVal,
     fuse: BufferStateFuse<Q>,
     _p: std::marker::PhantomData<P>,
 }
@@ -79,6 +81,7 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
             queue,
             index: buffer.index,
             num_planes: buffer.planes.len(),
+            timestamp: TimeVal::zero(),
             fuse,
             _p: std::marker::PhantomData,
         }
@@ -95,6 +98,11 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
         self.num_planes
     }
 
+    pub fn set_timestamp(mut self, timestamp: TimeVal) -> Self {
+        self.timestamp = timestamp;
+        self
+    }
+
     // R is meant to mean "either P or Q".
     // Caller is responsible for making sure that the number of planes and
     // plane_handles is the same as the number of expected planes for this
@@ -106,6 +114,7 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
     ) -> QueueResult<(), R> {
         let qbuffer = ioctl::QBuffer::<P::HandleType> {
             planes,
+            timestamp: self.timestamp,
             ..Default::default()
         };
 
