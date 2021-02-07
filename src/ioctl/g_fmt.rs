@@ -1,6 +1,6 @@
 //! Safe wrapper for the `VIDIOC_(G|S|TRY)_FMT` ioctls.
-use crate::bindings;
-use crate::{Format, PixelFormat, PlaneLayout, QueueType};
+use crate::{bindings, FormatConversionError};
+use crate::{Format, PlaneLayout, QueueType};
 use nix::errno::Errno;
 use nix::Error;
 use std::convert::{From, Into, TryFrom, TryInto};
@@ -8,14 +8,6 @@ use std::default::Default;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
-
-#[derive(Debug, Error, PartialEq)]
-pub enum FormatConversionError {
-    #[error("Too many planes ({0}) specified,")]
-    TooManyPlanes(usize),
-    #[error("Invalid buffer type requested")]
-    InvalidBufferType(u32),
-}
 
 /// Implementors can receive the result from the `g_fmt`, `s_fmt` and `try_fmt`
 /// ioctls.
@@ -91,54 +83,6 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
                 },
             },
         })
-    }
-}
-
-impl TryFrom<bindings::v4l2_format> for Format {
-    type Error = FormatConversionError;
-
-    fn try_from(fmt: bindings::v4l2_format) -> Result<Self, Self::Error> {
-        match fmt.type_ {
-            bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE
-            | bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT => {
-                let pix = unsafe { &fmt.fmt.pix };
-                Ok(Format {
-                    width: pix.width,
-                    height: pix.height,
-                    pixelformat: PixelFormat::from(pix.pixelformat),
-                    plane_fmt: vec![PlaneLayout {
-                        bytesperline: pix.bytesperline,
-                        sizeimage: pix.sizeimage,
-                    }],
-                })
-            }
-            bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-            | bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE => {
-                let pix_mp = unsafe { &fmt.fmt.pix_mp };
-
-                // Can only happen if we passed a malformed v4l2_format.
-                if pix_mp.num_planes as usize > pix_mp.plane_fmt.len() {
-                    return Err(Self::Error::TooManyPlanes(pix_mp.num_planes as usize));
-                }
-
-                let mut plane_fmt = Vec::new();
-                for i in 0..pix_mp.num_planes as usize {
-                    let plane = &pix_mp.plane_fmt[i];
-                    plane_fmt.push(PlaneLayout {
-                        sizeimage: plane.sizeimage,
-                        bytesperline: plane.bytesperline,
-                    });
-                }
-
-                Ok(Format {
-                    width: pix_mp.width,
-                    height: pix_mp.height,
-                    pixelformat: PixelFormat::from(pix_mp.pixelformat),
-                    plane_fmt,
-                })
-            }
-            t => Err(Self::Error::InvalidBufferType(t)),
-        }
     }
 }
 

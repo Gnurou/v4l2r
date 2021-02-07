@@ -7,7 +7,6 @@ pub mod states;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::{ioctl::FormatConversionError, memory::*};
 use crate::{
     ioctl::{
         self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
@@ -15,6 +14,7 @@ use crate::{
     },
     PlaneLayout,
 };
+use crate::{memory::*, FormatConversionError};
 use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
