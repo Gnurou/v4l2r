@@ -4,7 +4,10 @@ use crate::memory::{Memory, PlaneHandle};
 use crate::{bindings, QueueType};
 
 use bitflags::bitflags;
-use nix::Error;
+use nix::{
+    sys::time::{TimeVal, TimeValLike},
+    Error,
+};
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -96,6 +99,7 @@ pub struct QBuffer<H: PlaneHandle> {
     pub flags: BufferFlags,
     pub field: u32,
     pub sequence: u32,
+    pub timestamp: TimeVal,
     pub planes: Vec<QBufPlane>,
     pub _h: std::marker::PhantomData<H>,
 }
@@ -106,6 +110,7 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
             flags: Default::default(),
             field: Default::default(),
             sequence: Default::default(),
+            timestamp: TimeVal::zero(),
             planes: Vec::new(),
             _h: std::marker::PhantomData,
         }
@@ -118,6 +123,8 @@ impl<H: PlaneHandle> QBuffer<H> {
         v4l2_buf.flags = self.flags.bits;
         v4l2_buf.field = self.field;
         v4l2_buf.sequence = self.sequence;
+        v4l2_buf.timestamp.tv_sec = self.timestamp.tv_sec();
+        v4l2_buf.timestamp.tv_usec = self.timestamp.tv_usec();
     }
 }
 
