@@ -78,7 +78,11 @@ pub trait PlaneHandle: Debug + Send + 'static {
 
     /// Copy the information from a `v4l2_plane` previously filled with `fill_v4l2_plane`
     /// into the `v4l2_buffer`, for queues using the single-planar API.
-    fn fill_v4l2_splane_buffer(plane: &bindings::v4l2_plane, buffer: &mut bindings::v4l2_buffer);
+    fn fill_v4l2_splane_buffer(plane: &bindings::v4l2_plane, buffer: &mut bindings::v4l2_buffer) {
+        // Safe because both fields have the same size.
+        buffer.m = unsafe { std::mem::transmute(plane.m) };
+        buffer.length = plane.length;
+    }
 }
 
 // Trait for plane handles that provide access to their content through a map()

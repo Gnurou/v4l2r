@@ -49,9 +49,4 @@ impl<T: AsRef<[u8]> + Debug + Send + 'static> PlaneHandle for UserPtrHandle<T> {
         plane.m.userptr = slice.as_ptr() as std::os::raw::c_ulong;
         plane.length = slice.len() as u32;
     }
-
-    fn fill_v4l2_splane_buffer(plane: &bindings::v4l2_plane, buffer: &mut bindings::v4l2_buffer) {
-        buffer.m.userptr = unsafe { plane.m.userptr };
-        buffer.length = plane.length;
-    }
 }

@@ -52,11 +52,6 @@ impl<T: DMABufSource + 'static> PlaneHandle for DMABufHandle<T> {
         plane.m.fd = self.0.as_raw_fd();
         plane.length = self.0.len() as u32;
     }
-
-    fn fill_v4l2_splane_buffer(plane: &bindings::v4l2_plane, buffer: &mut bindings::v4l2_buffer) {
-        buffer.m.fd = unsafe { plane.m.fd };
-        buffer.length = plane.length;
-    }
 }
 
 impl<T: DMABufSource> DMABufHandle<T> {

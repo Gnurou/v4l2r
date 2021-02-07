@@ -23,8 +23,6 @@ impl PlaneHandle for MMAPHandle {
     type Memory = MMAP;
 
     fn fill_v4l2_plane(&self, _plane: &mut bindings::v4l2_plane) {}
-    fn fill_v4l2_splane_buffer(_plane: &bindings::v4l2_plane, _buffer: &mut bindings::v4l2_buffer) {
-    }
 }
 
 impl Mappable for MMAPHandle {
