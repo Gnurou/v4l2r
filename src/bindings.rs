@@ -3,4 +3,9 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(clippy::all)]
-include!("bindings/videodev2.rs");
+
+#[cfg(target_pointer_width = "64")]
+include!("bindings/videodev2_64.rs");
+
+#[cfg(target_pointer_width = "32")]
+include!("bindings/videodev2_32.rs");
