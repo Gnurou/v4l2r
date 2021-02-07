@@ -793,9 +793,11 @@ where
             ..
         } = &mut self.capture_queue
         {
-            while let Ok(buffer) = capture_queue.try_get_free_buffer() {
+            'enqueue: while let Ok(buffer) = capture_queue.try_get_free_buffer() {
                 if let Some(handles) = provider.get_handles() {
                     buffer.queue_with_handles(handles).unwrap();
+                } else {
+                    break 'enqueue;
                 }
             }
         }

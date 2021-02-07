@@ -599,9 +599,11 @@ where
     }
 
     fn enqueue_capture_buffers(&mut self) {
-        while let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
+        'enqueue: while let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
             if let Some(handles) = self.capture_memory_provider.get_handles() {
                 buffer.queue_with_handles(handles).unwrap();
+            } else {
+                break 'enqueue;
             }
         }
     }
