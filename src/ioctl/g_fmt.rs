@@ -19,7 +19,15 @@ pub enum FormatConversionError {
 
 /// Implementors can receive the result from the `g_fmt`, `s_fmt` and `try_fmt`
 /// ioctls.
-pub trait Fmt: TryFrom<bindings::v4l2_format, Error = FormatConversionError> {}
+pub trait Fmt<E: Into<FormatConversionError>>: TryFrom<bindings::v4l2_format, Error = E> {}
+
+impl Into<FormatConversionError> for std::convert::Infallible {
+    fn into(self) -> FormatConversionError {
+        FormatConversionError::TooManyPlanes(0)
+    }
+}
+
+impl Fmt<std::convert::Infallible> for bindings::v4l2_format {}
 
 impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
     type Error = FormatConversionError;
@@ -134,7 +142,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
     }
 }
 
-impl Fmt for Format {}
+impl Fmt<FormatConversionError> for Format {}
 
 impl Default for bindings::v4l2_plane_pix_format {
     fn default() -> Self {
@@ -175,14 +183,17 @@ pub enum GFmtError {
 }
 
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
-pub fn g_fmt<T: Fmt, F: AsRawFd>(fd: &F, queue: QueueType) -> Result<T, GFmtError> {
+pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
+    fd: &F,
+    queue: QueueType,
+) -> Result<T, GFmtError> {
     let mut fmt = bindings::v4l2_format {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };
 
     match unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) } {
-        Ok(_) => Ok(fmt.try_into()?),
+        Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
         Err(Error::Sys(Errno::EINVAL)) => Err(GFmtError::InvalidBufferType),
         Err(e) => Err(GFmtError::IoctlError(e)),
     }
@@ -203,7 +214,7 @@ pub enum SFmtError {
 }
 
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
-pub fn s_fmt<T: Fmt, F: AsRawFd>(
+pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
     fd: &mut F,
     queue: QueueType,
     fmt: Format,
@@ -213,7 +224,7 @@ pub fn s_fmt<T: Fmt, F: AsRawFd>(
         .map_err(SFmtError::ToV4L2FormatConversionError)?;
 
     match unsafe { ioctl::vidioc_s_fmt(fd.as_raw_fd(), &mut fmt) } {
-        Ok(_) => Ok(fmt.try_into()?),
+        Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
         Err(Error::Sys(Errno::EINVAL)) => Err(SFmtError::InvalidBufferType),
         Err(Error::Sys(Errno::EBUSY)) => Err(SFmtError::DeviceBusy),
         Err(e) => Err(SFmtError::IoctlError(e)),
@@ -233,7 +244,7 @@ pub enum TryFmtError {
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
-pub fn try_fmt<T: Fmt, F: AsRawFd>(
+pub fn try_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
     fd: &F,
     queue: QueueType,
     fmt: Format,
@@ -243,7 +254,7 @@ pub fn try_fmt<T: Fmt, F: AsRawFd>(
         .map_err(TryFmtError::ToV4L2FormatConversionError)?;
 
     match unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) } {
-        Ok(_) => Ok(fmt.try_into()?),
+        Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
         Err(Error::Sys(Errno::EINVAL)) => Err(TryFmtError::InvalidBufferType),
         Err(e) => Err(TryFmtError::IoctlError(e)),
     }

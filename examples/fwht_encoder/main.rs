@@ -18,7 +18,7 @@ use v4l2::{
     },
     encoder::*,
     memory::{dmabuf_exporter, MMAPHandle, MMAPProvider, UserPtrHandle},
-    QueueType,
+    Format, QueueType,
 };
 
 use anyhow::ensure;
@@ -88,7 +88,7 @@ fn main() {
     let encoder = Encoder::open(&Path::new(&device_path))
         .expect("Failed to open device")
         .set_capture_format(|f| {
-            let format = f.set_pixelformat(b"FWHT").apply()?;
+            let format: Format = f.set_pixelformat(b"FWHT").apply()?;
 
             ensure!(
                 format.pixelformat == b"FWHT".into(),
@@ -99,7 +99,7 @@ fn main() {
         })
         .expect("Failed to set capture format")
         .set_output_format(|f| {
-            let format = f
+            let format: Format = f
                 .set_pixelformat(b"RGB3")
                 .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
                 .apply()?;

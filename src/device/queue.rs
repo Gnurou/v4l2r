@@ -7,7 +7,7 @@ pub mod states;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::memory::*;
+use crate::{ioctl::FormatConversionError, memory::*};
 use crate::{
     ioctl::{
         self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
@@ -162,7 +162,7 @@ impl<'a> FormatBuilder<'a> {
     /// Apply the format built so far. The kernel will adjust the format to fit
     /// the driver's capabilities if needed, and the format actually applied will
     /// be returned.
-    pub fn apply(self) -> Result<Format, SFmtError> {
+    pub fn apply<E: Into<FormatConversionError>, T: ioctl::Fmt<E>>(self) -> Result<T, SFmtError> {
         ioctl::s_fmt(self.queue, self.queue.type_, self.format)
     }
 

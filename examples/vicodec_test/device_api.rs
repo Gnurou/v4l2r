@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use qbuf::{get_free::GetFreeCaptureBuffer, get_indexed::GetOutputBufferByIndex};
-use v4l2::{device::queue::qbuf::OutputQueueable, memory::MemoryType};
+use v4l2::{device::queue::qbuf::OutputQueueable, memory::MemoryType, Format};
 use v4l2::{device::queue::*, memory::MMAPHandle};
 use v4l2::{
     device::{
@@ -83,7 +83,7 @@ pub fn run<F: FnMut(&[u8])>(
     }
 
     // Make sure the CAPTURE queue will produce FWHT.
-    let capture_format = capture_queue
+    let capture_format: Format = capture_queue
         .change_format()
         .expect("Failed to get capture format")
         .set_pixelformat(b"FWHT")
@@ -95,7 +95,7 @@ pub fn run<F: FnMut(&[u8])>(
     }
 
     // Set 640x480 RGB3 format on the OUTPUT queue.
-    let output_format = output_queue
+    let output_format: Format = output_queue
         .change_format()
         .expect("Failed to get output format")
         .set_size(640, 480)

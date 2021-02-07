@@ -17,6 +17,7 @@ use v4l2::{
         dqbuf::DQBuffer,
     },
     memory::{DMABufHandle, DMABufferHandles},
+    Format,
 };
 use v4l2::{decoder::stateful::GetBufferError, memory::dmabuf_exporter, QueueType};
 use v4l2::{
@@ -138,7 +139,7 @@ fn main() {
     let mut decoder = Decoder::open(&Path::new(&device_path))
         .expect("Failed to open device")
         .set_output_format(|f| {
-            let format = f.set_pixelformat(b"FWHT").apply()?;
+            let format: Format = f.set_pixelformat(b"FWHT").apply()?;
 
             ensure!(
                 format.pixelformat == b"FWHT".into(),
