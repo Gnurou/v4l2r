@@ -112,6 +112,15 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
     }
 }
 
+impl<H: PlaneHandle> QBuffer<H> {
+    fn fill_common_v4l2_data(&self, v4l2_buf: &mut bindings::v4l2_buffer) {
+        v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
+        v4l2_buf.flags = self.flags.bits;
+        v4l2_buf.field = self.field;
+        v4l2_buf.sequence = self.sequence;
+    }
+}
+
 impl<H: PlaneHandle> QBuf for QBuffer<H> {
     fn fill_splane_v4l2_buffer(
         self,
@@ -121,11 +130,12 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
             return Err(QBufError::NumPlanesMismatch(self.planes.len(), 1));
         }
 
+        self.fill_common_v4l2_data(v4l2_buf);
+
         let plane = &self.planes[0];
         if plane.0.data_offset != 0 {
             return Err(QBufError::DataOffsetNotSupported);
         }
-        v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
         v4l2_buf.bytesused = plane.0.bytesused;
         H::fill_v4l2_splane_buffer(&plane.0, v4l2_buf);
 
@@ -144,7 +154,8 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
             ));
         }
 
-        v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
+        self.fill_common_v4l2_data(v4l2_buf);
+
         v4l2_buf.length = self.planes.len() as u32;
         v4l2_planes
             .iter_mut()
