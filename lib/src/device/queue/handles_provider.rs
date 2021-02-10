@@ -4,11 +4,33 @@ use std::{
     sync::{Arc, Mutex, Weak},
 };
 
-use crate::bindings;
+use crate::{
+    bindings,
+    memory::{BufferHandles, MMAPHandle, PrimitiveBufferHandles},
+    Format,
+};
 
-use super::{BufferHandles, PrimitiveBufferHandles, UserPtrHandle};
+pub trait HandlesProvider: Send + 'static {
+    type HandleType: BufferHandles;
 
-pub type UserBufferHandles<T> = Vec<UserPtrHandle<T>>;
+    fn get_handles(&mut self) -> Option<Self::HandleType>;
+}
+
+pub struct MMAPProvider(Vec<MMAPHandle>);
+
+impl MMAPProvider {
+    pub fn new(format: &Format) -> Self {
+        Self(vec![Default::default(); format.plane_fmt.len()])
+    }
+}
+
+impl HandlesProvider for MMAPProvider {
+    type HandleType = Vec<MMAPHandle>;
+
+    fn get_handles(&mut self) -> Option<Self::HandleType> {
+        Some(self.0.clone())
+    }
+}
 
 /// A handles provider that recycles buffers from a fixed set in a pool.
 /// Provided `PooledHandles` will not be recycled for as long as the instance is
@@ -27,7 +49,7 @@ impl<H: BufferHandles> PooledHandlesProvider<H> {
     }
 }
 
-impl<H: BufferHandles> super::HandlesProvider for PooledHandlesProvider<H> {
+impl<H: BufferHandles> HandlesProvider for PooledHandlesProvider<H> {
     type HandleType = PooledHandles<H>;
 
     fn get_handles(&mut self) -> Option<PooledHandles<H>> {

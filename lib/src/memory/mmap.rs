@@ -1,6 +1,6 @@
 //! Operations specific to MMAP-type buffers.
 use super::*;
-use crate::{bindings, ioctl, Format};
+use crate::{bindings, ioctl};
 use std::fmt::Debug;
 
 #[derive(Default)]
@@ -28,21 +28,5 @@ impl PlaneHandle for MMAPHandle {
 impl Mappable for MMAPHandle {
     fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping> {
         Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
-    }
-}
-
-pub struct MMAPProvider(Vec<MMAPHandle>);
-
-impl MMAPProvider {
-    pub fn new(format: &Format) -> Self {
-        Self(vec![Default::default(); format.plane_fmt.len()])
-    }
-}
-
-impl super::HandlesProvider for MMAPProvider {
-    type HandleType = Vec<MMAPHandle>;
-
-    fn get_handles(&mut self) -> Option<Self::HandleType> {
-        Some(self.0.clone())
     }
 }

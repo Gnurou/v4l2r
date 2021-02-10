@@ -36,8 +36,6 @@ pub use dmabuf::*;
 pub use mmap::*;
 pub use userptr::*;
 
-pub mod pooled_provider;
-
 use crate::{
     bindings,
     ioctl::{PlaneMapping, QueryBufPlane},
@@ -133,10 +131,4 @@ pub trait PrimitiveBufferHandles: BufferHandles {
 impl<P: PlaneHandle> PrimitiveBufferHandles for Vec<P> {
     type HandleType = P;
     const MEMORY_TYPE: Self::SupportedMemoryType = P::Memory::MEMORY_TYPE;
-}
-
-pub trait HandlesProvider: Send + 'static {
-    type HandleType: BufferHandles;
-
-    fn get_handles(&mut self) -> Option<Self::HandleType>;
 }

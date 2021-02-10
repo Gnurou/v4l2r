@@ -1,6 +1,7 @@
 pub mod direction;
 pub mod dqbuf;
 pub mod generic;
+pub mod handles_provider;
 pub mod qbuf;
 pub mod states;
 

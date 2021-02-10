@@ -22,11 +22,12 @@ use v4l2::{
 use v4l2::{decoder::stateful::GetBufferError, QueueType};
 use v4l2::{
     decoder::{format::fwht::FwhtFrameParser, stateful::SetCaptureFormatRet},
-    device::queue::{qbuf::OutputQueueable, FormatBuilder},
-    memory::{
-        pooled_provider::{PooledHandles, PooledHandlesProvider},
-        MemoryType, UserPtrHandle,
+    device::queue::{
+        handles_provider::{PooledHandles, PooledHandlesProvider},
+        qbuf::OutputQueueable,
+        FormatBuilder,
     },
+    memory::{MemoryType, UserPtrHandle},
 };
 
 use clap::{App, Arg};

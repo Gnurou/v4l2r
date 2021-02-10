@@ -5,6 +5,7 @@ use crate::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
             generic::{GenericBufferHandles, GenericQBuffer},
+            handles_provider::HandlesProvider,
             qbuf::get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
             qbuf::{CaptureQueueable, QBuffer},
             BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
@@ -13,7 +14,7 @@ use crate::{
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
     ioctl::{self, BufferFlags, DQBufError, EncoderCommand, FormatFlags, GFmtError},
-    memory::{BufferHandles, HandlesProvider, PrimitiveBufferHandles},
+    memory::{BufferHandles, PrimitiveBufferHandles},
     Format,
 };
 

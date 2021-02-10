@@ -12,10 +12,11 @@ use v4l2::{
         direction::Capture,
         dqbuf::DQBuffer,
         generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
+        handles_provider::MMAPProvider,
         qbuf::OutputQueueable,
     },
     encoder::*,
-    memory::{MMAPHandle, MMAPProvider, UserPtrHandle},
+    memory::{MMAPHandle, UserPtrHandle},
     Format, QueueType,
 };
 
