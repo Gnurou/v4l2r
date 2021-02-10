@@ -5,6 +5,7 @@ use std::{
 };
 use std::{ops::DerefMut, os::unix::io::AsRawFd};
 
+use log::error;
 use nix::{
     libc::{c_void, off_t, size_t},
     sys::mman,
@@ -61,7 +62,7 @@ impl Drop for PlaneMapping {
         // are always valid.
         unsafe { mman::munmap(self.data.as_mut_ptr() as *mut c_void, self.data.len()) }
             .unwrap_or_else(|e| {
-                eprintln!("Error while unmapping plane: {}", e);
+                error!("error while unmapping plane: {}", e);
             });
     }
 }

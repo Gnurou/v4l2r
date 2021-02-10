@@ -1,3 +1,4 @@
+use log::error;
 use std::{io, slice};
 
 pub struct FwhtFrameParser<S: io::Read> {
@@ -49,7 +50,7 @@ impl<S: io::Read> Iterator for FwhtFrameParser<S> {
                     };
                 }
                 Err(e) => {
-                    eprintln!("error while reading FWHT stream: {}", e);
+                    error!("error while reading FWHT stream: {}", e);
                     return None;
                 }
             }

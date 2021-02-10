@@ -16,6 +16,8 @@ use clap::{App, Arg};
 use v4l2::memory::MemoryType;
 
 fn main() {
+    env_logger::init();
+
     let matches = App::new("vicodec example")
         .arg(
             Arg::with_name("use_ioctl")

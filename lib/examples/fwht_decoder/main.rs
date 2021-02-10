@@ -32,6 +32,8 @@ use v4l2::{
 use clap::{App, Arg};
 
 fn main() {
+    env_logger::init();
+
     let matches = App::new("FWHT decoder")
         .arg(
             Arg::with_name("stream")

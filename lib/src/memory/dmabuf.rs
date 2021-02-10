@@ -1,4 +1,6 @@
 //! Operations specific to DMABuf-type buffers.
+use log::warn;
+
 use super::*;
 use crate::{bindings, ioctl};
 use std::os::unix::io::AsRawFd;
@@ -26,7 +28,7 @@ impl DMABufSource for std::fs::File {
     fn len(&self) -> u64 {
         match self.metadata() {
             Err(_) => {
-                eprintln!("Failed to compute File size for use as DMABuf, using 0...");
+                warn!("failed to compute File size for use as DMABuf, using 0...");
                 0
             }
             Ok(m) => m.len(),

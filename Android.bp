@@ -12,6 +12,7 @@ rust_library {
         "libanyhow",
         "libbitflags",
         "liblibc",
+        "liblog_rust",
         "libnix",
         "libthiserror",
     ],

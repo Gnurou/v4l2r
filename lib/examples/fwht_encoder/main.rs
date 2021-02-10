@@ -27,6 +27,8 @@ use clap::{App, Arg};
 const FRAME_SIZE: (usize, usize) = (640, 480);
 
 fn main() {
+    env_logger::init();
+
     let matches = App::new("FWHT encoder")
         .arg(
             Arg::with_name("num_frames")

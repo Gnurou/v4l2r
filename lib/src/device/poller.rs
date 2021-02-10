@@ -15,6 +15,8 @@ use std::{
     sync::Arc,
 };
 
+use log::warn;
+
 use crate::device::Device;
 
 macro_rules! syscall {
@@ -338,7 +340,7 @@ impl Poller {
             if event.u64 <= LAST_WAKER_ID {
                 match self.wakers.get(&(event.u64 as u32)) {
                     Some(waker) => waker.reset()?,
-                    None => eprintln!("warning: unregistered waker has been signaled."),
+                    None => warn!("unregistered waker has been signaled."),
                 }
             }
         }

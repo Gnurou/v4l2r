@@ -4,6 +4,7 @@ use crate::bindings;
 use crate::{Error, Result};
 use crate::{PixelFormat, QueueType};
 use bitflags::bitflags;
+use log::error;
 use nix::errno::Errno;
 use std::fmt;
 use std::mem;
@@ -114,7 +115,7 @@ impl<'a, F: AsRawFd> Iterator for FormatIterator<'a, F> {
             // EINVAL means we have reached the last format.
             Err(Error::Nix(nix::Error::Sys(Errno::EINVAL))) => None,
             _ => {
-                eprintln!("Unexpected return value for VIDIOC_ENUM_FMT!");
+                error!("Unexpected return value for VIDIOC_ENUM_FMT!");
                 None
             }
         }

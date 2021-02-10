@@ -20,6 +20,7 @@ use crate::{
     Format,
 };
 
+use log::debug;
 use std::{
     io,
     path::Path,
@@ -563,7 +564,7 @@ where
 
         let capture_queue =
             capture_queue.request_buffers_generic::<P::HandleType>(mem_type, num_buffers as u32)?;
-        println!("Allocated {} buffers", capture_queue.num_buffers());
+        debug!("allocated {} capture buffers", capture_queue.num_buffers());
 
         // TODO use two closures, one to set the format, another one to decide
         // the number of buffers, given the minimum number of buffers for the
@@ -607,7 +608,7 @@ where
             match event {
                 ioctl::Event::SrcChangeEvent(changes) => {
                     if changes.contains(ioctl::SrcChanges::RESOLUTION) {
-                        println!("Got resolution change event!");
+                        debug!("received resolution change event");
                         self = self.update_capture_resolution()?;
                     }
                 }
