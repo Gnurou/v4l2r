@@ -1,5 +1,4 @@
 use thiserror::Error;
-
 #[derive(Debug, Error)]
 pub enum NewFrameGeneratorError {
     #[error("Invalid stride")]

@@ -19,7 +19,7 @@ use v4l2::{
     memory::{DMABufHandle, DMABufferHandles},
     Format,
 };
-use v4l2::{decoder::stateful::GetBufferError, memory::dmabuf_exporter, QueueType};
+use v4l2::{decoder::stateful::GetBufferError, QueueType};
 use v4l2::{
     decoder::{format::fwht::FwhtFrameParser, stateful::SetCaptureFormatRet},
     device::queue::{qbuf::OutputQueueable, FormatBuilder},
@@ -121,7 +121,7 @@ fn main() {
 
             println!("New CAPTURE format: {:?}", format);
 
-            let dmabuf_fds: Vec<Vec<_>> = dmabuf_exporter::export_dmabufs(
+            let dmabuf_fds: Vec<Vec<_>> = utils::dmabuf_exporter::export_dmabufs(
                 &Path::new(&device_path_cb),
                 QueueType::VideoCaptureMplane,
                 &format,

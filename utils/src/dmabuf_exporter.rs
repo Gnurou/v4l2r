@@ -1,14 +1,13 @@
 use std::{fs::File, path::Path};
 
-use crate::{
+use v4l2::{
     device::Device,
     ioctl::{self, ExpbufFlags},
+    memory::{DMABufHandle, MemoryType},
     Format, QueueType,
 };
 
 use anyhow::Result;
-
-use super::{DMABufHandle, MemoryType};
 
 pub fn export_dmabufs(
     device_path: &Path,

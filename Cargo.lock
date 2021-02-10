@@ -276,6 +276,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 
 [[package]]
+name = "utils"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "thiserror",
+ "v4l2",
+]
+
+[[package]]
 name = "v4l2"
 version = "0.0.1"
 dependencies = [
@@ -288,6 +297,7 @@ dependencies = [
  "log",
  "nix 0.19.1",
  "thiserror",
+ "utils",
 ]
 
 [[package]]

@@ -1,4 +1,3 @@
-use super::framegen;
 use nix::fcntl::{open, OFlag};
 use nix::sys::stat::Mode;
 use std::collections::BTreeMap;
@@ -9,6 +8,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
+use utils::framegen::FrameGenerator;
 
 use v4l2::memory::{MMAPHandle, MemoryType};
 use v4l2::{ioctl::*, memory::UserPtrHandle};
@@ -159,7 +159,6 @@ pub fn run<F: FnMut(&[u8])>(
     }
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
-    let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
     let mut output_buffers: Vec<UserPtrHandle<Vec<u8>>> = match output_mem {
         MemoryType::MMAP => Default::default(),
         MemoryType::UserPtr => std::iter::repeat(vec![0u8; output_image_size])
@@ -172,6 +171,13 @@ pub fn run<F: FnMut(&[u8])>(
     // Start streaming.
     streamon(&fd, output_queue).expect("Failed to start output queue");
     streamon(&fd, capture_queue).expect("Failed to start capture queue");
+
+    let mut frame_gen = FrameGenerator::new(
+        output_format.width as usize,
+        output_format.height as usize,
+        output_format.plane_fmt[0].bytesperline as usize,
+    )
+    .expect("Failed to create frame generator");
 
     let mut cpt = 0usize;
     let mut total_size = 0usize;
@@ -197,10 +203,12 @@ pub fn run<F: FnMut(&[u8])>(
                 let mut mapping =
                     mmap(&fd, plane.mem_offset, plane.length).expect("Failed to map output buffer");
 
-                framegen::gen_pattern(&mut mapping, output_image_bytesperline, cpt as u32);
+                frame_gen
+                    .next_frame(&mut mapping)
+                    .expect("Failed to generate frame");
 
                 let out_qbuf = QBuffer::<MMAPHandle> {
-                    planes: vec![QBufPlane::new(mapping.len())],
+                    planes: vec![QBufPlane::new(frame_gen.frame_size())],
                     ..Default::default()
                 };
 
@@ -209,7 +217,9 @@ pub fn run<F: FnMut(&[u8])>(
             MemoryType::UserPtr => {
                 let output_buffer = &mut output_buffers[output_buffer_index];
 
-                framegen::gen_pattern(&mut output_buffer.0, output_image_bytesperline, cpt as u32);
+                frame_gen
+                    .next_frame(&mut output_buffer.0)
+                    .expect("Failed to generate frame");
 
                 let out_qbuf = QBuffer::<UserPtrHandle<Vec<u8>>> {
                     planes: vec![QBufPlane::new_from_handle(

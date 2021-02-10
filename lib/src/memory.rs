@@ -36,7 +36,6 @@ pub use dmabuf::*;
 pub use mmap::*;
 pub use userptr::*;
 
-pub mod dmabuf_exporter;
 pub mod pooled_provider;
 
 use crate::{

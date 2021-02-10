@@ -1,6 +1,4 @@
-mod framegen;
-
-use framegen::FrameGenerator;
+use utils::framegen::FrameGenerator;
 
 use std::fs::File;
 use std::io::{self, Write};
@@ -17,7 +15,7 @@ use v4l2::{
         qbuf::OutputQueueable,
     },
     encoder::*,
-    memory::{dmabuf_exporter, MMAPHandle, MMAPProvider, UserPtrHandle},
+    memory::{MMAPHandle, MMAPProvider, UserPtrHandle},
     Format, QueueType,
 };
 
@@ -124,7 +122,7 @@ fn main() {
         .expect("Failed to get output format");
     println!("Adjusted output format: {:?}", output_format);
 
-    let dmabuf_fds = dmabuf_exporter::export_dmabufs(
+    let dmabuf_fds = utils::dmabuf_exporter::export_dmabufs(
         &Path::new(&device_path),
         QueueType::VideoOutputMplane,
         &output_format,

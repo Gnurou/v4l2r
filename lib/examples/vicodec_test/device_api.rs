@@ -1,9 +1,9 @@
-use super::framegen;
 use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
+use utils::framegen::FrameGenerator;
 
 use qbuf::{get_free::GetFreeCaptureBuffer, get_indexed::GetOutputBufferByIndex};
 use v4l2::{device::queue::qbuf::OutputQueueable, memory::MemoryType, Format};
@@ -116,7 +116,6 @@ pub fn run<F: FnMut(&[u8])>(
     );
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
-    let output_image_bytesperline = output_format.plane_fmt[0].bytesperline as usize;
 
     match capture_mem {
         MemoryType::MMAP => (),
@@ -156,6 +155,13 @@ pub fn run<F: FnMut(&[u8])>(
         .expect("Failed to start output_queue");
     capture_queue.stream_on().expect("Failed to start capture");
 
+    let mut frame_gen = FrameGenerator::new(
+        output_format.width as usize,
+        output_format.height as usize,
+        output_format.plane_fmt[0].bytesperline as usize,
+    )
+    .expect("Failed to create frame generator");
+
     let mut cpt = 0usize;
     let mut total_size = 0usize;
     let start_time = Instant::now();
@@ -189,9 +195,11 @@ pub fn run<F: FnMut(&[u8])>(
                     .get_plane_mapping(0)
                     .expect("Failed to get MMAP mapping");
 
-                framegen::gen_pattern(&mut mapping, output_image_bytesperline, cpt as u32);
+                frame_gen
+                    .next_frame(&mut mapping)
+                    .expect("Failed to generate frame");
 
-                buf.queue(&[mapping.len()])
+                buf.queue(&[frame_gen.frame_size()])
                     .expect("Failed to queue output buffer");
             }
             GenericQBuffer::User(buf) => {
@@ -199,13 +207,11 @@ pub fn run<F: FnMut(&[u8])>(
                     .take()
                     .expect("Output buffer not available. This is a bug.");
 
-                framegen::gen_pattern(
-                    &mut output_buffer_data,
-                    output_image_bytesperline,
-                    cpt as u32,
-                );
+                frame_gen
+                    .next_frame(&mut output_buffer_data)
+                    .expect("Failed to generate frame");
 
-                let bytes_used = output_buffer_data.len();
+                let bytes_used = frame_gen.frame_size();
                 buf.queue_with_handles(
                     GenericBufferHandles::from(vec![UserPtrHandle::from(output_buffer_data)]),
                     &[bytes_used],

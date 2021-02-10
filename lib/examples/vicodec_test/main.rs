@@ -5,7 +5,6 @@
 //! `device` abstraction (used by default), the other using the low-level
 //! `ioctl` abstraction (used if `--use_ioctl` is specified).
 mod device_api;
-mod framegen;
 mod ioctl_api;
 
 use std::path::Path;
