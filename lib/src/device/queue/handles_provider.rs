@@ -4,8 +4,11 @@ use std::{
     sync::{Arc, Mutex, Weak},
 };
 
+use log::error;
+
 use crate::{
     bindings,
+    device::poller::Waker,
     memory::{BufferHandles, MMAPHandle, PrimitiveBufferHandles},
     Format,
 };
@@ -13,7 +16,10 @@ use crate::{
 pub trait HandlesProvider: Send + 'static {
     type HandleType: BufferHandles;
 
-    fn get_handles(&mut self) -> Option<Self::HandleType>;
+    /// Request a set of handles. Returns `None` if no handle is currently
+    /// available. If that is the case, `waker` will be signaled when handles
+    /// are available again.
+    fn get_handles(&mut self, waker: &Arc<Waker>) -> Option<Self::HandleType>;
 }
 
 pub struct MMAPProvider(Vec<MMAPHandle>);
@@ -27,24 +33,36 @@ impl MMAPProvider {
 impl HandlesProvider for MMAPProvider {
     type HandleType = Vec<MMAPHandle>;
 
-    fn get_handles(&mut self) -> Option<Self::HandleType> {
+    fn get_handles(&mut self, _waker: &Arc<Waker>) -> Option<Self::HandleType> {
         Some(self.0.clone())
     }
 }
+
+/// Internals of `PooledHandlesProvider`, which acts just as a protected wrapper
+/// around this structure.
+struct PooledHandlesProviderInternal<H: BufferHandles> {
+    buffers: VecDeque<H>,
+    waker: Option<Arc<Waker>>,
+}
+
+unsafe impl<H: BufferHandles> Send for PooledHandlesProviderInternal<H> {}
 
 /// A handles provider that recycles buffers from a fixed set in a pool.
 /// Provided `PooledHandles` will not be recycled for as long as the instance is
 /// alive. Once it is dropped, it the underlying buffer returns into the pool to
 /// be reused later.
 pub struct PooledHandlesProvider<H: BufferHandles> {
-    buffers: Arc<Mutex<VecDeque<H>>>,
+    d: Arc<Mutex<PooledHandlesProviderInternal<H>>>,
 }
 
 impl<H: BufferHandles> PooledHandlesProvider<H> {
     /// Create a new `PooledMemoryProvider`, using the set in `buffers`.
     pub fn new<B: IntoIterator<Item = H>>(buffers: B) -> Self {
         Self {
-            buffers: Arc::new(Mutex::new(buffers.into_iter().collect())),
+            d: Arc::new(Mutex::new(PooledHandlesProviderInternal {
+                buffers: buffers.into_iter().collect(),
+                waker: None,
+            })),
         }
     }
 }
@@ -52,11 +70,14 @@ impl<H: BufferHandles> PooledHandlesProvider<H> {
 impl<H: BufferHandles> HandlesProvider for PooledHandlesProvider<H> {
     type HandleType = PooledHandles<H>;
 
-    fn get_handles(&mut self) -> Option<PooledHandles<H>> {
-        let mut buffers = self.buffers.lock().unwrap();
-        match buffers.pop_front() {
-            Some(handles) => Some(PooledHandles::new(&self.buffers, handles)),
-            None => None,
+    fn get_handles(&mut self, waker: &Arc<Waker>) -> Option<PooledHandles<H>> {
+        let mut d = self.d.lock().unwrap();
+        match d.buffers.pop_front() {
+            Some(handles) => Some(PooledHandles::new(&self.d, handles)),
+            None => {
+                d.waker = Some(Arc::clone(waker));
+                None
+            }
         }
     }
 }
@@ -68,11 +89,11 @@ pub struct PooledHandles<H: BufferHandles> {
     // Use of Option is necessary here because of Drop implementation, but the
     // Option will always be Some()
     handles: Option<H>,
-    provider: Weak<Mutex<VecDeque<H>>>,
+    provider: Weak<Mutex<PooledHandlesProviderInternal<H>>>,
 }
 
 impl<H: BufferHandles> PooledHandles<H> {
-    fn new(provider: &Arc<Mutex<VecDeque<H>>>, handles: H) -> Self {
+    fn new(provider: &Arc<Mutex<PooledHandlesProviderInternal<H>>>, handles: H) -> Self {
         Self {
             handles: Some(handles),
             provider: Arc::downgrade(provider),
@@ -97,8 +118,13 @@ impl<H: BufferHandles> Drop for PooledHandles<H> {
         match self.provider.upgrade() {
             None => (),
             Some(provider) => {
-                let mut buffers = provider.lock().unwrap();
-                buffers.push_back(self.handles.take().unwrap());
+                let mut provider = provider.lock().unwrap();
+                provider.buffers.push_back(self.handles.take().unwrap());
+                if let Some(waker) = provider.waker.take() {
+                    waker.wake().unwrap_or_else(|e| {
+                        error!("error signaling waker after PooledHandles drop: {}", e);
+                    });
+                }
             }
         }
     }

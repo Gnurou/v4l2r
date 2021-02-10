@@ -792,11 +792,11 @@ where
         if let CaptureQueue::Decoding {
             capture_queue,
             provider,
-            ..
+            cap_buffer_waker,
         } = &mut self.capture_queue
         {
-            'enqueue: while let Ok(buffer) = capture_queue.try_get_free_buffer() {
-                if let Some(handles) = provider.get_handles() {
+            'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
+                if let Ok(buffer) = capture_queue.try_get_free_buffer() {
                     buffer.queue_with_handles(handles).unwrap();
                 } else {
                     break 'enqueue;

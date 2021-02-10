@@ -600,8 +600,8 @@ where
     }
 
     fn enqueue_capture_buffers(&mut self) {
-        'enqueue: while let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
-            if let Some(handles) = self.capture_memory_provider.get_handles() {
+        'enqueue: while let Some(handles) = self.capture_memory_provider.get_handles(&self.waker) {
+            if let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
                 buffer.queue_with_handles(handles).unwrap();
             } else {
                 break 'enqueue;
