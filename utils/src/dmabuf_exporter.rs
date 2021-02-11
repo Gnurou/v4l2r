@@ -1,5 +1,6 @@
 use std::{fs::File, path::Path};
 
+use log::error;
 use v4l2::{
     device::Device,
     ioctl::{self, ExpbufFlags},
@@ -17,8 +18,13 @@ pub fn export_dmabufs(
 ) -> Result<Vec<Vec<DMABufHandle<File>>>> {
     let mut device = Device::open(device_path, Default::default())?;
 
-    // TODO: check that the requested format has been set.
-    let _set_format: Format = ioctl::s_fmt(&mut device, queue, format.clone()).unwrap();
+    let set_format: Format = ioctl::s_fmt(&mut device, queue, format.clone()).unwrap();
+    if set_format != *format {
+        error!("Requested format does not apply as-is");
+        error!("Requested format: {:?}", format);
+        error!("Applied format: {:?}", format);
+        return Err(anyhow::anyhow!("Could not apply requested format"));
+    }
     let nb_buffers: usize =
         ioctl::reqbufs(&device, queue, MemoryType::MMAP, nb_buffers as u32).unwrap();
 

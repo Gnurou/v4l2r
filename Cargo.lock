@@ -280,6 +280,7 @@ name = "utils"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "log",
  "thiserror",
  "v4l2",
 ]
