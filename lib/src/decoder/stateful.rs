@@ -21,7 +21,7 @@ use crate::{
     Format,
 };
 
-use log::debug;
+use log::{debug, warn};
 use std::{
     io,
     path::Path,
@@ -796,9 +796,13 @@ where
         } = &mut self.capture_queue
         {
             'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
+                // TODO potential problem: the handles will be dropped if no V4L2 buffer
+                // is available. There is no guarantee that the provider will get them back
+                // in this case (e.g. with the C FFI).
                 if let Ok(buffer) = capture_queue.try_get_free_buffer() {
                     buffer.queue_with_handles(handles).unwrap();
                 } else {
+                    warn!("handles potentially lost due to no V4L2 buffer being available");
                     break 'enqueue;
                 }
             }
