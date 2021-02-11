@@ -1,7 +1,7 @@
 use super::{is_multi_planar, BufferFlags, PlaneData};
 use crate::bindings;
 use crate::QueueType;
-use crate::Result;
+use thiserror::Error;
 
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -12,10 +12,7 @@ pub trait QueryBuf: Sized {
     /// then the buffer is single-planar. If it has data, the buffer is
     /// multi-planar and the array of `struct v4l2_plane` shall be used to
     /// retrieve the plane data.
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self>;
+    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self;
 }
 
 #[derive(Debug)]
@@ -35,10 +32,7 @@ pub struct QueryBuffer {
 }
 
 impl QueryBuf for QueryBuffer {
-    fn from_v4l2_buffer(
-        v4l2_buf: &bindings::v4l2_buffer,
-        v4l2_planes: Option<&PlaneData>,
-    ) -> Result<Self> {
+    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self {
         let planes = match v4l2_planes {
             None => vec![QueryBufPlane {
                 mem_offset: unsafe { v4l2_buf.m.offset },
@@ -54,11 +48,11 @@ impl QueryBuf for QueryBuffer {
                 .collect(),
         };
 
-        Ok(QueryBuffer {
+        QueryBuffer {
             index: v4l2_buf.index as usize,
             flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
             planes,
-        })
+        }
     }
 }
 
@@ -68,8 +62,18 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_querybuf, b'V', 9, v4l2_buffer);
 }
 
+#[derive(Debug, Error)]
+pub enum QueryBufError {
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(#[from] nix::Error),
+}
+
 /// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.
-pub fn querybuf<T: QueryBuf, F: AsRawFd>(fd: &F, queue: QueueType, index: usize) -> Result<T> {
+pub fn querybuf<T: QueryBuf, F: AsRawFd>(
+    fd: &F,
+    queue: QueueType,
+    index: usize,
+) -> Result<T, QueryBufError> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
@@ -82,9 +86,9 @@ pub fn querybuf<T: QueryBuf, F: AsRawFd>(fd: &F, queue: QueueType, index: usize)
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data))?)
+        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data)))
     } else {
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, None)?)
+        Ok(T::from_v4l2_buffer(&v4l2_buf, None))
     }
 }

@@ -2,7 +2,6 @@
 use crate::{bindings, FormatConversionError};
 use crate::{Format, PlaneLayout, QueueType};
 use nix::errno::Errno;
-use nix::Error;
 use std::convert::{From, Into, TryFrom, TryInto};
 use std::default::Default;
 use std::mem;
@@ -123,7 +122,7 @@ pub enum GFmtError {
     #[error("Invalid buffer type requested")]
     InvalidBufferType,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(nix::Error),
 }
 
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
@@ -138,7 +137,7 @@ pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) } {
         Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
-        Err(Error::Sys(Errno::EINVAL)) => Err(GFmtError::InvalidBufferType),
+        Err(nix::Error::Sys(Errno::EINVAL)) => Err(GFmtError::InvalidBufferType),
         Err(e) => Err(GFmtError::IoctlError(e)),
     }
 }
@@ -154,7 +153,7 @@ pub enum SFmtError {
     #[error("Device currently busy")]
     DeviceBusy,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(nix::Error),
 }
 
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
@@ -169,8 +168,8 @@ pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_s_fmt(fd.as_raw_fd(), &mut fmt) } {
         Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
-        Err(Error::Sys(Errno::EINVAL)) => Err(SFmtError::InvalidBufferType),
-        Err(Error::Sys(Errno::EBUSY)) => Err(SFmtError::DeviceBusy),
+        Err(nix::Error::Sys(Errno::EINVAL)) => Err(SFmtError::InvalidBufferType),
+        Err(nix::Error::Sys(Errno::EBUSY)) => Err(SFmtError::DeviceBusy),
         Err(e) => Err(SFmtError::IoctlError(e)),
     }
 }
@@ -184,7 +183,7 @@ pub enum TryFmtError {
     #[error("Invalid buffer type requested")]
     InvalidBufferType,
     #[error("Unexpected ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(nix::Error),
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
@@ -199,7 +198,7 @@ pub fn try_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) } {
         Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
-        Err(Error::Sys(Errno::EINVAL)) => Err(TryFmtError::InvalidBufferType),
+        Err(nix::Error::Sys(Errno::EINVAL)) => Err(TryFmtError::InvalidBufferType),
         Err(e) => Err(TryFmtError::IoctlError(e)),
     }
 }

@@ -24,38 +24,15 @@ pub mod encoder;
 pub mod ioctl;
 pub mod memory;
 
+use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::{convert::TryFrom};
 
 use thiserror::Error;
 
 // The goal of this library is to provide two layers of abstraction:
 // ioctl: direct, safe counterparts of the V4L2 ioctls.
 // device/queue/buffer: higher abstraction, still mapping to core V4L2 mechanics.
-
-/// Error type for anything wrong that can happen within V4L2.
-#[derive(Debug, PartialEq)]
-pub enum Error {
-    Nix(nix::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Nix(e) => Debug::fmt(e, f),
-        }
-    }
-}
-impl std::error::Error for Error {}
-
-impl From<nix::Error> for Error {
-    fn from(e: nix::Error) -> Self {
-        Error::Nix(e)
-    }
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
 
 /// Types of queues currently supported by this library.
 #[allow(unused)]

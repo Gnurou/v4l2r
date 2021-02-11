@@ -1,7 +1,6 @@
 //! Safe wrapper for the `VIDIOC_ENUM_FMT` ioctl.
 use super::string_from_cstr;
 use crate::bindings;
-use crate::{Error, Result};
 use crate::{PixelFormat, QueueType};
 use bitflags::bitflags;
 use log::error;
@@ -9,6 +8,7 @@ use nix::errno::Errno;
 use std::fmt;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use thiserror::Error;
 
 /// Implementors can receive the result from the `enum_fmt` ioctl.
 pub trait EnumFmt {
@@ -70,8 +70,18 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_enum_fmt, b'V', 2, v4l2_fmtdesc);
 }
 
+#[derive(Debug, Error)]
+pub enum EnumFmtError {
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(#[from] nix::Error),
+}
+
 /// Safe wrapper around the `VIDIOC_ENUM_FMT` ioctl.
-pub fn enum_fmt<T: EnumFmt, F: AsRawFd>(fd: &F, queue: QueueType, index: u32) -> Result<T> {
+pub fn enum_fmt<T: EnumFmt, F: AsRawFd>(
+    fd: &F,
+    queue: QueueType,
+    index: u32,
+) -> Result<T, EnumFmtError> {
     let mut fmtdesc = bindings::v4l2_fmtdesc {
         type_: queue as u32,
         index,
@@ -113,7 +123,7 @@ impl<'a, F: AsRawFd> Iterator for FormatIterator<'a, F> {
                 Some(fmtdesc)
             }
             // EINVAL means we have reached the last format.
-            Err(Error::Nix(nix::Error::Sys(Errno::EINVAL))) => None,
+            Err(EnumFmtError::IoctlError(nix::Error::Sys(Errno::EINVAL))) => None,
             _ => {
                 error!("Unexpected return value for VIDIOC_ENUM_FMT!");
                 None

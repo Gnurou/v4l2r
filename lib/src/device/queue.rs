@@ -200,7 +200,7 @@ pub enum RequestBuffersError {
     #[error("Error while requesting buffers")]
     ReqbufsError(#[from] ioctl::ReqbufsError),
     #[error("Error while querying buffer")]
-    QueryBufferError(#[from] crate::Error),
+    QueryBufferError(#[from] ioctl::QueryBufError),
 }
 
 impl<D: Direction> Queue<D, QueueInit> {
