@@ -10,7 +10,7 @@ use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIn
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::{
     ioctl::{
-        self, DQBufError, DQBufResult, GFmtError, QueryBuffer, SFmtError, StreamOffError,
+        self, DQBufError, DQBufResult, Fmt, GFmtError, QueryBuffer, SFmtError, StreamOffError,
         StreamOnError, TryFmtError,
     },
     PlaneLayout,
@@ -92,7 +92,7 @@ where
         self.inner.type_
     }
 
-    pub fn get_format(&self) -> Result<Format, GFmtError> {
+    pub fn get_format<E: Into<FormatConversionError>, T: Fmt<E>>(&self) -> Result<T, GFmtError> {
         ioctl::g_fmt(&self.inner, self.inner.type_)
     }
 

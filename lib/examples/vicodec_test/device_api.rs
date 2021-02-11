@@ -108,12 +108,10 @@ pub fn run<F: FnMut(&[u8])>(
     }
 
     println!("Adjusted output format: {:?}", output_format);
-    println!(
-        "Adjusted capture format: {:?}",
-        capture_queue
-            .get_format()
-            .expect("Failed to get capture format")
-    );
+    let capture_format: Format = capture_queue
+        .get_format()
+        .expect("Failed to get capture format");
+    println!("Adjusted capture format: {:?}", capture_format);
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
 

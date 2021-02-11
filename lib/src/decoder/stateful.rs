@@ -16,9 +16,9 @@ use crate::{
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{self, subscribe_event, BufferCapabilities, FormatFlags, StreamOnError},
+    ioctl::{self, subscribe_event, BufferCapabilities, Fmt, FormatFlags, StreamOnError},
     memory::{BufferHandles, PrimitiveBufferHandles},
-    Format,
+    FormatConversionError,
 };
 
 use log::{debug, warn};
@@ -306,7 +306,9 @@ where
         self.state.output_queue.num_buffers()
     }
 
-    pub fn get_output_format(&self) -> Result<Format, ioctl::GFmtError> {
+    pub fn get_output_format<E: Into<FormatConversionError>, T: Fmt<E>>(
+        &self,
+    ) -> Result<T, ioctl::GFmtError> {
         self.state.output_queue.get_format()
     }
 
