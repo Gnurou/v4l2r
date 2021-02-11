@@ -37,15 +37,17 @@ pub use subscribe_event::*;
 
 use crate::bindings;
 use crate::QueueType;
-use crate::Result;
-use std::{ffi::CStr, mem};
+use std::{
+    ffi::{CStr, FromBytesWithNulError},
+    mem,
+};
 
 /// Utility function for sub-modules.
 /// Constructs an owned String instance from a slice containing a nul-terminated
 /// C string, after checking that the passed slice indeed contains a nul
 /// character. The string is duplicated in the process so no ownership is taken
 /// from the parameter.
-fn string_from_cstr(c_str: &[u8]) -> Result<String> {
+fn string_from_cstr(c_str: &[u8]) -> Result<String, FromBytesWithNulError> {
     // Make sure that our string contains a nul character.
     let slice = match c_str.iter().position(|x| *x == b'\0') {
         // Pass an empty slice so from_bytes_with_nul returns an error.
@@ -63,7 +65,6 @@ mod tests {
     #[test]
     fn test_string_from_cstr() {
         use super::string_from_cstr;
-        use crate::Error::*;
 
         // Nul-terminated slice.
         assert_eq!(string_from_cstr(b"Hello\0"), Ok(String::from("Hello")));
@@ -78,15 +79,15 @@ mod tests {
         assert_eq!(string_from_cstr(b"\0ello"), Ok(String::from("")));
 
         // Slice without nul.
-        match string_from_cstr(b"Hello").unwrap_err() {
-            FfiInvalidString(_) => {}
-            _ => panic!(),
+        match string_from_cstr(b"Hello") {
+            Err(_) => {}
+            Ok(_) => panic!(),
         };
 
         // Empty slice.
-        match string_from_cstr(b"").unwrap_err() {
-            FfiInvalidString(_) => {}
-            _ => panic!(),
+        match string_from_cstr(b"") {
+            Err(_) => {}
+            Ok(_) => panic!(),
         };
     }
 }

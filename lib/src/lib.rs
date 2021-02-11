@@ -26,7 +26,7 @@ pub mod memory;
 
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::{convert::TryFrom, ffi};
+use std::{convert::TryFrom};
 
 use thiserror::Error;
 
@@ -37,37 +37,13 @@ use thiserror::Error;
 /// Error type for anything wrong that can happen within V4L2.
 #[derive(Debug, PartialEq)]
 pub enum Error {
-    /// The requested item is already in use by the client.
-    AlreadyBorrowed,
-    /// The buffer information provided is of the wrong memory type.
-    WrongMemoryType,
-    /// A v4l2_format cannot be converted to the desired format type because its
-    /// type member does not match.
-    InvalidBufferType,
-    /// A v4l2_format pretends it has more planes that it can possibly contain,
-    /// or too many planes provided when queing buffer.
-    TooManyPlanes,
-    /// The mentioned buffer does not exist.
-    InvalidBuffer,
-    /// The mentioned plane does not exist.
-    InvalidPlane,
     Nix(nix::Error),
-    FfiNul(ffi::NulError),
-    FfiInvalidString(ffi::FromBytesWithNulError),
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::AlreadyBorrowed => write!(f, "Already in use"),
-            Error::WrongMemoryType => write!(f, "Wrong memory type"),
-            Error::InvalidBufferType => write!(f, "Invalid buffer type"),
-            Error::TooManyPlanes => write!(f, "Too many planes specified"),
-            Error::InvalidBuffer => write!(f, "Invalid buffer"),
-            Error::InvalidPlane => write!(f, "Invalid plane"),
             Error::Nix(e) => Debug::fmt(e, f),
-            Error::FfiNul(e) => Debug::fmt(e, f),
-            Error::FfiInvalidString(e) => Debug::fmt(e, f),
         }
     }
 }
@@ -76,18 +52,6 @@ impl std::error::Error for Error {}
 impl From<nix::Error> for Error {
     fn from(e: nix::Error) -> Self {
         Error::Nix(e)
-    }
-}
-
-impl From<ffi::NulError> for Error {
-    fn from(e: ffi::NulError) -> Self {
-        Error::FfiNul(e)
-    }
-}
-
-impl From<ffi::FromBytesWithNulError> for Error {
-    fn from(e: ffi::FromBytesWithNulError) -> Self {
-        Error::FfiInvalidString(e)
     }
 }
 
