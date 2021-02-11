@@ -605,7 +605,7 @@ where
             if let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
                 buffer.queue_with_handles(handles).unwrap();
             } else {
-                warn!("handles potentially lost due to no V4L2 buffer being available");
+                warn!("Handles potentially lost due to no V4L2 buffer being available");
                 break 'enqueue;
             }
         }

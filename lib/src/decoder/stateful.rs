@@ -567,7 +567,7 @@ where
 
         let capture_queue =
             capture_queue.request_buffers_generic::<P::HandleType>(mem_type, num_buffers as u32)?;
-        debug!("allocated {} capture buffers", capture_queue.num_buffers());
+        debug!("Allocated {} capture buffers", capture_queue.num_buffers());
 
         // TODO use two closures, one to set the format, another one to decide
         // the number of buffers, given the minimum number of buffers for the
@@ -611,7 +611,7 @@ where
             match event {
                 ioctl::Event::SrcChangeEvent(changes) => {
                     if changes.contains(ioctl::SrcChanges::RESOLUTION) {
-                        debug!("received resolution change event");
+                        debug!("Received resolution change event");
                         self = self.update_capture_resolution()?;
                     }
                 }
@@ -777,7 +777,7 @@ where
                 if let Ok(buffer) = capture_queue.try_get_free_buffer() {
                     buffer.queue_with_handles(handles).unwrap();
                 } else {
-                    warn!("handles potentially lost due to no V4L2 buffer being available");
+                    warn!("Handles potentially lost due to no V4L2 buffer being available");
                     break 'enqueue;
                 }
             }

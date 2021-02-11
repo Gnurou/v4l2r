@@ -50,7 +50,7 @@ impl<S: io::Read> Iterator for FwhtFrameParser<S> {
                     };
                 }
                 Err(e) => {
-                    error!("error while reading FWHT stream: {}", e);
+                    error!("Error while reading FWHT stream: {}", e);
                     return None;
                 }
             }

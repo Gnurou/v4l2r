@@ -340,7 +340,7 @@ impl Poller {
             if event.u64 <= LAST_WAKER_ID {
                 match self.wakers.get(&(event.u64 as u32)) {
                     Some(waker) => waker.reset()?,
-                    None => warn!("unregistered waker has been signaled."),
+                    None => warn!("Unregistered waker has been signaled."),
                 }
             }
         }

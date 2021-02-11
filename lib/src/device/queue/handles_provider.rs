@@ -122,7 +122,7 @@ impl<H: BufferHandles> Drop for PooledHandles<H> {
                 provider.buffers.push_back(self.handles.take().unwrap());
                 if let Some(waker) = provider.waker.take() {
                     waker.wake().unwrap_or_else(|e| {
-                        error!("error signaling waker after PooledHandles drop: {}", e);
+                        error!("Error signaling waker after PooledHandles drop: {}", e);
                     });
                 }
             }

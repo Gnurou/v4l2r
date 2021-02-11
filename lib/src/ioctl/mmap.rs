@@ -62,7 +62,7 @@ impl Drop for PlaneMapping {
         // are always valid.
         unsafe { mman::munmap(self.data.as_mut_ptr() as *mut c_void, self.data.len()) }
             .unwrap_or_else(|e| {
-                error!("error while unmapping plane: {}", e);
+                error!("Error while unmapping plane: {}", e);
             });
     }
 }

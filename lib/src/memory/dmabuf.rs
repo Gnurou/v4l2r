@@ -28,7 +28,7 @@ impl DMABufSource for std::fs::File {
     fn len(&self) -> u64 {
         match self.metadata() {
             Err(_) => {
-                warn!("failed to compute File size for use as DMABuf, using 0...");
+                warn!("Failed to compute File size for use as DMABuf, using 0...");
                 0
             }
             Ok(m) => m.len(),
