@@ -636,33 +636,6 @@ where
                     cap_buf.add_drop_callback(move |_dqbuf| {
                         // Intentionally ignore the result here.
                         let _ = cap_waker.wake();
-                        // TODO how about a way to immediately re-queue the buffer
-                        // in the drop callback? That way we don't need to interrupt
-                        // polling on the device.
-                        // Actually, the buffer is back into the free list when
-                        // we are here! So we can completely do that, provided
-                        // we have a reference to the queue. If we use a sync::Weak
-                        // pointer to the queue we should be able to do it. And
-                        // when buffers are reallocated the Arc to the queue needs
-                        // to be destroyed anyway, so the weak pointer cannot be
-                        // upgraded!
-                        // We already have a weak reference in the fuse, and a weak
-                        // pointer to the device in the dqbuffer, can't we reuse that?
-                        // What we need: a Weak reference to the queue, passed to the callback.
-                        // Then we can call try_get_buffer() from here using the
-                        // buffer index as argument, and requeue the buffer using
-                        // the handles from the dqbuffer!
-                        // Or maybe that won't work. We shouldn't be able to call streamoff while
-                        // we hold a QBuffer, and that would allow this to happen if the destructor
-                        // runs in another thread while we attempt to stop the queue.
-                        // Maybe have a DQBuffer::requeue() method that requeues the
-                        // buffer as is after removing the plane handles and data?
-                        // TODO streamoff and try_get*buffer() should be &mut self to avoid calling
-                        // streamoff while we hold a qbuffer? What happens if we do? -> Nothing since
-                        // the buffer is not queued and we can queue it if the queue is streamed off!
-                        // That's no problem at all.
-                        // But wait - we need to change the poll state when requeuing buffers anyway,
-                        // so we need to wake up from the poll...
                     });
 
                     // Empty buffers do not need to be passed to the client.
