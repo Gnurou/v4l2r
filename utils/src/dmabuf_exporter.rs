@@ -24,10 +24,22 @@ pub fn export_dmabufs(
 
     let fds: Vec<Vec<DMABufHandle<File>>> = (0..nb_buffers)
         .into_iter()
-        .map(|i| {
-            vec![DMABufHandle::from(
-                ioctl::expbuf::<Device, File>(&device, queue, i, 0, ExpbufFlags::RDWR).unwrap(),
-            )]
+        .map(|buffer| {
+            (0..format.plane_fmt.len())
+                .into_iter()
+                .map(|plane| {
+                    DMABufHandle::from(
+                        ioctl::expbuf::<Device, File>(
+                            &device,
+                            queue,
+                            buffer,
+                            plane,
+                            ExpbufFlags::RDWR,
+                        )
+                        .unwrap(),
+                    )
+                })
+                .collect()
         })
         .collect();
 
