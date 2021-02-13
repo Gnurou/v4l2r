@@ -512,9 +512,6 @@ where
     ) -> io::Result<Self> {
         let mut poller = Poller::new(Arc::clone(device))?;
 
-        // Mio only supports edge-triggered epoll, so it is important that we
-        // register the V4L2 FD *before* queuing any capture buffers, so the
-        // edge monitoring starts before any buffer can possibly be completed.
         poller.enable_event(DeviceEvent::CaptureReady)?;
         let waker = poller.add_waker(0)?;
 
