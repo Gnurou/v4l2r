@@ -8,6 +8,7 @@ use crate::{
             handles_provider::HandlesProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
+                get_indexed::GetCaptureBufferByIndex,
                 CaptureQueueable, OutputQueueableProvider,
             },
             BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
@@ -218,7 +219,7 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
         OutputReadyCb: OutputReadyCallback<P>,
         SetCaptureFormatCb: SetCaptureFormatCallback<P>,
         for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
-            GetFreeCaptureBuffer<'a, P::HandleType>,
+            GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
     {
         // We are interested in all resolution change events.
         subscribe_event(
@@ -495,7 +496,7 @@ where
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
     for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
-        GetFreeCaptureBuffer<'a, P::HandleType>,
+        GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
 {
     fn new(
         device: &Arc<Device>,
@@ -758,7 +759,7 @@ where
                 // TODO potential problem: the handles will be dropped if no V4L2 buffer
                 // is available. There is no guarantee that the provider will get them back
                 // in this case (e.g. with the C FFI).
-                if let Ok(buffer) = capture_queue.try_get_free_buffer() {
+                if let Ok(buffer) = provider.get_suitable_buffer_for(&handles, capture_queue) {
                     buffer.queue_with_handles(handles).unwrap();
                 } else {
                     warn!("Handles potentially lost due to no V4L2 buffer being available");

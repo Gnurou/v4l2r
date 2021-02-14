@@ -13,6 +13,22 @@ use crate::{
     Format,
 };
 
+use thiserror::Error;
+
+use super::qbuf::{
+    get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
+    get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
+    CaptureQueueableProvider,
+};
+
+#[derive(Debug, Error)]
+pub enum GetSuitableBufferError {
+    #[error("Error while calling try_get_free_buffer()")]
+    TryGetFree(#[from] GetFreeBufferError),
+    #[error("Error while calling try_get_buffer()")]
+    TryGetIndexed(#[from] TryGetBufferError),
+}
+
 pub trait HandlesProvider: Send + 'static {
     type HandleType: BufferHandles;
 
@@ -20,6 +36,21 @@ pub trait HandlesProvider: Send + 'static {
     /// available. If that is the case, `waker` will be signaled when handles
     /// are available again.
     fn get_handles(&mut self, waker: &Arc<Waker>) -> Option<Self::HandleType>;
+
+    fn get_suitable_buffer_for<'a, Q>(
+        &self,
+        _handles: &Self::HandleType,
+        queue: &'a Q,
+    ) -> Result<
+        <Q as CaptureQueueableProvider<'a, Self::HandleType>>::Queueable,
+        GetSuitableBufferError,
+    >
+    where
+        Q: GetCaptureBufferByIndex<'a, Self::HandleType>
+            + GetFreeCaptureBuffer<'a, Self::HandleType>,
+    {
+        Ok(queue.try_get_free_buffer()?)
+    }
 }
 
 /// `HandleProvider`s on the heap are `HandleProvider`s too.

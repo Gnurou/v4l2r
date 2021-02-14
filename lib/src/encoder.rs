@@ -8,6 +8,7 @@ use crate::{
             qbuf::OutputQueueableProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
+                get_indexed::GetCaptureBufferByIndex,
                 CaptureQueueable,
             },
             BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
@@ -227,7 +228,7 @@ impl<OP: BufferHandles, P: HandlesProvider> EncoderState for ReadyToEncode<OP, P
 impl<OP: BufferHandles, P: HandlesProvider> Encoder<ReadyToEncode<OP, P>>
 where
     for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
-        GetFreeCaptureBuffer<'a, P::HandleType>,
+        GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
 {
     pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
         self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
@@ -489,7 +490,7 @@ where
     P: HandlesProvider,
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
     for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
-        GetFreeCaptureBuffer<'a, P::HandleType>,
+        GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
 {
     fn new(
         device: &Arc<Device>,
@@ -586,7 +587,10 @@ where
 
     fn enqueue_capture_buffers(&mut self) {
         'enqueue: while let Some(handles) = self.capture_memory_provider.get_handles(&self.waker) {
-            if let Ok(buffer) = self.capture_queue.try_get_free_buffer() {
+            if let Ok(buffer) = self
+                .capture_memory_provider
+                .get_suitable_buffer_for(&handles, &self.capture_queue)
+            {
                 buffer.queue_with_handles(handles).unwrap();
             } else {
                 warn!("Handles potentially lost due to no V4L2 buffer being available");
