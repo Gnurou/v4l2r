@@ -4,10 +4,12 @@ use crate::{
         queue::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
-            generic::{GenericBufferHandles, GenericQBuffer},
             handles_provider::HandlesProvider,
-            qbuf::get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
-            qbuf::{CaptureQueueable, QBuffer},
+            qbuf::OutputQueueableProvider,
+            qbuf::{
+                get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
+                CaptureQueueable,
+            },
             BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
         },
@@ -407,47 +409,35 @@ where
     }
 }
 
-/// Support for primitive plane handles on the OUTPUT queue.
-impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
+impl<'a, OP, P, InputDoneCb, OutputReadyCb> OutputQueueableProvider<'a, OP>
     for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
-    OP: PrimitiveBufferHandles,
+    Queue<Output, BuffersAllocated<OP>>: OutputQueueableProvider<'a, OP>,
+    OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
     OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
 {
-    type Queueable = QBuffer<'a, Output, OP, OP>;
+    type Queueable =
+        <Queue<Output, BuffersAllocated<OP>> as OutputQueueableProvider<'a, OP>>::Queueable;
+}
 
+/// Let the encoder provide the buffers from the OUTPUT queue.
+impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
+    for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
+where
+    Queue<Output, BuffersAllocated<OP>>: GetFreeOutputBuffer<'a, OP>,
+    OP: BufferHandles,
+    P: HandlesProvider,
+    InputDoneCb: Fn(CompletedOutputBuffer<OP>),
+    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+{
     /// Returns a V4L2 buffer to be filled with a frame to encode if one
     /// is available.
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
-        self.dequeue_output_buffers()?;
-        Ok(self.state.output_queue.try_get_free_buffer()?)
-    }
-}
-
-/// Support for dynamic plane handles on the OUTPUT queue.
-impl<'a, P, InputDoneCb, OutputReadyCb>
-    GetFreeOutputBuffer<'a, GenericBufferHandles, GetBufferError<GenericBufferHandles>>
-    for Encoder<Encoding<GenericBufferHandles, P, InputDoneCb, OutputReadyCb>>
-where
-    P: HandlesProvider,
-    InputDoneCb: Fn(CompletedOutputBuffer<GenericBufferHandles>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
-{
-    type Queueable = GenericQBuffer<'a, Output>;
-
-    /// Returns a V4L2 buffer to be filled with a frame to encode if one
-    /// is available.
-    ///
-    /// This method will return None immediately if all the allocated buffers
-    /// are currently queued.
-    fn try_get_free_buffer(
-        &'a self,
-    ) -> Result<Self::Queueable, GetBufferError<GenericBufferHandles>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
@@ -470,10 +460,7 @@ where
     /// to be available if needed.
     pub fn get_buffer(
         &'a mut self,
-    ) -> Result<
-        <Self as GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>>::Queueable,
-        GetBufferError<OP>,
-    > {
+    ) -> Result<<Self as OutputQueueableProvider<'a, OP>>::Queueable, GetBufferError<OP>> {
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.

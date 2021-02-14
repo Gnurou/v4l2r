@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use crate::memory::BufferHandles;
 
-use super::{CaptureQueueable, OutputQueueable};
+use super::{CaptureQueueableProvider, OutputQueueableProvider};
 
 #[derive(Debug, Error)]
 pub enum TryGetBufferError {
@@ -19,14 +19,16 @@ pub enum TryGetBufferError {
     AlreadyUsed,
 }
 
-pub trait GetOutputBufferByIndex<'a, P: BufferHandles> {
-    type Queueable: 'a + OutputQueueable<P>;
-
+pub trait GetOutputBufferByIndex<'a, P: BufferHandles>
+where
+    Self: OutputQueueableProvider<'a, P>,
+{
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
 }
 
-pub trait GetCaptureBufferByIndex<'a, P: BufferHandles> {
-    type Queueable: 'a + CaptureQueueable<P>;
-
+pub trait GetCaptureBufferByIndex<'a, P: BufferHandles>
+where
+    Self: CaptureQueueableProvider<'a, P>,
+{
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
 }

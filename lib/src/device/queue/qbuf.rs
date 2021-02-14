@@ -189,6 +189,18 @@ pub trait OutputQueueable<Q: BufferHandles> {
     fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q>;
 }
 
+/// Trait for all objects that are capable of providing objects that can be
+/// queued to the CAPTURE queue.
+pub trait CaptureQueueableProvider<'a, Q: BufferHandles> {
+    type Queueable: 'a + CaptureQueueable<Q>;
+}
+
+/// Trait for all objects that are capable of providing objects that can be
+/// queued to the CAPTURE queue.
+pub trait OutputQueueableProvider<'a, Q: BufferHandles> {
+    type Queueable: 'a + OutputQueueable<Q>;
+}
+
 /// Any CAPTURE QBuffer implements CaptureQueueable.
 impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
     for QBuffer<'_, Capture, P, Q>

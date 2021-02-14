@@ -5,11 +5,10 @@ use crate::{
             self,
             direction::{Capture, Output},
             dqbuf::DQBuffer,
-            generic::{GenericBufferHandles, GenericQBuffer},
             handles_provider::HandlesProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
-                CaptureQueueable, QBuffer,
+                CaptureQueueable, OutputQueueableProvider,
             },
             BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
@@ -360,6 +359,20 @@ where
     }
 }
 
+impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb> OutputQueueableProvider<'a, OP>
+    for Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
+where
+    Queue<Output, BuffersAllocated<OP>>: OutputQueueableProvider<'a, OP>,
+    OP: BufferHandles,
+    P: HandlesProvider,
+    InputDoneCb: InputDoneCallback<OP>,
+    OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
+{
+    type Queueable =
+        <Queue<Output, BuffersAllocated<OP>> as OutputQueueableProvider<'a, OP>>::Queueable;
+}
+
 #[derive(Debug, Error)]
 pub enum GetBufferError<OP: BufferHandles> {
     #[error("Error while dequeueing buffer")]
@@ -370,50 +383,24 @@ pub enum GetBufferError<OP: BufferHandles> {
     GetFreeBufferError(#[from] GetFreeBufferError),
 }
 
-/// Support for primitive plane handles on the OUTPUT queue.
+/// Let the decoder provide the buffers from the OUTPUT queue.
 impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
     for Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
 where
-    OP: PrimitiveBufferHandles,
+    Queue<Output, BuffersAllocated<OP>>: GetFreeOutputBuffer<'a, OP>,
+    OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
     OutputReadyCb: OutputReadyCallback<P>,
     SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
-    type Queueable = QBuffer<'a, Output, OP, OP>;
-
-    /// Returns a V4L2 buffer to be filled with a frame to encode if one
+    /// Returns a V4L2 buffer to be filled with a frame to decode if one
     /// is available.
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
-        self.dequeue_output_buffers()?;
-        Ok(self.state.output_queue.try_get_free_buffer()?)
-    }
-}
-
-/// Support for dynamic plane handles on the OUTPUT queue.
-impl<'a, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
-    GetFreeOutputBuffer<'a, GenericBufferHandles, GetBufferError<GenericBufferHandles>>
-    for Decoder<Decoding<GenericBufferHandles, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
-where
-    P: HandlesProvider,
-    InputDoneCb: InputDoneCallback<GenericBufferHandles>,
-    OutputReadyCb: OutputReadyCallback<P>,
-    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
-{
-    type Queueable = GenericQBuffer<'a, Output>;
-
-    /// Returns a V4L2 buffer to be filled with a frame to encode if one
-    /// is available.
-    ///
-    /// This method will return None immediately if all the allocated buffers
-    /// are currently queued.
-    fn try_get_free_buffer(
-        &'a self,
-    ) -> Result<Self::Queueable, GetBufferError<GenericBufferHandles>> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
@@ -438,10 +425,7 @@ where
     /// to be available if needed.
     pub fn get_buffer(
         &'a mut self,
-    ) -> Result<
-        <Self as GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>>::Queueable,
-        GetBufferError<OP>,
-    > {
+    ) -> Result<<Self as OutputQueueableProvider<'a, OP>>::Queueable, GetBufferError<OP>> {
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.
@@ -509,9 +493,9 @@ impl<P, OutputReadyCb, SetCaptureFormatCb> DecoderThread<P, OutputReadyCb, SetCa
 where
     P: HandlesProvider,
     OutputReadyCb: OutputReadyCallback<P>,
+    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
     for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
         GetFreeCaptureBuffer<'a, P::HandleType>,
-    SetCaptureFormatCb: SetCaptureFormatCallback<P>,
 {
     fn new(
         device: &Arc<Device>,
