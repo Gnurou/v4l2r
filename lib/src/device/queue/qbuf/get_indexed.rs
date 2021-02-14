@@ -19,16 +19,16 @@ pub enum TryGetBufferError {
     AlreadyUsed,
 }
 
-pub trait GetOutputBufferByIndex<'a, P: BufferHandles>
+pub trait GetOutputBufferByIndex<'a, P: BufferHandles, ErrorType = TryGetBufferError>
 where
     Self: OutputQueueableProvider<'a, P>,
 {
-    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, ErrorType>;
 }
 
-pub trait GetCaptureBufferByIndex<'a, P: BufferHandles>
+pub trait GetCaptureBufferByIndex<'a, P: BufferHandles, ErrorType = TryGetBufferError>
 where
     Self: CaptureQueueableProvider<'a, P>,
 {
-    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, ErrorType>;
 }
