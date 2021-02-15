@@ -21,7 +21,7 @@ use crate::{
     FormatConversionError,
 };
 
-use log::{debug, warn};
+use log::{debug, info, warn};
 use std::{
     io,
     path::Path,
@@ -435,6 +435,40 @@ where
         }
 
         self.try_get_free_buffer()
+    }
+
+    /// Kick the decoder and see if some input buffers fall as a result.
+    ///
+    /// No, really. Completed input buffers are typically checked when calling
+    /// [`get_buffer`] (which is also the time when the input done callback is
+    /// invoked), but this mechanism is not foolproof: if the client works with
+    /// a limited set of input buffers and queues them all before an output
+    /// frame can be produced, then the client has no more buffers to fill and
+    /// thus no reason to call [`get_buffer`], resulting in the decoding process
+    /// being blocked.
+    ///
+    /// This method mitigates this problem by adding a way to check for
+    /// completed input buffers and calling the input done callback without the
+    /// need for new encoded content. It is suggested to call it from the thread
+    /// that owns the decoder every time a decoded frame is produced.
+    /// That way the client can recycle its input buffers
+    /// and the decoding process does not get stuck.
+    pub fn kick(&mut self) -> Result<(), DequeueOutputBufferError<OP>> {
+        info!("Kick!");
+        self.dequeue_output_buffers()
+    }
+
+    pub fn wait_for_input_available(&mut self) -> Result<(), GetBufferError<OP>> {
+        let output_queue = &self.state.output_queue;
+
+        // If all our buffers are queued, wait until we can dequeue some.
+        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
+            self.wait_for_output_buffer()?;
+            // Dequeue and run the input done callback for completed input buffers.
+            self.dequeue_output_buffers()?;
+        }
+
+        Ok(())
     }
 }
 
