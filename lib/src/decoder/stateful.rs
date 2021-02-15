@@ -345,7 +345,7 @@ where
     }
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
-    // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
+    // obtained through `try_get_buffer()`.
     fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
         for event in self.state.output_poller.poll(None)? {
             match event {
