@@ -12,10 +12,7 @@ use std::{
 use anyhow::ensure;
 use v4l2::{
     decoder::stateful::Decoder,
-    device::queue::{
-        direction::{Capture, Output},
-        dqbuf::DQBuffer,
-    },
+    device::queue::{direction::Capture, dqbuf::DQBuffer},
     memory::{DMABufHandle, DMABufferHandles},
     Format,
 };
@@ -159,11 +156,7 @@ fn main() {
         .allocate_output_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(NUM_OUTPUT_BUFFERS)
         .expect("Failed to allocate output buffers")
         .set_poll_counter(poll_count_writer)
-        .start(
-            |_: DQBuffer<Output, Vec<UserPtrHandle<Vec<u8>>>>| (),
-            output_ready_cb,
-            set_capture_format_cb,
-        )
+        .start(|_| (), output_ready_cb, set_capture_format_cb)
         .expect("Failed to start decoder");
 
     // Remove mutability.
