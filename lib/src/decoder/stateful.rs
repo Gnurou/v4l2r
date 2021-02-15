@@ -345,7 +345,7 @@ where
     }
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
-    // obtained through `try_get_buffer()`.
+    // obtained through [`Decoder::try_get_buffer()`].
     fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
         for event in self.state.output_poller.poll(None)? {
             match event {
@@ -407,7 +407,7 @@ where
     }
 }
 
-// If `GetFreeBuffer` is implemented, we can also provide a blocking `get_buffer`
+// If [`GetFreeBuffer`] is implemented, we can also provide a blocking `get_buffer`
 // method.
 impl<'a, OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
@@ -422,7 +422,7 @@ where
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
     /// one to be available if needed.
     ///
-    /// Contrary to `try_get_free_buffer(), this method will wait for a buffer
+    /// Contrary to [`Decoder::try_get_free_buffer()`], this method will wait for a buffer
     /// to be available if needed.
     pub fn get_buffer(
         &'a mut self,
