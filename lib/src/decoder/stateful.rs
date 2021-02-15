@@ -290,8 +290,21 @@ where
 {
 }
 
+#[derive(Debug, Error)]
+pub enum StopError {
+    #[error("Error while poking the stop waker")]
+    WakerError(#[from] io::Error),
+    #[error("Error while waiting for the decoder thread to finish")]
+    JoinError,
+    #[error("Error while stopping the OUTPUT queue")]
+    StreamoffError(#[from] ioctl::StreamOffError),
+}
+
 #[allow(type_alias_bounds)]
 type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DQBufError<DQBuffer<Output, OP>>;
+#[allow(type_alias_bounds)]
+type CanceledBuffers<OP: BufferHandles> =
+    Vec<<Queue<Output, BuffersAllocated<OP>> as Stream>::Canceled>;
 
 impl<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>
     Decoder<Decoding<OP, P, InputDoneCb, OutputReadyCb, SetCaptureFormatCb>>
@@ -312,16 +325,17 @@ where
         self.state.output_queue.get_format()
     }
 
-    pub fn stop(self) -> Result<(), io::Error> {
+    pub fn stop(self) -> Result<CanceledBuffers<OP>, StopError> {
         self.state.stop_waker.wake()?;
 
         // TODO remove this unwrap. We are throwing the decoding thread away anyway,
         // so if the thread panicked we can just return this as our own error.
-        let _decoding_thread = self.state.handle.join().unwrap();
+        match self.state.handle.join() {
+            Ok(_) => (),
+            Err(_) => return Err(StopError::JoinError),
+        }
 
-        self.state.output_queue.stream_off().unwrap();
-
-        Ok(())
+        Ok(self.state.output_queue.stream_off()?)
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
