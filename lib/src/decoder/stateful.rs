@@ -655,29 +655,33 @@ where
         })
     }
 
-    // A resolution change event will potentially morph the capture queue
-    // from the Init state to BuffersAllocated - thus we take full ownership
-    // of self and return a new object.
-    fn process_events(mut self) -> Result<Self, ProcessEventsError> {
+    /// Check if we have a dynamic resolution change event pending.
+    ///
+    /// Dequeues all pending V4L2 events and returns `true` if a
+    /// SRC_CHANGE_EVENT (indicating a format change on the CAPTURE queue) was
+    /// detected. This consumes all the event, meaning that if this method
+    /// returned `true` once it will return `false` until a new resolution
+    /// change happens in the stream.
+    fn is_drc_event_pending(&self) -> Result<bool, ioctl::DQEventError> {
+        let mut drc_pending = false;
+
         loop {
             // TODO what if we used an iterator here?
             let event = match ioctl::dqevent(&*self.device) {
                 Ok(event) => event,
-                Err(ioctl::DQEventError::NotReady) => break,
-                Err(e) => return Err(e.into()),
+                Err(ioctl::DQEventError::NotReady) => return Ok(drc_pending),
+                Err(e) => return Err(e),
             };
 
             match event {
                 ioctl::Event::SrcChangeEvent(changes) => {
                     if changes.contains(ioctl::SrcChanges::RESOLUTION) {
                         debug!("Received resolution change event");
-                        self = self.update_capture_format()?;
+                        drc_pending = true;
                     }
                 }
             }
         }
-
-        Ok(self)
     }
 
     /// Try to dequeue and process a single CAPTURE buffer.
@@ -719,14 +723,16 @@ where
         'polling: loop {
             match &self.capture_queue {
                 CaptureQueue::AwaitingResolution { .. } => {
-                    // Here we only check for the initial resolution change
-                    // event.
-
                     // TODO remove this unwrap.
                     for event in self.poller.poll(None).unwrap() {
                         match event {
+                            // Check if we got a format change event (ignoring
+                            // other events), and switch to the `Decoding` state
+                            // if we do.
                             PollEvent::Device(DeviceEvent::V4L2Event) => {
-                                self = self.process_events().unwrap()
+                                if self.is_drc_event_pending().unwrap() {
+                                    self = self.update_capture_format().unwrap()
+                                }
                             }
                             // If we are requested to stop, then we just need to
                             // break the loop since we haven't started producing
@@ -739,9 +745,6 @@ where
                     }
                 }
                 CaptureQueue::Decoding { capture_queue, .. } => {
-                    // Here we process buffers as usual while looking for the
-                    // LAST buffer and checking if we need to res change (and
-                    // set the boolean if we do.
                     match capture_queue.num_queued_buffers() {
                         // If there are no buffers on the CAPTURE queue, poll() will return
                         // immediately with EPOLLERR and we would loop indefinitely.
@@ -764,9 +767,18 @@ where
                     for event in self.poller.poll(None).unwrap() {
                         match event {
                             PollEvent::Device(DeviceEvent::CaptureReady) => {
-                                let do_exit = self.process_capture_buffer();
-                                if do_exit {
-                                    break 'polling;
+                                let is_last = self.process_capture_buffer();
+                                if is_last {
+                                    if self.is_drc_event_pending().unwrap() {
+                                        self = self.update_capture_format().unwrap();
+                                    }
+                                    // No DRC event pending, this is the end of the stream.
+                                    // We cannot keep polling anymore since the `CaptureReady`
+                                    // event will keep being signaled, but dequeuing will only
+                                    // return `EPIPE`.
+                                    else {
+                                        break 'polling;
+                                    }
                                 }
                             }
 
