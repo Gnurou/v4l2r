@@ -21,7 +21,7 @@ use crate::{
     FormatConversionError,
 };
 
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use std::{
     io,
     path::Path,
@@ -585,6 +585,7 @@ where
     }
 
     fn update_capture_format(mut self) -> Result<Self, UpdateCaptureError> {
+        debug!("Updating CAPTURE format");
         // First reset the capture queue to the `Init` state if needed.
         let mut capture_queue = match self.capture_queue {
             // Initial resolution
@@ -621,6 +622,8 @@ where
         // TODO use the proper control to get the right value.
         let min_num_buffers = 4usize;
 
+        debug!("Stream requires {} capture buffers", min_num_buffers);
+
         // Let the client adjust the new format and give us the handles provider.
         let SetCaptureFormatRet {
             provider,
@@ -628,11 +631,12 @@ where
             num_buffers,
         } = (self.set_capture_format_cb)(capture_queue.change_format()?, min_num_buffers)?;
 
+        debug!("Client requires {} capture buffers", num_buffers);
+
         // Allocate the new CAPTURE buffers and get ourselves a new waker for
         // returning buffers.
         let capture_queue =
             capture_queue.request_buffers_generic::<P::HandleType>(mem_type, num_buffers as u32)?;
-        debug!("Allocated {} capture buffers", capture_queue.num_buffers());
         let cap_buffer_waker = self
             .poller
             .add_waker(CAPTURE_READY)
@@ -724,12 +728,14 @@ where
             match &self.capture_queue {
                 CaptureQueue::AwaitingResolution { .. } => {
                     // TODO remove this unwrap.
+                    trace!("AwaitingResolution: polling...");
                     for event in self.poller.poll(None).unwrap() {
                         match event {
                             // Check if we got a format change event (ignoring
                             // other events), and switch to the `Decoding` state
                             // if we do.
                             PollEvent::Device(DeviceEvent::V4L2Event) => {
+                                trace!("AwaitingResolution: got V4L2Event");
                                 if self.is_drc_event_pending().unwrap() {
                                     self = self.update_capture_format().unwrap()
                                 }
@@ -738,6 +744,7 @@ where
                             // break the loop since we haven't started producing
                             // buffers.
                             PollEvent::Waker(STOP_DECODING) => {
+                                trace!("AwaitingResolution: got STOP_DECODING waker");
                                 break 'polling;
                             }
                             _ => panic!("Unexpected event!"),
@@ -763,12 +770,15 @@ where
                         }
                     }
 
+                    trace!("Decoding: polling...");
                     // TODO remove this unwrap.
                     for event in self.poller.poll(None).unwrap() {
                         match event {
                             PollEvent::Device(DeviceEvent::CaptureReady) => {
+                                trace!("Decoding: got CaptureReady");
                                 let is_last = self.process_capture_buffer();
                                 if is_last {
+                                    debug!("CAPTURE buffer marked with LAST flag");
                                     if self.is_drc_event_pending().unwrap() {
                                         self = self.update_capture_format().unwrap();
                                     }
@@ -777,6 +787,7 @@ where
                                     // event will keep being signaled, but dequeuing will only
                                     // return `EPIPE`.
                                     else {
+                                        debug!("No DRC event pending, exiting decoding loop");
                                         break 'polling;
                                     }
                                 }
@@ -788,10 +799,12 @@ where
                             // before streaming the CAPTURE queue off. Maybe allocate a new Poller
                             // as we morph our queue type?
                             PollEvent::Waker(CAPTURE_READY) => {
+                                trace!("Decoding: got CAPTURE_READY waker");
                                 // Requeue all available CAPTURE buffers.
                                 self.enqueue_capture_buffers().unwrap();
                             }
                             PollEvent::Waker(STOP_DECODING) => {
+                                trace!("Decoding: got STOP_DECODING waker");
                                 // We are already producing buffers, send the STOP command
                                 // and exit the loop once the buffer with the LAST tag is received.
                                 // TODO remove this unwrap.
