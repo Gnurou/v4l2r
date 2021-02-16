@@ -328,8 +328,6 @@ where
     pub fn stop(self) -> Result<CanceledBuffers<OP>, StopError> {
         self.state.stop_waker.wake()?;
 
-        // TODO remove this unwrap. We are throwing the decoding thread away anyway,
-        // so if the thread panicked we can just return this as our own error.
         match self.state.handle.join() {
             Ok(_) => (),
             Err(_) => return Err(StopError::JoinError),
@@ -345,7 +343,6 @@ where
         while output_queue.num_queued_buffers() > 0 {
             match output_queue.try_dequeue() {
                 Ok(buf) => {
-                    // unwrap() is safe here as we just dequeued the buffer.
                     (self.state.input_done_cb)(buf);
                 }
                 Err(ioctl::DQBufError::NotReady) => break,
