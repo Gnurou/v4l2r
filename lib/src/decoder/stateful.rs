@@ -692,13 +692,14 @@ where
     ///
     /// Returns `true` if the buffer had the LAST flag set, `false` otherwise.
     fn process_capture_buffer(&mut self) -> bool {
-        match &mut self.capture_queue {
-            CaptureQueue::Decoding {
-                capture_queue,
-                cap_buffer_waker,
-                ..
-            } => {
-                if let Ok(mut cap_buf) = capture_queue.try_dequeue() {
+        if let CaptureQueue::Decoding {
+            capture_queue,
+            cap_buffer_waker,
+            ..
+        } = &mut self.capture_queue
+        {
+            match capture_queue.try_dequeue() {
+                Ok(mut cap_buf) => {
                     let is_last = cap_buf.data.flags().contains(ioctl::BufferFlags::LAST);
 
                     // Add a drop callback to the dequeued buffer so we
@@ -711,15 +712,19 @@ where
 
                     // Pass buffers to the client
                     (self.output_ready_cb)(cap_buf);
-
                     is_last
-                } else {
-                    // TODO we should not crash here.
-                    panic!("Expected a CAPTURE buffer but none available!");
+                }
+                Err(e) => {
+                    warn!(
+                        "Expected a CAPTURE buffer but none available, possible driver bug: {}",
+                        e
+                    );
+                    false
                 }
             }
+        } else {
             // TODO replace with something more elegant.
-            _ => panic!(),
+            panic!();
         }
     }
 
