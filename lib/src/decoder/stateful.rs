@@ -678,12 +678,7 @@ where
                         (self.output_ready_cb)(cap_buf);
                     }
 
-                    // Last buffer of the stream? Time for us to terminate.
-                    // TODO but not if there is a resolution change event.
-                    // in this case we need to perform a DRC.
-                    if is_last {
-                        return true;
-                    }
+                    is_last
                 } else {
                     // TODO we should not crash here.
                     panic!("Expected a CAPTURE buffer but none available!");
@@ -692,8 +687,6 @@ where
             // TODO replace with something more elegant.
             _ => panic!(),
         }
-
-        false
     }
 
     fn run(mut self) -> Self {
