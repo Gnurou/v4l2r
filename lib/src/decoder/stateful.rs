@@ -602,10 +602,6 @@ where
             capture_queue.request_buffers_generic::<P::HandleType>(mem_type, num_buffers as u32)?;
         debug!("Allocated {} capture buffers", capture_queue.num_buffers());
 
-        // TODO use two closures, one to set the format, another one to decide
-        // the number of buffers, given the minimum number of buffers for the
-        // stream (need control support for that).
-
         // Reconfigure poller to listen to capture buffers being ready.
         let mut poller = self.poller;
         poller.enable_event(DeviceEvent::CaptureReady).unwrap();
@@ -654,6 +650,9 @@ where
         Ok(self)
     }
 
+    /// Try to dequeue and process a single CAPTURE buffer.
+    ///
+    /// Returns `true` if the buffer had the LAST flag set, `false` otherwise.
     fn process_capture_buffer(&mut self) -> bool {
         match &mut self.capture_queue {
             CaptureQueue::Decoding {
