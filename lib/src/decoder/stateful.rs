@@ -603,10 +603,9 @@ where
         debug!("Allocated {} capture buffers", capture_queue.num_buffers());
 
         // Reconfigure poller to listen to capture buffers being ready.
-        let mut poller = self.poller;
-        poller.enable_event(DeviceEvent::CaptureReady).unwrap();
-        poller.disable_event(DeviceEvent::V4L2Event).unwrap();
-        let cap_buffer_waker = poller.add_waker(CAPTURE_READY).unwrap();
+        self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
+        self.poller.disable_event(DeviceEvent::V4L2Event).unwrap();
+        let cap_buffer_waker = self.poller.add_waker(CAPTURE_READY).unwrap();
 
         capture_queue.stream_on()?;
 
@@ -616,12 +615,10 @@ where
                 provider,
                 cap_buffer_waker,
             },
-            poller,
             ..self
         };
 
         new_self.enqueue_capture_buffers();
-
         Ok(new_self)
     }
 
