@@ -731,7 +731,7 @@ where
                             // If we are requested to stop, then we just need to
                             // break the loop since we haven't started producing
                             // buffers.
-                            PollEvent::Waker(1) => {
+                            PollEvent::Waker(STOP_DECODING) => {
                                 break 'polling;
                             }
                             _ => panic!("Unexpected event!"),
