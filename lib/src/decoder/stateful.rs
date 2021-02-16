@@ -663,7 +663,6 @@ where
             } => {
                 if let Ok(mut cap_buf) = capture_queue.try_dequeue() {
                     let is_last = cap_buf.data.flags().contains(ioctl::BufferFlags::LAST);
-                    let is_empty = cap_buf.data.get_first_plane().bytesused() == 0;
 
                     // Add a drop callback to the dequeued buffer so we
                     // re-queue it as soon as it is dropped.
@@ -673,10 +672,8 @@ where
                         let _ = cap_waker.wake();
                     });
 
-                    // Empty buffers do not need to be passed to the client.
-                    if !is_empty {
-                        (self.output_ready_cb)(cap_buf);
-                    }
+                    // Pass buffers to the client
+                    (self.output_ready_cb)(cap_buf);
 
                     is_last
                 } else {

@@ -86,6 +86,11 @@ fn main() {
     let output_ready_cb =
         move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<DMABufferHandles<File>>>| {
             let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
+            // Ignore zero-sized buffers.
+            if bytes_used == 0 {
+                return;
+            }
+
             let elapsed = start_time.elapsed();
             let frame_nb = cap_dqbuf.data.sequence() + 1;
             let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
