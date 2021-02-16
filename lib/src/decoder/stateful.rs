@@ -9,7 +9,7 @@ use crate::{
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
                 get_indexed::GetCaptureBufferByIndex,
-                CaptureQueueable, OutputQueueableProvider,
+                CaptureQueueable, OutputQueueableProvider, QueueError,
             },
             BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
@@ -780,7 +780,7 @@ where
                             // as we morph our queue type?
                             PollEvent::Waker(CAPTURE_READY) => {
                                 // Requeue all available CAPTURE buffers.
-                                self.enqueue_capture_buffers();
+                                self.enqueue_capture_buffers().unwrap();
                             }
                             PollEvent::Waker(STOP_DECODING) => {
                                 // We are already producing buffers, send the STOP command
@@ -818,7 +818,7 @@ where
         }
     }
 
-    fn enqueue_capture_buffers(&mut self) {
+    fn enqueue_capture_buffers(&mut self) -> Result<(), QueueError<P::HandleType>> {
         if let CaptureQueue::Decoding {
             capture_queue,
             provider,
@@ -830,12 +830,14 @@ where
                 // is available. There is no guarantee that the provider will get them back
                 // in this case (e.g. with the C FFI).
                 if let Ok(buffer) = provider.get_suitable_buffer_for(&handles, capture_queue) {
-                    buffer.queue_with_handles(handles).unwrap();
+                    buffer.queue_with_handles(handles)?;
                 } else {
                     warn!("Handles potentially lost due to no V4L2 buffer being available");
                     break 'enqueue;
-                }
+                };
             }
         }
+
+        Ok(())
     }
 }
