@@ -23,8 +23,6 @@ use v4l2::{
 use anyhow::ensure;
 use clap::{App, Arg};
 
-const FRAME_SIZE: (usize, usize) = (640, 480);
-
 fn main() {
     env_logger::init();
 
@@ -39,6 +37,14 @@ fn main() {
             Arg::with_name("device")
                 .required(true)
                 .help("Path to the vicodec device file"),
+        )
+        .arg(
+            Arg::with_name("frame_size")
+                .long("frame_size")
+                .required(false)
+                .takes_value(true)
+                .default_value("640x480")
+                .help("Size of the frames to encode (e.g. \"640x480\")"),
         )
         .arg(
             Arg::with_name("output_file")
@@ -64,6 +70,21 @@ fn main() {
         Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
         Err(e) => panic!("Invalid value for stop_after: {}", e),
     };
+
+    let frame_size = matches
+        .value_of("frame_size")
+        .map(|s| {
+            const ERROR_MSG: &str = "Invalid parameter for frame_size";
+            let split: Vec<&str> = s.split('x').collect();
+            if split.len() != 2 {
+                panic!(ERROR_MSG);
+            }
+            let width: usize = split[0].parse().expect(ERROR_MSG);
+            let height: usize = split[1].parse().expect(ERROR_MSG);
+
+            (width, height)
+        })
+        .unwrap();
 
     let mut output_file = matches
         .value_of("output_file")
@@ -102,7 +123,7 @@ fn main() {
         .set_output_format(|f| {
             let format: Format = f
                 .set_pixelformat(b"RGB3")
-                .set_size(FRAME_SIZE.0, FRAME_SIZE.1)
+                .set_size(frame_size.0, frame_size.1)
                 .apply()?;
 
             ensure!(
@@ -110,7 +131,7 @@ fn main() {
                 "RGB3 format not supported"
             );
             ensure!(
-                format.width as usize == FRAME_SIZE.0 && format.height as usize == FRAME_SIZE.1,
+                format.width as usize == frame_size.0 && format.height as usize == frame_size.1,
                 "Output frame resolution not supported"
             );
 
