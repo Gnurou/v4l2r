@@ -515,13 +515,25 @@ where
 
 #[derive(Debug, Error)]
 enum UpdateCaptureError {
-    #[error("Error while obtaining CAPTURE format")]
+    #[error("Error while enabling poller events: {0}")]
+    PollerEvents(io::Error),
+    #[error("Error while removing CAPTURE waker: {0}")]
+    RemoveWaker(io::Error),
+    #[error("Error while stopping CAPTURE queue: {0}")]
+    Streamoff(#[from] ioctl::StreamOffError),
+    #[error("Error while freeing CAPTURE buffers: {0}")]
+    FreeBuffers(#[from] ioctl::ReqbufsError),
+    #[error("Error while obtaining CAPTURE format: {0}")]
     GFmt(#[from] ioctl::GFmtError),
-    #[error("Error while setting CAPTURE format")]
-    SFmt(#[from] ioctl::SFmtError),
-    #[error("Error while requesting CAPTURE buffers")]
+    #[error("Error while running the CAPTURE format callback: {0}")]
+    Callback(#[from] anyhow::Error),
+    #[error("Error while requesting CAPTURE buffers: {0}")]
     RequestBuffers(#[from] queue::RequestBuffersError),
-    #[error("Error while streaming CAPTURE queue")]
+    #[error("Error while adding the CAPTURE buffer waker: {0}")]
+    AddWaker(io::Error),
+    #[error("Error while signaling the CAPTURE buffer waker: {0}")]
+    WakeWaker(io::Error),
+    #[error("Error while streaming CAPTURE queue: {0}")]
     StreamOn(#[from] ioctl::StreamOnError),
 }
 
@@ -575,51 +587,75 @@ where
         self.poller.set_poll_counter(poll_wakeups_counter);
     }
 
-    fn update_capture_resolution(mut self) -> Result<Self, UpdateCaptureError> {
+    fn update_capture_format(mut self) -> Result<Self, UpdateCaptureError> {
+        // First reset the capture queue to the `Init` state if needed.
         let mut capture_queue = match self.capture_queue {
             // Initial resolution
-            CaptureQueue::AwaitingResolution { capture_queue } => capture_queue,
+            CaptureQueue::AwaitingResolution { capture_queue } => {
+                // Stop listening to V4L2 events. We will check them when we get
+                // a buffer with the LAST flag.
+                self.poller
+                    .disable_event(DeviceEvent::V4L2Event)
+                    .map_err(UpdateCaptureError::PollerEvents)?;
+                // Listen to CAPTURE buffers being ready to dequeue, as we will
+                // be streaming soon.
+                self.poller
+                    .enable_event(DeviceEvent::CaptureReady)
+                    .map_err(UpdateCaptureError::PollerEvents)?;
+                capture_queue
+            }
             // Dynamic resolution change
             CaptureQueue::Decoding { capture_queue, .. } => {
-                self.poller.remove_waker(CAPTURE_READY).unwrap();
-                // TODO remove unwrap.
-                // TODO must do complete flush sequence before this...
-                capture_queue.stream_off().unwrap();
-                capture_queue.free_buffers().unwrap().queue
+                // Remove the waker for the previous buffers pool, as we will
+                // get a new set of buffers.
+                self.poller
+                    .remove_waker(CAPTURE_READY)
+                    .map_err(UpdateCaptureError::RemoveWaker)?;
+                // Deallocate the queue and return it to the `Init` state. Good
+                // as new!
+                capture_queue.stream_off()?;
+                capture_queue.free_buffers()?.queue
             }
         };
+
+        // Now get the parameters of the new format and build our new CAPTURE
+        // queue.
 
         // TODO use the proper control to get the right value.
         let min_num_buffers = 4usize;
 
+        // Let the client adjust the new format and give us the handles provider.
         let SetCaptureFormatRet {
             provider,
             mem_type,
             num_buffers,
-        } = (self.set_capture_format_cb)(capture_queue.change_format()?, min_num_buffers).unwrap();
+        } = (self.set_capture_format_cb)(capture_queue.change_format()?, min_num_buffers)?;
 
+        // Allocate the new CAPTURE buffers and get ourselves a new waker for
+        // returning buffers.
         let capture_queue =
             capture_queue.request_buffers_generic::<P::HandleType>(mem_type, num_buffers as u32)?;
         debug!("Allocated {} capture buffers", capture_queue.num_buffers());
+        let cap_buffer_waker = self
+            .poller
+            .add_waker(CAPTURE_READY)
+            .map_err(UpdateCaptureError::AddWaker)?;
 
-        // Reconfigure poller to listen to capture buffers being ready.
-        self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
-        self.poller.disable_event(DeviceEvent::V4L2Event).unwrap();
-        let cap_buffer_waker = self.poller.add_waker(CAPTURE_READY).unwrap();
-
+        // Ready to decode - signal the waker so we immediately enqueue buffers
+        // and start streaming.
+        cap_buffer_waker
+            .wake()
+            .map_err(UpdateCaptureError::WakeWaker)?;
         capture_queue.stream_on()?;
 
-        let mut new_self = Self {
+        Ok(Self {
             capture_queue: CaptureQueue::Decoding {
                 capture_queue,
                 provider,
                 cap_buffer_waker,
             },
             ..self
-        };
-
-        new_self.enqueue_capture_buffers();
-        Ok(new_self)
+        })
     }
 
     // A resolution change event will potentially morph the capture queue
@@ -638,7 +674,7 @@ where
                 ioctl::Event::SrcChangeEvent(changes) => {
                     if changes.contains(ioctl::SrcChanges::RESOLUTION) {
                         debug!("Received resolution change event");
-                        self = self.update_capture_resolution()?;
+                        self = self.update_capture_format()?;
                     }
                 }
             }
