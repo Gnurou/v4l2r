@@ -9,7 +9,7 @@ use crate::{
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
                 get_indexed::GetCaptureBufferByIndex,
-                CaptureQueueable, OutputQueueableProvider, QueueError,
+                CaptureQueueable, OutputQueueableProvider,
             },
             BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
@@ -471,6 +471,8 @@ where
     device: Arc<Device>,
     capture_queue: CaptureQueue<P>,
     poller: Poller,
+
+    exit_loop_waker: Arc<Waker>,
     stop_waker: Arc<Waker>,
     output_ready_cb: FrameDecodedCb,
     set_capture_format_cb: FormatChangedCb,
@@ -500,8 +502,9 @@ enum UpdateCaptureError {
     StreamOn(#[from] ioctl::StreamOnError),
 }
 
-const CAPTURE_READY: u32 = 0;
-const STOP_DECODING: u32 = 1;
+const EXIT_LOOP: u32 = 0;
+const CAPTURE_READY: u32 = 1;
+const STOP_DECODING: u32 = 2;
 
 #[derive(Debug, Error)]
 enum ProcessEventsError {
@@ -532,12 +535,14 @@ where
         // change of heart about decoding something now.
         let mut poller = Poller::new(Arc::clone(device))?;
         poller.enable_event(DeviceEvent::V4L2Event)?;
+        let exit_loop_waker = poller.add_waker(EXIT_LOOP)?;
         let stop_waker = poller.add_waker(STOP_DECODING)?;
 
         let decoder_thread = DecoderThread {
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
+            exit_loop_waker,
             stop_waker,
             output_ready_cb,
             set_capture_format_cb,
@@ -548,6 +553,60 @@ where
 
     fn set_poll_counter(&mut self, poll_wakeups_counter: Arc<AtomicUsize>) {
         self.poller.set_poll_counter(poll_wakeups_counter);
+    }
+
+    fn process_stop_command(&self) {
+        trace!("Processing stop command");
+        match self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => {
+                // We are not decoding yet, so we can just break the loop.
+                self.exit_loop_waker.wake().unwrap();
+            }
+            CaptureQueue::Decoding { .. } => {
+                // We can receive the LAST buffer, send the STOP command
+                // and exit the loop once the buffer with the LAST tag is received.
+                ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
+            }
+        }
+    }
+
+    fn enqueue_capture_buffers(&mut self) {
+        trace!("Queueing available CAPTURE buffers");
+        match &mut self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => unreachable!(),
+            CaptureQueue::Decoding {
+                capture_queue,
+                provider,
+                cap_buffer_waker,
+            } => {
+                // Requeue all available CAPTURE buffers.
+                'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
+                    // TODO potential problem: the handles will be dropped if no V4L2 buffer
+                    // is available. There is no guarantee that the provider will get them back
+                    // in this case (e.g. with the C FFI).
+                    if let Ok(buffer) = provider.get_suitable_buffer_for(&handles, capture_queue) {
+                        buffer.queue_with_handles(handles).unwrap();
+                    } else {
+                        warn!("Handles potentially lost due to no V4L2 buffer being available");
+                        break 'enqueue;
+                    };
+                }
+            }
+        }
+    }
+
+    fn process_v4l2_event(mut self) -> Self {
+        trace!("Processing V4L2 event");
+        match self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => {
+                if self.is_drc_event_pending().unwrap() {
+                    self = self.update_capture_format().unwrap()
+                }
+            }
+            CaptureQueue::Decoding { .. } => unreachable!(),
+        }
+
+        self
     }
 
     fn update_capture_format(mut self) -> Result<Self, UpdateCaptureError> {
@@ -625,6 +684,33 @@ where
         })
     }
 
+    fn dequeue_capture_buffers(mut self) -> Self {
+        trace!("Dequeueing decoded CAPTURE buffers");
+        match self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => unreachable!(),
+            CaptureQueue::Decoding { .. } => {
+                let is_last = self.process_capture_buffer();
+                if is_last {
+                    debug!("CAPTURE buffer marked with LAST flag");
+                    if self.is_drc_event_pending().unwrap() {
+                        self.update_capture_format().unwrap()
+                    }
+                    // No DRC event pending, this is the end of the stream.
+                    // We cannot keep polling anymore since the `CaptureReady`
+                    // event will keep being signaled, but dequeuing will only
+                    // return `EPIPE`.
+                    else {
+                        debug!("No DRC event pending, exiting decoding loop");
+                        self.exit_loop_waker.wake().unwrap();
+                        self
+                    }
+                } else {
+                    self
+                }
+            }
+        }
+    }
+
     /// Check if we have a dynamic resolution change event pending.
     ///
     /// Dequeues all pending V4L2 events and returns `true` if a
@@ -696,89 +782,42 @@ where
 
     fn run(mut self) -> Self {
         'polling: loop {
-            match &self.capture_queue {
-                CaptureQueue::AwaitingResolution { .. } => {
-                    // TODO remove this unwrap.
-                    trace!("AwaitingResolution: polling...");
-                    for event in self.poller.poll(None).unwrap() {
-                        match event {
-                            // Check if we got a format change event (ignoring
-                            // other events), and switch to the `Decoding` state
-                            // if we do.
-                            PollEvent::Device(DeviceEvent::V4L2Event) => {
-                                trace!("AwaitingResolution: got V4L2Event");
-                                if self.is_drc_event_pending().unwrap() {
-                                    self = self.update_capture_format().unwrap()
-                                }
-                            }
-                            // If we are requested to stop, then we just need to
-                            // break the loop since we haven't started producing
-                            // buffers.
-                            PollEvent::Waker(STOP_DECODING) => {
-                                trace!("AwaitingResolution: got STOP_DECODING waker");
-                                break 'polling;
-                            }
-                            _ => panic!("Unexpected event!"),
-                        }
+            if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
+                match capture_queue.num_queued_buffers() {
+                    // If there are no buffers on the CAPTURE queue, poll() will return
+                    // immediately with EPOLLERR and we would loop indefinitely.
+                    // Prevent this by temporarily disabling polling the CAPTURE queue
+                    // in such cases.
+                    0 => {
+                        self.poller
+                            .disable_event(DeviceEvent::CaptureReady)
+                            .unwrap();
+                    }
+                    // If device polling was disabled and we have buffers queued, we
+                    // can reenable it as poll will now wait for a CAPTURE buffer to
+                    // be ready for dequeue.
+                    _ => {
+                        self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
                     }
                 }
-                CaptureQueue::Decoding { capture_queue, .. } => {
-                    match capture_queue.num_queued_buffers() {
-                        // If there are no buffers on the CAPTURE queue, poll() will return
-                        // immediately with EPOLLERR and we would loop indefinitely.
-                        // Prevent this by temporarily disabling polling the CAPTURE queue
-                        // in such cases.
-                        0 => {
-                            self.poller
-                                .disable_event(DeviceEvent::CaptureReady)
-                                .unwrap();
-                        }
-                        // If device polling was disabled and we have buffers queued, we
-                        // can reenable it as poll will now wait for a CAPTURE buffer to
-                        // be ready for dequeue.
-                        _ => {
-                            self.poller.enable_event(DeviceEvent::CaptureReady).unwrap();
-                        }
-                    }
+            }
 
-                    trace!("Decoding: polling...");
-                    // TODO remove this unwrap.
-                    for event in self.poller.poll(None).unwrap() {
-                        match event {
-                            PollEvent::Device(DeviceEvent::CaptureReady) => {
-                                trace!("Decoding: got CaptureReady");
-                                let is_last = self.process_capture_buffer();
-                                if is_last {
-                                    debug!("CAPTURE buffer marked with LAST flag");
-                                    if self.is_drc_event_pending().unwrap() {
-                                        self = self.update_capture_format().unwrap();
-                                    }
-                                    // No DRC event pending, this is the end of the stream.
-                                    // We cannot keep polling anymore since the `CaptureReady`
-                                    // event will keep being signaled, but dequeuing will only
-                                    // return `EPIPE`.
-                                    else {
-                                        debug!("No DRC event pending, exiting decoding loop");
-                                        break 'polling;
-                                    }
-                                }
-                            }
-                            PollEvent::Waker(CAPTURE_READY) => {
-                                trace!("Decoding: got CAPTURE_READY waker");
-                                // Requeue all available CAPTURE buffers.
-                                self.enqueue_capture_buffers().unwrap();
-                            }
-                            PollEvent::Waker(STOP_DECODING) => {
-                                trace!("Decoding: got STOP_DECODING waker");
-                                // We are already producing buffers, send the STOP command
-                                // and exit the loop once the buffer with the LAST tag is received.
-                                // TODO remove this unwrap.
-                                ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop)
-                                    .unwrap();
-                            }
-                            _ => panic!("Unexpected event!"),
-                        }
+            trace!("Polling...");
+            // TODO remove this unwrap.
+            for event in self.poller.poll(None).unwrap() {
+                self = match event {
+                    PollEvent::Waker(EXIT_LOOP) => break 'polling,
+                    PollEvent::Device(DeviceEvent::V4L2Event) => self.process_v4l2_event(),
+                    PollEvent::Device(DeviceEvent::CaptureReady) => self.dequeue_capture_buffers(),
+                    PollEvent::Waker(CAPTURE_READY) => {
+                        self.enqueue_capture_buffers();
+                        self
                     }
+                    PollEvent::Waker(STOP_DECODING) => {
+                        self.process_stop_command();
+                        self
+                    }
+                    _ => panic!("Unexpected event!"),
                 }
             }
         }
@@ -803,28 +842,5 @@ where
                 ..self
             },
         }
-    }
-
-    fn enqueue_capture_buffers(&mut self) -> Result<(), QueueError<P::HandleType>> {
-        if let CaptureQueue::Decoding {
-            capture_queue,
-            provider,
-            cap_buffer_waker,
-        } = &mut self.capture_queue
-        {
-            'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
-                // TODO potential problem: the handles will be dropped if no V4L2 buffer
-                // is available. There is no guarantee that the provider will get them back
-                // in this case (e.g. with the C FFI).
-                if let Ok(buffer) = provider.get_suitable_buffer_for(&handles, capture_queue) {
-                    buffer.queue_with_handles(handles)?;
-                } else {
-                    warn!("Handles potentially lost due to no V4L2 buffer being available");
-                    break 'enqueue;
-                };
-            }
-        }
-
-        Ok(())
     }
 }
