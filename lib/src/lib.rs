@@ -268,3 +268,55 @@ impl<T: Into<PixelFormat>> From<(T, (usize, usize))> for Format {
         }
     }
 }
+
+/// A more elegant representation for `v4l2_rect`.
+#[derive(Debug)]
+pub struct Rect {
+    pub left: i32,
+    pub top: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Rect {
+    pub fn new(left: i32, top: i32, width: u32, height: u32) -> Rect {
+        Rect {
+            left,
+            top,
+            width,
+            height,
+        }
+    }
+}
+
+impl From<bindings::v4l2_rect> for Rect {
+    fn from(rect: bindings::v4l2_rect) -> Self {
+        Rect {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+        }
+    }
+}
+
+impl Into<bindings::v4l2_rect> for Rect {
+    fn into(self) -> bindings::v4l2_rect {
+        bindings::v4l2_rect {
+            left: self.left,
+            top: self.top,
+            width: self.width,
+            height: self.height,
+        }
+    }
+}
+
+impl Display for Rect {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "({}, {}), {}x{}",
+            self.left, self.top, self.width, self.height
+        )
+    }
+}
