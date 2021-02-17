@@ -11,7 +11,7 @@ use crate::{
                 get_indexed::GetCaptureBufferByIndex,
                 CaptureQueueable, OutputQueueableProvider, QueueError,
             },
-            BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
+            BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
@@ -161,11 +161,16 @@ pub enum StartDecoderError {
     StreamOnError(#[from] StreamOnError),
 }
 
-pub trait InputDoneCallback<OP: BufferHandles>: Fn(DQBuffer<Output, OP>) {}
+pub enum CompletedInputBuffer<OP: BufferHandles> {
+    Dequeued(DQBuffer<Output, OP>),
+    Canceled(CanceledBuffer<OP>),
+}
+
+pub trait InputDoneCallback<OP: BufferHandles>: Fn(CompletedInputBuffer<OP>) {}
 impl<OP, F> InputDoneCallback<OP> for F
 where
     OP: BufferHandles,
-    F: Fn(DQBuffer<Output, OP>),
+    F: Fn(CompletedInputBuffer<OP>),
 {
 }
 
@@ -343,7 +348,7 @@ where
         while output_queue.num_queued_buffers() > 0 {
             match output_queue.try_dequeue() {
                 Ok(buf) => {
-                    (self.state.input_done_cb)(buf);
+                    (self.state.input_done_cb)(CompletedInputBuffer::Dequeued(buf));
                 }
                 Err(ioctl::DQBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in
