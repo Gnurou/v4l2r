@@ -797,12 +797,6 @@ where
                                     }
                                 }
                             }
-
-                            // TODO when doing DRC, it can happen that buffers from the previous
-                            // resolution are released and trigger this. We need to make the
-                            // old waker a no-op (maybe by reinitializing it to a new file?)
-                            // before streaming the CAPTURE queue off. Maybe allocate a new Poller
-                            // as we morph our queue type?
                             PollEvent::Waker(CAPTURE_READY) => {
                                 trace!("Decoding: got CAPTURE_READY waker");
                                 // Requeue all available CAPTURE buffers.
