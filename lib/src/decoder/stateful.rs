@@ -25,7 +25,7 @@ use log::{debug, info, trace, warn};
 use std::{
     io,
     path::Path,
-    sync::{atomic::AtomicUsize, Arc},
+    sync::{atomic::AtomicUsize, mpsc, Arc},
     thread::JoinHandle,
 };
 use thiserror::Error;
@@ -197,14 +197,18 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
         let mut output_poller = Poller::new(Arc::clone(&self.device))?;
         output_poller.enable_event(DeviceEvent::OutputReady)?;
 
+        let (sender, receiver) = mpsc::channel();
+
         let mut decoder_thread = DecoderThread::new(
             &self.device,
             self.state.capture_queue,
             output_ready_cb,
             set_capture_format_cb,
+            sender,
         )?;
 
         let stop_waker = Arc::clone(&decoder_thread.stop_waker);
+        let flush_waker = Arc::clone(&decoder_thread.flush_waker);
 
         if let Some(counter) = &self.state.poll_wakeups_counter {
             output_poller.set_poll_counter(Arc::clone(counter));
@@ -224,6 +228,8 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
                 input_done_cb,
                 output_poller,
                 stop_waker,
+                flush_waker,
+                receiver,
                 handle,
             },
         })
@@ -242,6 +248,9 @@ where
     input_done_cb: InputDoneCb,
     output_poller: Poller,
     stop_waker: Arc<Waker>,
+    flush_waker: Arc<Waker>,
+
+    receiver: mpsc::Receiver<()>,
 
     handle: JoinHandle<DecoderThread<P, FrameDecodedCb, FormatChangedCb>>,
 }
@@ -264,6 +273,18 @@ pub enum StopError {
     JoinError,
     #[error("Error while stopping the OUTPUT queue")]
     StreamoffError(#[from] ioctl::StreamOffError),
+}
+
+#[derive(Debug, Error)]
+pub enum FlushError {
+    #[error("Error while stopping the OUTPUT queue")]
+    StreamoffError(#[from] ioctl::StreamOffError),
+    #[error("Error while poking the flush waker")]
+    WakerError(#[from] io::Error),
+    #[error("Error while waiting for the decoder thread to flush")]
+    RecvError(#[from] mpsc::RecvError),
+    #[error("Error while starting the OUTPUT queue")]
+    StreamoonError(#[from] ioctl::StreamOnError),
 }
 
 #[allow(type_alias_bounds)]
@@ -300,6 +321,37 @@ where
         }
 
         Ok(self.state.output_queue.stream_off()?)
+    }
+
+    /// Flush the decoder, i.e. try to cancel all pending work.
+    ///
+    /// The canceled input buffers will be returned as
+    /// `CompletedInputBuffer::Canceled` through the input done callback.
+    ///
+    /// This function is blocking. When is returns, the frame decoded callback
+    /// has been called for all pre-flush frames, and the decoder can accept new
+    /// content to decode.
+    pub fn flush(&self) -> Result<(), FlushError> {
+        debug!("Flush requested");
+        let canceled_buffers = self.state.output_queue.stream_off()?;
+
+        // Request the decoder to flush itself.
+        self.state.flush_waker.wake()?;
+
+        // Process our canceled input buffers in the meantime.
+        for buffer in canceled_buffers {
+            (self.state.input_done_cb)(CompletedInputBuffer::Canceled(buffer));
+        }
+
+        // Wait for the decoder thread to signal it is done with our request.
+        // TODO add timeout?
+        self.state.receiver.recv()?;
+
+        // Resume business.
+        self.state.output_queue.stream_on()?;
+
+        debug!("Flush complete");
+        Ok(())
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
@@ -417,11 +469,11 @@ where
     /// Kick the decoder and see if some input buffers fall as a result.
     ///
     /// No, really. Completed input buffers are typically checked when calling
-    /// [`get_buffer`] (which is also the time when the input done callback is
+    /// [`Decoder::get_buffer`] (which is also the time when the input done callback is
     /// invoked), but this mechanism is not foolproof: if the client works with
     /// a limited set of input buffers and queues them all before an output
     /// frame can be produced, then the client has no more buffers to fill and
-    /// thus no reason to call [`get_buffer`], resulting in the decoding process
+    /// thus no reason to call [`Decoder::get_buffer`], resulting in the decoding process
     /// being blocked.
     ///
     /// This method mitigates this problem by adding a way to check for
@@ -433,19 +485,6 @@ where
     pub fn kick(&mut self) -> Result<(), DequeueOutputBufferError<OP>> {
         info!("Kick!");
         self.dequeue_output_buffers()
-    }
-
-    pub fn wait_for_input_available(&mut self) -> Result<(), GetBufferError<OP>> {
-        let output_queue = &self.state.output_queue;
-
-        // If all our buffers are queued, wait until we can dequeue some.
-        if output_queue.num_queued_buffers() == output_queue.num_buffers() {
-            self.wait_for_output_buffer()?;
-            // Dequeue and run the input done callback for completed input buffers.
-            self.dequeue_output_buffers()?;
-        }
-
-        Ok(())
     }
 }
 
@@ -474,8 +513,12 @@ where
 
     exit_loop_waker: Arc<Waker>,
     stop_waker: Arc<Waker>,
+    flush_waker: Arc<Waker>,
+
     output_ready_cb: FrameDecodedCb,
     set_capture_format_cb: FormatChangedCb,
+
+    sender: mpsc::Sender<()>,
 }
 
 #[derive(Debug, Error)]
@@ -505,6 +548,7 @@ enum UpdateCaptureError {
 const EXIT_LOOP: u32 = 0;
 const CAPTURE_READY: u32 = 1;
 const STOP_DECODING: u32 = 2;
+const FLUSH: u32 = 3;
 
 #[derive(Debug, Error)]
 enum ProcessEventsError {
@@ -529,6 +573,7 @@ where
         capture_queue: Queue<Capture, QueueInit>,
         output_ready_cb: FrameDecodedCb,
         set_capture_format_cb: FormatChangedCb,
+        sender: mpsc::Sender<()>,
     ) -> io::Result<Self> {
         // Start by only listening to V4L2 events in order to catch the initial
         // resolution change, and to the stop waker in case the user had a
@@ -537,6 +582,7 @@ where
         poller.enable_event(DeviceEvent::V4L2Event)?;
         let exit_loop_waker = poller.add_waker(EXIT_LOOP)?;
         let stop_waker = poller.add_waker(STOP_DECODING)?;
+        let flush_waker = poller.add_waker(FLUSH)?;
 
         let decoder_thread = DecoderThread {
             device: Arc::clone(&device),
@@ -544,8 +590,10 @@ where
             poller,
             exit_loop_waker,
             stop_waker,
+            flush_waker,
             output_ready_cb,
             set_capture_format_cb,
+            sender,
         };
 
         Ok(decoder_thread)
@@ -711,6 +759,22 @@ where
         }
     }
 
+    fn flush(&mut self) {
+        trace!("Processing flush command");
+        match &self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => {}
+            CaptureQueue::Decoding { capture_queue, .. } => {
+                capture_queue.stream_off().unwrap();
+                capture_queue.stream_on().unwrap();
+            }
+        }
+
+        // We are flushed, let the client know.
+        self.sender.send(()).unwrap();
+
+        self.enqueue_capture_buffers()
+    }
+
     /// Check if we have a dynamic resolution change event pending.
     ///
     /// Dequeues all pending V4L2 events and returns `true` if a
@@ -815,6 +879,10 @@ where
                     }
                     PollEvent::Waker(STOP_DECODING) => {
                         self.process_stop_command();
+                        self
+                    }
+                    PollEvent::Waker(FLUSH) => {
+                        self.flush();
                         self
                     }
                     _ => panic!("Unexpected event!"),
