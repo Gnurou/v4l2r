@@ -10,10 +10,10 @@ use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIn
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::{
     ioctl::{
-        self, DQBufError, DQBufResult, Fmt, GFmtError, QueryBuffer, SFmtError, StreamOffError,
-        StreamOnError, TryFmtError,
+        self, DQBufError, DQBufResult, Fmt, GFmtError, QueryBuffer, SFmtError, SelectionTarget,
+        SelectionType, StreamOffError, StreamOnError, TryFmtError,
     },
-    PlaneLayout,
+    PlaneLayout, Rect,
 };
 use crate::{memory::*, FormatConversionError};
 use crate::{Format, PixelFormat, QueueType};
@@ -121,6 +121,15 @@ where
     /// Returns an iterator over all the formats currently supported by this queue.
     pub fn format_iter(&self) -> ioctl::FormatIterator<QueueBase> {
         ioctl::FormatIterator::new(&self.inner, self.inner.type_)
+    }
+
+    pub fn get_selection(&self, target: SelectionTarget) -> Result<Rect, ioctl::GSelectionError> {
+        let selection = match self.get_type() {
+            QueueType::VideoCapture | QueueType::VideoCaptureMplane => SelectionType::Capture,
+            QueueType::VideoOutput | QueueType::VideoOutputMplane => SelectionType::Output,
+        };
+
+        ioctl::g_selection(&self.inner, selection, target)
     }
 }
 
