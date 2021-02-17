@@ -18,7 +18,7 @@ use v4l2::{
 };
 use v4l2::{decoder::stateful::GetBufferError, QueueType};
 use v4l2::{
-    decoder::{format::fwht::FwhtFrameParser, stateful::SetCaptureFormatRet},
+    decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
     device::queue::{
         handles_provider::{PooledHandles, PooledHandlesProvider},
         qbuf::OutputQueueable,
@@ -119,7 +119,7 @@ fn main() {
     let set_capture_format_cb =
         move |f: FormatBuilder,
               min_num_buffers: usize|
-              -> anyhow::Result<SetCaptureFormatRet<PooledDMABufHandlesProvider>> {
+              -> anyhow::Result<FormatChangedReply<PooledDMABufHandlesProvider>> {
             let format = f.set_pixelformat(b"RGB3").apply()?;
 
             println!("New CAPTURE format: {:?}", format);
@@ -132,7 +132,7 @@ fn main() {
             )
             .unwrap();
 
-            Ok(SetCaptureFormatRet {
+            Ok(FormatChangedReply {
                 provider: PooledHandlesProvider::new(dmabuf_fds),
                 // TODO: can't the provider report the memory type that it is
                 // actually serving itself?
