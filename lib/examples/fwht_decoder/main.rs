@@ -14,7 +14,7 @@ use v4l2::{
     decoder::stateful::Decoder,
     device::queue::{direction::Capture, dqbuf::DQBuffer},
     memory::{DMABufHandle, DMABufferHandles},
-    Format,
+    Format, Rect,
 };
 use v4l2::{decoder::stateful::GetBufferError, QueueType};
 use v4l2::{
@@ -118,11 +118,15 @@ fn main() {
     let device_path_cb = String::from(device_path);
     let set_capture_format_cb =
         move |f: FormatBuilder,
+              visible_rect: Rect,
               min_num_buffers: usize|
               -> anyhow::Result<FormatChangedReply<PooledDMABufHandlesProvider>> {
             let format = f.set_pixelformat(b"RGB3").apply()?;
 
-            println!("New CAPTURE format: {:?}", format);
+            println!(
+                "New CAPTURE format: {:?} (visible rect: {})",
+                format, visible_rect
+            );
 
             let dmabuf_fds: Vec<Vec<_>> = utils::dmabuf_exporter::export_dmabufs(
                 &Path::new(&device_path_cb),

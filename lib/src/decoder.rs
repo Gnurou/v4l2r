@@ -6,6 +6,7 @@ use crate::{
         CanceledBuffer, FormatBuilder,
     },
     memory::BufferHandles,
+    Rect,
 };
 
 pub mod format;
@@ -42,12 +43,12 @@ pub struct FormatChangedReply<P: HandlesProvider> {
 }
 
 pub trait FormatChangedCallback<P: HandlesProvider>:
-    Fn(FormatBuilder, usize) -> anyhow::Result<FormatChangedReply<P>> + Send + 'static
+    Fn(FormatBuilder, Rect, usize) -> anyhow::Result<FormatChangedReply<P>> + Send + 'static
 {
 }
 impl<P, F> FormatChangedCallback<P> for F
 where
     P: HandlesProvider,
-    F: Fn(FormatBuilder, usize) -> anyhow::Result<FormatChangedReply<P>> + Send + 'static,
+    F: Fn(FormatBuilder, Rect, usize) -> anyhow::Result<FormatChangedReply<P>> + Send + 'static,
 {
 }

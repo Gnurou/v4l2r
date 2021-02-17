@@ -16,7 +16,9 @@ use crate::{
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{self, subscribe_event, BufferCapabilities, Fmt, FormatFlags, StreamOnError},
+    ioctl::{
+        self, subscribe_event, BufferCapabilities, Fmt, FormatFlags, SelectionTarget, StreamOnError,
+    },
     memory::{BufferHandles, PrimitiveBufferHandles},
     FormatConversionError,
 };
@@ -533,6 +535,8 @@ enum UpdateCaptureError {
     FreeBuffers(#[from] ioctl::ReqbufsError),
     #[error("Error while obtaining CAPTURE format: {0}")]
     GFmt(#[from] ioctl::GFmtError),
+    #[error("Error while obtaining selection target from CAPTURE queue: {0}")]
+    GSelection(#[from] ioctl::GSelectionError),
     #[error("Error while running the CAPTURE format callback: {0}")]
     Callback(#[from] anyhow::Error),
     #[error("Error while requesting CAPTURE buffers: {0}")]
@@ -709,15 +713,24 @@ where
 
         // TODO use the proper control to get the right value.
         let min_num_buffers = 4usize;
-
         debug!("Stream requires {} capture buffers", min_num_buffers);
+
+        let visible_rect = capture_queue.get_selection(SelectionTarget::Compose)?;
+        debug!(
+            "Visible rectangle: ({}, {}), {}x{}",
+            visible_rect.left, visible_rect.top, visible_rect.width, visible_rect.height
+        );
 
         // Let the client adjust the new format and give us the handles provider.
         let FormatChangedReply {
             provider,
             mem_type,
             num_buffers,
-        } = (self.set_capture_format_cb)(capture_queue.change_format()?, min_num_buffers)?;
+        } = (self.set_capture_format_cb)(
+            capture_queue.change_format()?,
+            visible_rect,
+            min_num_buffers,
+        )?;
 
         debug!("Client requires {} capture buffers", num_buffers);
 
