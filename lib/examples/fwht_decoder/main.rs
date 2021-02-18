@@ -83,6 +83,7 @@ fn main() {
     let poll_count_writer = Arc::clone(&poll_count_reader);
     let start_time = std::time::Instant::now();
     let mut output_buffer_size = 0usize;
+    let mut frame_counter = 0usize;
     let output_ready_cb =
         move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<DMABufferHandles<File>>>| {
             let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
@@ -92,9 +93,9 @@ fn main() {
             }
 
             let elapsed = start_time.elapsed();
-            let frame_nb = cap_dqbuf.data.sequence() + 1;
-            let fps = frame_nb as f32 / elapsed.as_millis() as f32 * 1000.0;
-            let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_nb as f32;
+            frame_counter += 1;
+            let fps = frame_counter as f32 / elapsed.as_millis() as f32 * 1000.0;
+            let ppf = poll_count_reader.load(Ordering::SeqCst) as f32 / frame_counter as f32;
             print!(
                 "\rDecoded buffer {:#5}, index: {:#2}), bytes used:{:#6} fps: {:#5.2} ppf: {:#4.2}",
                 cap_dqbuf.data.sequence(),
