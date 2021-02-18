@@ -20,6 +20,7 @@ use crate::{Format, PixelFormat, QueueType};
 use direction::*;
 use dqbuf::*;
 use generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType};
+use log::debug;
 use qbuf::{
     get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
     get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
@@ -257,6 +258,11 @@ impl<D: Direction> Queue<D, QueueInit> {
         let type_ = self.inner.type_;
         let num_buffers: usize = ioctl::reqbufs(&self.inner, type_, memory_type.into(), count)?;
 
+        debug!(
+            "Requested {} buffers on {} queue, obtained {}",
+            count, type_, num_buffers
+        );
+
         // The buffers have been allocated, now let's get their features.
         // We cannot use functional programming here because we need to return
         // the error from ioctl::querybuf(), if any.
@@ -372,6 +378,12 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
             })
             .collect();
 
+        debug!(
+            "{} buffers canceled on {} queue",
+            canceled_buffers.len(),
+            self.get_type()
+        );
+
         let num_queued_buffers = self.state.num_queued_buffers.take();
         assert_eq!(num_queued_buffers, canceled_buffers.len());
         self.state.num_queued_buffers.set(0);
@@ -416,6 +428,8 @@ impl<'a, D: Direction, P: BufferHandles + 'a> AllocatedQueue<'a, D>
         let type_ = self.inner.type_;
         ioctl::reqbufs(&self.inner, type_, self.state.memory_type.into(), 0)?;
 
+        debug!("Freed all buffers on {} queue", type_);
+
         // reqbufs also performs an implicit streamoff, so return the cancelled
         // buffers.
         let canceled_buffers = self.cancel_queued_buffers();
@@ -444,11 +458,13 @@ impl<D: Direction, P: BufferHandles> Stream for Queue<D, BuffersAllocated<P>> {
     type Canceled = CanceledBuffer<P>;
 
     fn stream_on(&self) -> Result<(), StreamOnError> {
+        debug!("{} queue streaming on", self.get_type());
         let type_ = self.inner.type_;
         ioctl::streamon(&self.inner, type_)
     }
 
     fn stream_off(&self) -> Result<Vec<Self::Canceled>, StreamOffError> {
+        debug!("{} queue streaming off", self.get_type());
         let type_ = self.inner.type_;
         ioctl::streamoff(&self.inner, type_)?;
 
