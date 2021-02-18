@@ -12,7 +12,10 @@ use std::{
 use anyhow::ensure;
 use v4l2::{
     decoder::stateful::Decoder,
-    device::queue::{direction::Capture, dqbuf::DQBuffer},
+    device::{
+        poller::PollError,
+        queue::{direction::Capture, dqbuf::DQBuffer},
+    },
     memory::{DMABufHandle, DMABufferHandles},
     Format, Rect,
 };
@@ -196,7 +199,9 @@ fn main() {
         let v4l2_buffer = match decoder.get_buffer() {
             Ok(buffer) => buffer,
             // If we got interrupted while waiting for a buffer, just exit normally.
-            Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => {
+            Err(GetBufferError::PollError(PollError::EPollWait(e)))
+                if e.kind() == io::ErrorKind::Interrupted =>
+            {
                 break 'mainloop
             }
             Err(e) => panic!(e),

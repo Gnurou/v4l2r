@@ -1,6 +1,6 @@
 use crate::{
     device::{
-        poller::{DeviceEvent, PollEvent, Poller, Waker},
+        poller::{DeviceEvent, PollError, PollEvent, Poller, Waker},
         queue::{
             direction::{Capture, Output},
             dqbuf::DQBuffer,
@@ -315,7 +315,7 @@ pub enum GetBufferError<OP: BufferHandles> {
     #[error("Error while dequeueing buffer")]
     DequeueError(#[from] DequeueOutputBufferError<OP>),
     #[error("Error during poll")]
-    PollError(#[from] io::Error),
+    PollError(#[from] PollError),
     #[error("Error while obtaining buffer")]
     GetFreeBufferError(#[from] GetFreeBufferError),
 }

@@ -8,12 +8,15 @@ use std::sync::Arc;
 use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
 use v4l2::{
-    device::queue::{
-        direction::Capture,
-        dqbuf::DQBuffer,
-        generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
-        handles_provider::MMAPProvider,
-        qbuf::OutputQueueable,
+    device::{
+        poller::PollError,
+        queue::{
+            direction::Capture,
+            dqbuf::DQBuffer,
+            generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
+            handles_provider::MMAPProvider,
+            qbuf::OutputQueueable,
+        },
     },
     encoder::*,
     memory::{MMAPHandle, UserPtrHandle},
@@ -263,7 +266,11 @@ fn main() {
         let v4l2_buffer = match encoder.get_buffer() {
             Ok(buffer) => buffer,
             // If we got interrupted while waiting for a buffer, just exit normally.
-            Err(GetBufferError::PollError(e)) if e.kind() == io::ErrorKind::Interrupted => break,
+            Err(GetBufferError::PollError(PollError::EPollWait(e)))
+                if e.kind() == io::ErrorKind::Interrupted =>
+            {
+                break
+            }
             Err(e) => panic!(e),
         };
         let bytes_used = frame_gen.frame_size();

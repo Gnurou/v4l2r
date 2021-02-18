@@ -15,7 +15,8 @@ use std::{
     sync::Arc,
 };
 
-use log::warn;
+use log::{error, warn};
+use thiserror::Error;
 
 use crate::device::Device;
 
@@ -150,6 +151,14 @@ const FIRST_WAKER_ID: u64 = 0;
 const LAST_WAKER_ID: u64 = DEVICE_ID - 1;
 /// Give us a comfortable range of 4 billion ids usable for wakers.
 const DEVICE_ID: u64 = 1 << 32;
+
+#[derive(Debug, Error)]
+pub enum PollError {
+    #[error("Error during call to epoll_wait: {0}")]
+    EPollWait(#[from] io::Error),
+    #[error("V4L2 device returned EPOLLERR")]
+    V4L2Device,
+}
 
 impl Poller {
     pub fn new(device: Arc<Device>) -> io::Result<Self> {
@@ -321,7 +330,7 @@ impl Poller {
         }
     }
 
-    pub fn poll(&mut self, duration: Option<std::time::Duration>) -> io::Result<PollEvents> {
+    pub fn poll(&mut self, duration: Option<std::time::Duration>) -> Result<PollEvents, PollError> {
         let mut events = PollEvents::new();
         let duration: i32 = match duration {
             None => -1,
@@ -335,6 +344,11 @@ impl Poller {
             duration
         ))? as usize;
 
+        // Update our wake up stats
+        if let Some(wakeup_counter) = &self.poll_wakeups_counter {
+            wakeup_counter.fetch_add(1, Ordering::SeqCst);
+        }
+
         // Reset all the wakers that have been signaled.
         for event in &events.events[0..events.nb_events] {
             if event.u64 <= LAST_WAKER_ID {
@@ -345,9 +359,11 @@ impl Poller {
             }
         }
 
-        // Update our wake up stats
-        if let Some(wakeup_counter) = &self.poll_wakeups_counter {
-            wakeup_counter.fetch_add(1, Ordering::SeqCst);
+        for event in &events.events[0..events.nb_events] {
+            if event.u64 == DEVICE_ID && event.events & libc::EPOLLERR as u32 != 0 {
+                error!("V4L2 device returned EPOLLERR!");
+                return Err(PollError::V4L2Device);
+            }
         }
 
         Ok(events)
