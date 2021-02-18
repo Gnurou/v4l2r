@@ -513,9 +513,12 @@ where
     capture_queue: CaptureQueue<P>,
     poller: Poller,
 
-    exit_loop_waker: Arc<Waker>,
     stop_waker: Arc<Waker>,
     flush_waker: Arc<Waker>,
+
+    // Switched when we have confirmed the stream is over, so we stop the poll
+    // loop.
+    end_of_stream: bool,
 
     output_ready_cb: FrameDecodedCb,
     set_capture_format_cb: FormatChangedCb,
@@ -549,7 +552,6 @@ enum UpdateCaptureError {
     StreamOn(#[from] ioctl::StreamOnError),
 }
 
-const EXIT_LOOP: u32 = 0;
 const CAPTURE_READY: u32 = 1;
 const STOP_DECODING: u32 = 2;
 const FLUSH: u32 = 3;
@@ -584,7 +586,6 @@ where
         // change of heart about decoding something now.
         let mut poller = Poller::new(Arc::clone(device))?;
         poller.enable_event(DeviceEvent::V4L2Event)?;
-        let exit_loop_waker = poller.add_waker(EXIT_LOOP)?;
         let stop_waker = poller.add_waker(STOP_DECODING)?;
         let flush_waker = poller.add_waker(FLUSH)?;
 
@@ -592,9 +593,9 @@ where
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
-            exit_loop_waker,
             stop_waker,
             flush_waker,
+            end_of_stream: false,
             output_ready_cb,
             set_capture_format_cb,
             sender,
@@ -607,12 +608,12 @@ where
         self.poller.set_poll_counter(poll_wakeups_counter);
     }
 
-    fn process_stop_command(&self) {
+    fn process_stop_command(&mut self) {
         trace!("Processing stop command");
         match self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {
                 // We are not decoding yet, so we can just break the loop.
-                self.exit_loop_waker.wake().unwrap();
+                self.end_of_stream = true;
             }
             CaptureQueue::Decoding { .. } => {
                 // We can receive the LAST buffer, send the STOP command
@@ -777,7 +778,7 @@ where
                     // return `EPIPE`.
                     else {
                         debug!("No DRC event pending, exiting decoding loop");
-                        self.exit_loop_waker.wake().unwrap();
+                        self.end_of_stream = true;
                         self
                     }
                 } else {
@@ -873,7 +874,7 @@ where
     }
 
     fn run(mut self) -> Self {
-        'polling: loop {
+        while !self.end_of_stream {
             if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
                 match capture_queue.num_queued_buffers() {
                     // If there are no buffers on the CAPTURE queue, poll() will return
@@ -898,7 +899,6 @@ where
             // TODO remove this unwrap.
             for event in self.poller.poll(None).unwrap() {
                 self = match event {
-                    PollEvent::Waker(EXIT_LOOP) => break 'polling,
                     PollEvent::Device(DeviceEvent::V4L2Event) => self.process_v4l2_event(),
                     PollEvent::Device(DeviceEvent::CaptureReady) => self.dequeue_capture_buffers(),
                     PollEvent::Waker(CAPTURE_READY) => {
