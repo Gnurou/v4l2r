@@ -71,15 +71,15 @@ impl Iterator for PollEvents {
         match slot.u64 {
             DEVICE_ID => {
                 // Figure out which event to return next, if any for this slot.
-                if slot.events & libc::EPOLLPRI as u32 != 0 {
-                    slot.events &= !libc::EPOLLPRI as u32;
-                    Some(PollEvent::Device(DeviceEvent::V4L2Event))
-                } else if slot.events & libc::EPOLLOUT as u32 != 0 {
+                if slot.events & libc::EPOLLOUT as u32 != 0 {
                     slot.events &= !libc::EPOLLOUT as u32;
                     Some(PollEvent::Device(DeviceEvent::OutputReady))
                 } else if slot.events & libc::EPOLLIN as u32 != 0 {
                     slot.events &= !libc::EPOLLIN as u32;
                     Some(PollEvent::Device(DeviceEvent::CaptureReady))
+                } else if slot.events & libc::EPOLLPRI as u32 != 0 {
+                    slot.events &= !libc::EPOLLPRI as u32;
+                    Some(PollEvent::Device(DeviceEvent::V4L2Event))
                 } else {
                     // If no more events for this slot, try the next one.
                     self.cur_event += 1;
