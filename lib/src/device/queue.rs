@@ -373,9 +373,8 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
             .collect();
 
         let num_queued_buffers = self.state.num_queued_buffers.take();
-        self.state
-            .num_queued_buffers
-            .set(num_queued_buffers - canceled_buffers.len());
+        assert_eq!(num_queued_buffers, canceled_buffers.len());
+        self.state.num_queued_buffers.set(0);
 
         canceled_buffers
     }
