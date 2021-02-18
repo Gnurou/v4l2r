@@ -23,7 +23,7 @@ use crate::{
     FormatConversionError,
 };
 
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::{
     io,
     path::Path,
@@ -874,7 +874,7 @@ where
     }
 
     fn run(mut self) -> Self {
-        while !self.end_of_stream {
+        'mainloop: while !self.end_of_stream {
             if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
                 match capture_queue.num_queued_buffers() {
                     // If there are no buffers on the CAPTURE queue, poll() will return
@@ -896,8 +896,14 @@ where
             }
 
             trace!("Polling...");
-            // TODO remove this unwrap.
-            for event in self.poller.poll(None).unwrap() {
+            let events = match self.poller.poll(None) {
+                Ok(events) => events,
+                Err(e) => {
+                    error!("Polling failure, exiting capture thread: {}", e);
+                    break 'mainloop;
+                }
+            };
+            for event in events {
                 self = match event {
                     PollEvent::Device(DeviceEvent::V4L2Event) => self.process_v4l2_event(),
                     PollEvent::Device(DeviceEvent::CaptureReady) => self.dequeue_capture_buffers(),
