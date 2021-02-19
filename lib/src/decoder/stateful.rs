@@ -240,11 +240,13 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
 }
 
 enum DecoderCommand {
+    Drain,
     Flush,
     Stop,
 }
 
 enum CaptureThreadResponse {
+    DrainDone(anyhow::Result<bool>),
     FlushDone(anyhow::Result<()>),
 }
 
@@ -293,6 +295,16 @@ pub enum StopError {
     Join,
     #[error("Error while stopping the OUTPUT queue")]
     Streamoff(#[from] ioctl::StreamOffError),
+}
+
+#[derive(Debug, Error)]
+pub enum DrainError {
+    #[error("Error while sending the flush command to the capture thread")]
+    SendCommand(#[from] SendCommandError),
+    #[error("Error while waiting for the decoder thread to drain")]
+    RecvError(#[from] mpsc::RecvError),
+    #[error("Error while draining on the capture thread")]
+    CaptureThreadError(anyhow::Error),
 }
 
 #[derive(Debug, Error)]
@@ -357,6 +369,45 @@ where
         Ok(self.state.output_queue.stream_off()?)
     }
 
+    /// Drain the decoder, i.e. make sure all its pending work is processed and
+    /// signal this with a buffer carrying the LAST flag.
+    ///
+    /// This method is usually non-blocking: because the decoding process must
+    /// continue until the LAST buffer is received, it is up to the client to
+    /// watch for that buffer and only consider the drain completed when it
+    /// arrives.
+    ///
+    /// This method returns `false` to indicate that the client must look for
+    /// the LAST buffer before it can consider the drain sequence as completed.
+    /// However, if the decoder is still not able to emit frames at this stage,
+    /// making it impossible to receive the LAST buffer, this method will return
+    /// `true` and the drain sequence can be considered as completed.
+    ///
+    /// The client can continue submitting buffers with encoded data. They will
+    /// be processed in order and their frames will come after the ones still
+    /// in the pipeline. For a way to cancel all the pending jobs, see the
+    /// [`flush`] method.
+    pub fn drain(&self) -> Result<bool, DrainError> {
+        debug!("Drain requested");
+        self.send_command(DecoderCommand::Drain)?;
+
+        match self.state.response_receiver.recv()? {
+            CaptureThreadResponse::DrainDone(response) => match response {
+                Ok(completed) => Ok(completed),
+                Err(e) => {
+                    error!("Error while draining on the capture thread: {}", e);
+                    Err(DrainError::CaptureThreadError(e))
+                }
+            },
+            _ => {
+                error!("Unexpected capture thread response received while draining");
+                Err(DrainError::CaptureThreadError(anyhow::anyhow!(
+                    "Unexpected response while draining"
+                )))
+            }
+        }
+    }
+
     /// Flush the decoder, i.e. try to cancel all pending work.
     ///
     /// The canceled input buffers will be returned as
@@ -387,6 +438,12 @@ where
                     return Err(FlushError::CaptureThreadError(e));
                 }
             },
+            _ => {
+                error!("Unexpected capture thread response received while flushing");
+                return Err(FlushError::CaptureThreadError(anyhow::anyhow!(
+                    "Unexpected response while flushing"
+                )));
+            }
         }
 
         // Resume business.
@@ -663,6 +720,23 @@ where
                 ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
             }
         }
+    }
+
+    fn drain(&mut self) {
+        trace!("Processing drain command");
+        let response = match self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => {
+                true
+            }
+            CaptureQueue::Decoding { .. } => {
+                // We can receive the LAST buffer, send the STOP command
+                // and exit the loop once the buffer with the LAST tag is received.
+                ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
+                false
+            }
+        };
+
+        self.response_sender.send(CaptureThreadResponse::DrainDone(Ok(response))).unwrap();
     }
 
     fn enqueue_capture_buffers(&mut self) {
@@ -967,6 +1041,7 @@ where
                                     }
                                 };
                             match command {
+                                DecoderCommand::Drain => self.drain(),
                                 DecoderCommand::Flush => self.flush(),
                                 DecoderCommand::Stop => self.stop(),
                             }
