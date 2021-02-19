@@ -199,18 +199,19 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
         let mut output_poller = Poller::new(Arc::clone(&self.device))?;
         output_poller.enable_event(DeviceEvent::OutputReady)?;
 
-        let (sender, receiver) = mpsc::channel();
+        let (command_sender, command_receiver) = mpsc::channel::<DecoderCommand>();
+        let (response_sender, response_receiver) = mpsc::channel::<CaptureThreadResponse>();
 
         let mut decoder_thread = DecoderThread::new(
             &self.device,
             self.state.capture_queue,
             output_ready_cb,
             set_capture_format_cb,
-            sender,
+            command_receiver,
+            response_sender,
         )?;
 
-        let stop_waker = Arc::clone(&decoder_thread.stop_waker);
-        let flush_waker = Arc::clone(&decoder_thread.flush_waker);
+        let command_waker = Arc::clone(&decoder_thread.command_waker);
 
         if let Some(counter) = &self.state.poll_wakeups_counter {
             output_poller.set_poll_counter(Arc::clone(counter));
@@ -229,13 +230,22 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
                 output_queue: self.state.output_queue,
                 input_done_cb,
                 output_poller,
-                stop_waker,
-                flush_waker,
-                receiver,
+                command_waker,
+                command_sender,
+                response_receiver,
                 handle,
             },
         })
     }
+}
+
+enum DecoderCommand {
+    Flush,
+    Stop,
+}
+
+enum CaptureThreadResponse {
+    FlushDone(anyhow::Result<()>),
 }
 
 pub struct Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>
@@ -249,10 +259,10 @@ where
     output_queue: Queue<Output, BuffersAllocated<OP>>,
     input_done_cb: InputDoneCb,
     output_poller: Poller,
-    stop_waker: Arc<Waker>,
-    flush_waker: Arc<Waker>,
 
-    receiver: mpsc::Receiver<()>,
+    command_waker: Arc<Waker>,
+    command_sender: mpsc::Sender<DecoderCommand>,
+    response_receiver: mpsc::Receiver<CaptureThreadResponse>,
 
     handle: JoinHandle<DecoderThread<P, FrameDecodedCb, FormatChangedCb>>,
 }
@@ -268,25 +278,35 @@ where
 }
 
 #[derive(Debug, Error)]
-pub enum StopError {
-    #[error("Error while poking the stop waker")]
+pub enum SendCommandError {
+    #[error("Error while queueing the message")]
+    SendError,
+    #[error("Error while poking the command waker")]
     WakerError(#[from] io::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum StopError {
+    #[error("Error while sending the stop command to the capture thread")]
+    SendCommand(#[from] SendCommandError),
     #[error("Error while waiting for the decoder thread to finish")]
-    JoinError,
+    Join,
     #[error("Error while stopping the OUTPUT queue")]
-    StreamoffError(#[from] ioctl::StreamOffError),
+    Streamoff(#[from] ioctl::StreamOffError),
 }
 
 #[derive(Debug, Error)]
 pub enum FlushError {
     #[error("Error while stopping the OUTPUT queue")]
     StreamoffError(#[from] ioctl::StreamOffError),
-    #[error("Error while poking the flush waker")]
-    WakerError(#[from] io::Error),
+    #[error("Error while sending the flush command to the capture thread")]
+    SendCommand(#[from] SendCommandError),
     #[error("Error while waiting for the decoder thread to flush")]
     RecvError(#[from] mpsc::RecvError),
+    #[error("Error while flushing on the capture thread")]
+    CaptureThreadError(anyhow::Error),
     #[error("Error while starting the OUTPUT queue")]
-    StreamoonError(#[from] ioctl::StreamOnError),
+    StreamonError(#[from] ioctl::StreamOnError),
 }
 
 #[allow(type_alias_bounds)]
@@ -308,6 +328,17 @@ where
         self.state.output_queue.num_buffers()
     }
 
+    /// Send a command to the capture thread.
+    fn send_command(&self, command: DecoderCommand) -> Result<(), SendCommandError> {
+        self.state
+            .command_sender
+            .send(command)
+            .map_err(|_| SendCommandError::SendError)?;
+        self.state.command_waker.wake()?;
+
+        Ok(())
+    }
+
     pub fn get_output_format<E: Into<FormatConversionError>, T: Fmt<E>>(
         &self,
     ) -> Result<T, ioctl::GFmtError> {
@@ -315,11 +346,12 @@ where
     }
 
     pub fn stop(self) -> Result<CanceledBuffers<OP>, StopError> {
-        self.state.stop_waker.wake()?;
+        debug!("Stop requested");
+        self.send_command(DecoderCommand::Stop)?;
 
         match self.state.handle.join() {
             Ok(_) => (),
-            Err(_) => return Err(StopError::JoinError),
+            Err(_) => return Err(StopError::Join),
         }
 
         Ok(self.state.output_queue.stream_off()?)
@@ -338,7 +370,7 @@ where
         let canceled_buffers = self.state.output_queue.stream_off()?;
 
         // Request the decoder to flush itself.
-        self.state.flush_waker.wake()?;
+        self.send_command(DecoderCommand::Flush)?;
 
         // Process our canceled input buffers in the meantime.
         for buffer in canceled_buffers {
@@ -347,7 +379,15 @@ where
 
         // Wait for the decoder thread to signal it is done with our request.
         // TODO add timeout?
-        self.state.receiver.recv()?;
+        match self.state.response_receiver.recv()? {
+            CaptureThreadResponse::FlushDone(response) => match response {
+                Ok(()) => (),
+                Err(e) => {
+                    error!("Error while flushing on the capture thread: {}", e);
+                    return Err(FlushError::CaptureThreadError(e));
+                }
+            },
+        }
 
         // Resume business.
         self.state.output_queue.stream_on()?;
@@ -513,9 +553,6 @@ where
     capture_queue: CaptureQueue<P>,
     poller: Poller,
 
-    stop_waker: Arc<Waker>,
-    flush_waker: Arc<Waker>,
-
     // Switched when we have confirmed the stream is over, so we stop the poll
     // loop.
     end_of_stream: bool,
@@ -523,7 +560,13 @@ where
     output_ready_cb: FrameDecodedCb,
     set_capture_format_cb: FormatChangedCb,
 
-    sender: mpsc::Sender<()>,
+    // Waker signaled when the main thread has commands pending for us.
+    command_waker: Arc<Waker>,
+    // Receiver we read commands from when `command_waker` is signaled.
+    command_receiver: mpsc::Receiver<DecoderCommand>,
+    // Sender we use to send status messages after receiving commands from the
+    // main thread.
+    response_sender: mpsc::Sender<CaptureThreadResponse>,
 }
 
 #[derive(Debug, Error)]
@@ -553,8 +596,7 @@ enum UpdateCaptureError {
 }
 
 const CAPTURE_READY: u32 = 1;
-const STOP_DECODING: u32 = 2;
-const FLUSH: u32 = 3;
+const COMMAND_WAITING: u32 = 2;
 
 #[derive(Debug, Error)]
 enum ProcessEventsError {
@@ -579,26 +621,26 @@ where
         capture_queue: Queue<Capture, QueueInit>,
         output_ready_cb: FrameDecodedCb,
         set_capture_format_cb: FormatChangedCb,
-        sender: mpsc::Sender<()>,
+        command_receiver: mpsc::Receiver<DecoderCommand>,
+        response_sender: mpsc::Sender<CaptureThreadResponse>,
     ) -> io::Result<Self> {
         // Start by only listening to V4L2 events in order to catch the initial
         // resolution change, and to the stop waker in case the user had a
         // change of heart about decoding something now.
         let mut poller = Poller::new(Arc::clone(device))?;
         poller.enable_event(DeviceEvent::V4L2Event)?;
-        let stop_waker = poller.add_waker(STOP_DECODING)?;
-        let flush_waker = poller.add_waker(FLUSH)?;
+        let command_waker = poller.add_waker(COMMAND_WAITING)?;
 
         let decoder_thread = DecoderThread {
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
-            stop_waker,
-            flush_waker,
             end_of_stream: false,
             output_ready_cb,
             set_capture_format_cb,
-            sender,
+            command_waker,
+            command_receiver,
+            response_sender,
         };
 
         Ok(decoder_thread)
@@ -608,7 +650,7 @@ where
         self.poller.set_poll_counter(poll_wakeups_counter);
     }
 
-    fn process_stop_command(&mut self) {
+    fn stop(&mut self) {
         trace!("Processing stop command");
         match self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {
@@ -799,7 +841,9 @@ where
         }
 
         // We are flushed, let the client know.
-        self.sender.send(()).unwrap();
+        self.response_sender
+            .send(CaptureThreadResponse::FlushDone(Ok(())))
+            .unwrap();
 
         self.enqueue_capture_buffers()
     }
@@ -911,12 +955,22 @@ where
                         self.enqueue_capture_buffers();
                         self
                     }
-                    PollEvent::Waker(STOP_DECODING) => {
-                        self.process_stop_command();
-                        self
-                    }
-                    PollEvent::Waker(FLUSH) => {
-                        self.flush();
+                    PollEvent::Waker(COMMAND_WAITING) => {
+                        loop {
+                            let command =
+                                match self.command_receiver.recv_timeout(Default::default()) {
+                                    Ok(command) => command,
+                                    Err(mpsc::RecvTimeoutError::Timeout) => break,
+                                    Err(e) => {
+                                        error!("Error while reading decoder command: {}", e);
+                                        break;
+                                    }
+                                };
+                            match command {
+                                DecoderCommand::Flush => self.flush(),
+                                DecoderCommand::Stop => self.stop(),
+                            }
+                        }
                         self
                     }
                     _ => panic!("Unexpected event!"),
