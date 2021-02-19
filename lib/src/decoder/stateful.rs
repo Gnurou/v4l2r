@@ -240,7 +240,7 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
 }
 
 enum DecoderCommand {
-    Drain,
+    Drain(bool),
     Flush,
     Stop,
 }
@@ -379,27 +379,30 @@ where
         Ok(self.state.output_queue.stream_off()?)
     }
 
-    /// Drain the decoder, i.e. make sure all its pending work is processed and
-    /// signal this with a buffer carrying the LAST flag.
+    /// Drain the decoder, i.e. make sure all its pending work is processed.
     ///
-    /// This method is usually non-blocking: because the decoding process must
-    /// continue until the LAST buffer is received, it is up to the client to
-    /// watch for that buffer and only consider the drain completed when it
-    /// arrives.
+    /// The `blocking` parameters decides whether this method is permitted to
+    /// block: if `true`, then all the frames corresponding to the encoded
+    /// buffers queued so far will have been emitted when this function returns.
+    /// In this case the method will always return `true` to signal that drain
+    /// has been completed.
     ///
-    /// This method returns `false` to indicate that the client must look for
-    /// the LAST buffer before it can consider the drain sequence as completed.
-    /// However, if the decoder is still not able to emit frames at this stage,
-    /// making it impossible to receive the LAST buffer, this method will return
-    /// `true` and the drain sequence can be considered as completed.
+    /// If `false`, then the method may also return `false` to signal that drain
+    /// has not completed yet. When this is the case, the client must look for
+    /// a decoded frame with the LAST flag set, as this flag signals that this
+    /// frame is the last one before the drain has completed.
     ///
-    /// The client can continue submitting buffers with encoded data. They will
-    /// be processed in order and their frames will come after the ones still
-    /// in the pipeline. For a way to cancel all the pending jobs, see the
-    /// [`flush`] method.
-    pub fn drain(&self) -> Result<bool, DrainError> {
+    /// Note that requesting a blocking drain can be hazardous if the current
+    /// thread is responsible for e.g. submitting handles for decoded frames. It
+    /// is easy to put the decoding pipeline in a deadlock situation.
+    ///
+    /// The client can keep submitting buffers with encoded data as the drain is
+    /// ongoing. They will be processed in order and their frames will come
+    /// after the ones still in the pipeline. For a way to cancel all the
+    /// pending jobs, see the [`flush`] method.
+    pub fn drain(&self, blocking: bool) -> Result<bool, DrainError> {
         debug!("Drain requested");
-        self.send_command(DecoderCommand::Drain)?;
+        self.send_command(DecoderCommand::Drain(blocking))?;
 
         match self.state.response_receiver.recv()? {
             CaptureThreadResponse::DrainDone(response) => match response {
@@ -422,6 +425,8 @@ where
     ///
     /// The canceled input buffers will be returned as
     /// `CompletedInputBuffer::Canceled` through the input done callback.
+    ///
+    /// If a [`drain`] operation was in progress, it is also canceled.
     ///
     /// This function is blocking. When is returns, the frame decoded callback
     /// has been called for all pre-flush frames, and the decoder can accept new
@@ -607,6 +612,8 @@ enum CaptureQueue<P: HandlesProvider> {
         capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
         provider: P,
         cap_buffer_waker: Arc<Waker>,
+        // TODO not super elegant...
+        blocking_drain_in_progress: bool,
     },
 }
 
@@ -722,21 +729,50 @@ where
         self.stop_flag = true;
     }
 
-    fn drain(&mut self) {
+    fn drain(&mut self, blocking: bool) {
         trace!("Processing drain command");
-        let response = match self.capture_queue {
+        let response = match &mut self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => true,
-            CaptureQueue::Decoding { .. } => {
+            CaptureQueue::Decoding {
+                blocking_drain_in_progress,
+                ..
+            } => {
                 // We can receive the LAST buffer, send the STOP command
                 // and exit the loop once the buffer with the LAST tag is received.
                 ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
+                if blocking {
+                    *blocking_drain_in_progress = true;
+                }
                 false
             }
         };
 
-        self.response_sender
-            .send(CaptureThreadResponse::DrainDone(Ok(response)))
-            .unwrap();
+        // If not blocking, send the response now so the client can keep going.
+        if response || !blocking {
+            self.response_sender
+                .send(CaptureThreadResponse::DrainDone(Ok(response)))
+                .unwrap();
+        }
+    }
+
+    fn end_of_drain(&mut self) {
+        // We are supposed to be able to run the START command
+        // instead, but with vicodec the CAPTURE queue reports
+        // as ready in subsequent polls() and DQBUF returns
+        // -EPIPE...
+        self.restart_capture_queue();
+        match &mut self.capture_queue {
+            CaptureQueue::AwaitingResolution { .. } => (),
+            CaptureQueue::Decoding {
+                blocking_drain_in_progress,
+                ..
+            } => {
+                self.response_sender
+                    .send(CaptureThreadResponse::DrainDone(Ok(true)))
+                    .unwrap();
+                *blocking_drain_in_progress = false;
+            }
+        }
     }
 
     fn enqueue_capture_buffers(&mut self) {
@@ -747,6 +783,7 @@ where
                 capture_queue,
                 provider,
                 cap_buffer_waker,
+                ..
             } => {
                 // Requeue all available CAPTURE buffers.
                 'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
@@ -872,6 +909,7 @@ where
                 capture_queue,
                 provider,
                 cap_buffer_waker,
+                blocking_drain_in_progress: false,
             },
             ..self
         })
@@ -895,11 +933,7 @@ where
                     else {
                         debug!("No DRC event pending, restarting capture queue");
 
-                        // We are supposed to be able to run the START command
-                        // instead, but with vicodec the CAPTURE queue reports
-                        // as ready in subsequent polls() and DQBUF returns
-                        // -EPIPE...
-                        self.restart_capture_queue();
+                        self.end_of_drain();
                     }
                 }
             }
@@ -910,11 +944,12 @@ where
     /// Stream the capture queue off and back on, dropping any queued buffer,
     /// and making the decoder ready to work again if it was halted.
     fn restart_capture_queue(&mut self) {
-        match &self.capture_queue {
+        match &mut self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {}
-            CaptureQueue::Decoding { capture_queue, .. } => {
+            CaptureQueue::Decoding { capture_queue, blocking_drain_in_progress, .. } => {
                 capture_queue.stream_off().unwrap();
                 capture_queue.stream_on().unwrap();
+                *blocking_drain_in_progress = false;
             }
         }
     }
@@ -1050,7 +1085,7 @@ where
                                     }
                                 };
                             match command {
-                                DecoderCommand::Drain => self.drain(),
+                                DecoderCommand::Drain(blocking) => self.drain(blocking),
                                 DecoderCommand::Flush => self.flush(),
                                 DecoderCommand::Stop => self.stop(),
                             }

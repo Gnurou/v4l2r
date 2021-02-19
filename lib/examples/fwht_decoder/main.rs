@@ -214,6 +214,7 @@ fn main() {
         total_size += bytes_used;
     }
 
+    decoder.drain(true).unwrap();
     decoder.stop().unwrap();
     println!();
 
