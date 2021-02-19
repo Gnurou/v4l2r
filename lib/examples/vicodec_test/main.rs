@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::{fs::File, io::Write, sync::Arc};
 
 use clap::{App, Arg};
-use v4l2::memory::MemoryType;
+use v4l2r::memory::MemoryType;
 
 fn main() {
     env_logger::init();

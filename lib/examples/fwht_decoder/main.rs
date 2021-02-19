@@ -10,7 +10,7 @@ use std::{
 };
 
 use anyhow::ensure;
-use v4l2::{
+use v4l2r::{
     decoder::stateful::Decoder,
     device::{
         poller::PollError,
@@ -19,8 +19,8 @@ use v4l2::{
     memory::{DMABufHandle, DMABufferHandles},
     Format, Rect,
 };
-use v4l2::{decoder::stateful::GetBufferError, QueueType};
-use v4l2::{
+use v4l2r::{decoder::stateful::GetBufferError, QueueType};
+use v4l2r::{
     decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
     device::queue::{
         handles_provider::{PooledHandles, PooledHandlesProvider},

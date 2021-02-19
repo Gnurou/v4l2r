@@ -6,9 +6,9 @@ use std::time::Instant;
 use utils::framegen::FrameGenerator;
 
 use qbuf::{get_free::GetFreeCaptureBuffer, get_indexed::GetOutputBufferByIndex};
-use v4l2::{device::queue::qbuf::OutputQueueable, memory::MemoryType, Format};
-use v4l2::{device::queue::*, memory::MMAPHandle};
-use v4l2::{
+use v4l2r::{device::queue::qbuf::OutputQueueable, memory::MemoryType, Format};
+use v4l2r::{device::queue::*, memory::MMAPHandle};
+use v4l2r::{
     device::{
         queue::generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
         AllocatedQueue, Device, DeviceConfig, Stream, TryDequeue,

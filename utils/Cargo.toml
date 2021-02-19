@@ -5,7 +5,7 @@ authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-v4l2 = { path = "../lib" }
+v4l2r = { path = "../lib" }
 thiserror = "1.0"
 anyhow = "1.0"
 log = "0.4.14"

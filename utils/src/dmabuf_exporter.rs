@@ -1,7 +1,7 @@
 use std::{fs::File, path::Path};
 
 use log::error;
-use v4l2::{
+use v4l2r::{
     device::Device,
     ioctl::{self, ExpbufFlags},
     memory::{DMABufHandle, MemoryType},

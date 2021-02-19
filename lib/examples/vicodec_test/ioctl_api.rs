@@ -10,9 +10,9 @@ use std::sync::Arc;
 use std::time::Instant;
 use utils::framegen::FrameGenerator;
 
-use v4l2::memory::{MMAPHandle, MemoryType};
-use v4l2::{ioctl::*, memory::UserPtrHandle};
-use v4l2::{Format, QueueType::*};
+use v4l2r::memory::{MMAPHandle, MemoryType};
+use v4l2r::{ioctl::*, memory::UserPtrHandle};
+use v4l2r::{Format, QueueType::*};
 
 /// Run a sample encoder on device `device_path`, which must be a `vicodec`
 /// encoder instance. `lets_quit` will turn to true when Ctrl+C is pressed.

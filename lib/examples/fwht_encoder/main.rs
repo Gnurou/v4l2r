@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::{cell::RefCell, collections::VecDeque, time::Instant};
 
-use v4l2::{
+use v4l2r::{
     device::{
         poller::PollError,
         queue::{
