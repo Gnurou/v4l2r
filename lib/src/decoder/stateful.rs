@@ -357,6 +357,16 @@ where
         self.state.output_queue.get_format()
     }
 
+    /// Stop the decoder.
+    ///
+    /// This will stop any pending operation consume the decoder, which cannot
+    /// be used anymore. To make sure all submitted encoded buffers have been
+    /// processed, call the [`drain`] method and wait for the output buffer with
+    /// the LAST flag before calling this method.
+    ///
+    /// TODO potential bug: the LAST buffer could also be the one signaling a
+    /// DRC. We need another way to manage this? Probably a good idea to split
+    /// into two properties of DQBuf.
     pub fn stop(self) -> Result<CanceledBuffers<OP>, StopError> {
         debug!("Stop requested");
         self.send_command(DecoderCommand::Stop)?;
@@ -610,9 +620,9 @@ where
     capture_queue: CaptureQueue<P>,
     poller: Poller,
 
-    // Switched when we have confirmed the stream is over, so we stop the poll
-    // loop.
-    end_of_stream: bool,
+    // Switched when we need the capture thread to quit and return the decoder
+    // to its initial state.
+    stop_flag: bool,
 
     output_ready_cb: FrameDecodedCb,
     set_capture_format_cb: FormatChangedCb,
@@ -692,7 +702,7 @@ where
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
-            end_of_stream: false,
+            stop_flag: false,
             output_ready_cb,
             set_capture_format_cb,
             command_waker,
@@ -709,25 +719,13 @@ where
 
     fn stop(&mut self) {
         trace!("Processing stop command");
-        match self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => {
-                // We are not decoding yet, so we can just break the loop.
-                self.end_of_stream = true;
-            }
-            CaptureQueue::Decoding { .. } => {
-                // We can receive the LAST buffer, send the STOP command
-                // and exit the loop once the buffer with the LAST tag is received.
-                ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
-            }
-        }
+        self.stop_flag = true;
     }
 
     fn drain(&mut self) {
         trace!("Processing drain command");
         let response = match self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => {
-                true
-            }
+            CaptureQueue::AwaitingResolution { .. } => true,
             CaptureQueue::Decoding { .. } => {
                 // We can receive the LAST buffer, send the STOP command
                 // and exit the loop once the buffer with the LAST tag is received.
@@ -736,7 +734,9 @@ where
             }
         };
 
-        self.response_sender.send(CaptureThreadResponse::DrainDone(Ok(response))).unwrap();
+        self.response_sender
+            .send(CaptureThreadResponse::DrainDone(Ok(response)))
+            .unwrap();
     }
 
     fn enqueue_capture_buffers(&mut self) {
@@ -886,26 +886,30 @@ where
                 if is_last {
                     debug!("CAPTURE buffer marked with LAST flag");
                     if self.is_drc_event_pending().unwrap() {
-                        self.update_capture_format().unwrap()
+                        self = self.update_capture_format().unwrap()
                     }
                     // No DRC event pending, this is the end of the stream.
-                    // We cannot keep polling anymore since the `CaptureReady`
-                    // event will keep being signaled, but dequeuing will only
-                    // return `EPIPE`.
+                    // We need to stop and restart the CAPTURE queue, otherwise
+                    // it will keep signaling buffers as ready and dequeueing
+                    // them will return `EPIPE`.
                     else {
-                        debug!("No DRC event pending, exiting decoding loop");
-                        self.end_of_stream = true;
-                        self
+                        debug!("No DRC event pending, restarting capture queue");
+
+                        // We are supposed to be able to run the START command
+                        // instead, but with vicodec the CAPTURE queue reports
+                        // as ready in subsequent polls() and DQBUF returns
+                        // -EPIPE...
+                        self.restart_capture_queue();
                     }
-                } else {
-                    self
                 }
             }
         }
+        self
     }
 
-    fn flush(&mut self) {
-        trace!("Processing flush command");
+    /// Stream the capture queue off and back on, dropping any queued buffer,
+    /// and making the decoder ready to work again if it was halted.
+    fn restart_capture_queue(&mut self) {
         match &self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {}
             CaptureQueue::Decoding { capture_queue, .. } => {
@@ -913,6 +917,11 @@ where
                 capture_queue.stream_on().unwrap();
             }
         }
+    }
+
+    fn flush(&mut self) {
+        trace!("Processing flush command");
+        self.restart_capture_queue();
 
         // We are flushed, let the client know.
         self.response_sender
@@ -992,7 +1001,7 @@ where
     }
 
     fn run(mut self) -> Self {
-        'mainloop: while !self.end_of_stream {
+        'mainloop: while !self.stop_flag {
             if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
                 match capture_queue.num_queued_buffers() {
                     // If there are no buffers on the CAPTURE queue, poll() will return
