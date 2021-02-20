@@ -407,8 +407,8 @@ mod tests {
         poll_events.events[0].u64 = DEVICE_ID;
         poll_events.events[0].events = (libc::EPOLLPRI | libc::EPOLLOUT) as u32;
         poll_events.nb_events = 1;
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), Some(Device(OutputReady)));
+        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), None);
 
         // Separated device events
@@ -419,8 +419,8 @@ mod tests {
         poll_events.events[1].events = (libc::EPOLLPRI | libc::EPOLLOUT) as u32;
         poll_events.nb_events = 2;
         assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), Some(Device(OutputReady)));
+        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), None);
 
         // Single waker event
@@ -451,8 +451,8 @@ mod tests {
         poll_events.nb_events = 4;
         assert_eq!(poll_events.next(), Some(Waker(20)));
         assert_eq!(poll_events.next(), Some(Waker(42)));
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
+        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), Some(Waker(0)));
         assert_eq!(poll_events.next(), None);
     }
