@@ -946,7 +946,11 @@ where
     fn restart_capture_queue(&mut self) {
         match &mut self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {}
-            CaptureQueue::Decoding { capture_queue, blocking_drain_in_progress, .. } => {
+            CaptureQueue::Decoding {
+                capture_queue,
+                blocking_drain_in_progress,
+                ..
+            } => {
                 capture_queue.stream_off().unwrap();
                 capture_queue.stream_on().unwrap();
                 *blocking_drain_in_progress = false;
