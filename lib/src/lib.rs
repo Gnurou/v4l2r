@@ -61,7 +61,7 @@ pub struct PixelFormat(u32);
 /// # Examples
 ///
 /// ```
-/// # use v4l2::PixelFormat;
+/// # use v4l2r::PixelFormat;
 /// // Fourcc representation of NV12.
 /// let nv12 = u32::from_le(0x3231564e);
 /// let f = PixelFormat::from(nv12);
@@ -78,7 +78,7 @@ impl From<u32> for PixelFormat {
 /// # Examples
 ///
 /// ```
-/// # use v4l2::PixelFormat;
+/// # use v4l2r::PixelFormat;
 /// // Fourcc representation of NV12.
 /// let nv12 = u32::from_le(0x3231564e);
 /// let f = PixelFormat::from(nv12);
@@ -96,7 +96,7 @@ impl From<PixelFormat> for u32 {
 /// # Examples
 ///
 /// ```
-/// # use v4l2::PixelFormat;
+/// # use v4l2r::PixelFormat;
 /// let nv12 = b"NV12";
 /// let f = PixelFormat::from(nv12);
 /// assert_eq!(&<[u8; 4]>::from(f), nv12);
@@ -112,7 +112,7 @@ impl From<&[u8; 4]> for PixelFormat {
 /// # Examples
 ///
 /// ```
-/// # use v4l2::PixelFormat;
+/// # use v4l2r::PixelFormat;
 /// let nv12 = b"NV12";
 /// let f = PixelFormat::from(nv12);
 /// assert_eq!(&<[u8; 4]>::from(f), nv12);
@@ -129,7 +129,7 @@ impl From<PixelFormat> for [u8; 4] {
 /// # Examples
 ///
 /// ```
-/// # use v4l2::PixelFormat;
+/// # use v4l2r::PixelFormat;
 /// // Fourcc representation of NV12.
 /// let nv12 = u32::from_le(0x3231564e);
 /// let f = PixelFormat::from(nv12);
@@ -146,7 +146,7 @@ impl fmt::Debug for PixelFormat {
 /// # Examples
 ///
 /// ```
-/// # use v4l2::PixelFormat;
+/// # use v4l2r::PixelFormat;
 /// // Fourcc representation of NV12.
 /// let nv12 = u32::from_le(0x3231564e);
 /// let f = PixelFormat::from(nv12);
@@ -251,7 +251,7 @@ impl TryFrom<bindings::v4l2_format> for Format {
 /// # Examples
 ///
 /// ```
-/// # use v4l2::Format;
+/// # use v4l2r::Format;
 /// let f = Format::from((b"NV12", (640, 480)));
 /// assert_eq!(f.width, 640);
 /// assert_eq!(f.height, 480);
