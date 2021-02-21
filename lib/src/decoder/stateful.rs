@@ -574,6 +574,11 @@ where
     FrameDecodedCb: FrameDecodedCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
+    /// Returns the number of currently queued encoded buffers.
+    pub fn num_queued_buffers(&self) -> usize {
+        self.state.output_queue.num_queued_buffers()
+    }
+
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
     /// one to be available if needed.
     ///
