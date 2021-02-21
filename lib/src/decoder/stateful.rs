@@ -239,12 +239,14 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
     }
 }
 
+#[derive(Debug)]
 enum DecoderCommand {
     Drain(bool),
     Flush,
     Stop,
 }
 
+#[derive(Debug)]
 enum CaptureThreadResponse {
     DrainDone(Result<bool, DrainError>),
     FlushDone(anyhow::Result<()>),
@@ -344,6 +346,8 @@ where
 
     /// Send a command to the capture thread.
     fn send_command(&self, command: DecoderCommand) -> Result<(), SendCommandError> {
+        trace!("Sending command: {:?}", command);
+
         self.state
             .command_sender
             .send(command)
@@ -414,8 +418,11 @@ where
                     Err(e)
                 }
             },
-            _ => {
-                error!("Unexpected capture thread response received while draining");
+            r => {
+                error!(
+                    "Unexpected capture thread response received while draining: {:?}",
+                    r
+                );
                 Err(DrainError::CaptureThreadError(anyhow::anyhow!(
                     "Unexpected response while draining"
                 )))
@@ -455,8 +462,11 @@ where
                     return Err(FlushError::CaptureThreadError(e));
                 }
             },
-            _ => {
-                error!("Unexpected capture thread response received while flushing");
+            r => {
+                error!(
+                    "Unexpected capture thread response received while flushing: {:?}",
+                    r
+                );
                 return Err(FlushError::CaptureThreadError(anyhow::anyhow!(
                     "Unexpected response while flushing"
                 )));
@@ -726,13 +736,19 @@ where
         self.poller.set_poll_counter(poll_wakeups_counter);
     }
 
+    fn send_response(&self, response: CaptureThreadResponse) {
+        trace!("Sending response: {:?}", response);
+
+        self.response_sender.send(response).unwrap();
+    }
+
     fn stop(&mut self) {
         trace!("Processing stop command");
         self.stop_flag = true;
     }
 
     fn drain(&mut self, blocking: bool) {
-        trace!("Processing drain command");
+        trace!("Processing Drain({}) command", blocking);
         let response = match &mut self.capture_queue {
             // We cannot initiate the flush sequence before receiving the initial
             // resolution.
@@ -759,7 +775,7 @@ where
         };
 
         if let Some(response) = response {
-            self.response_sender.send(response).unwrap();
+            self.send_response(response);
         }
     }
 
@@ -949,7 +965,6 @@ where
                     // them will return `EPIPE`.
                     else {
                         debug!("No DRC event pending, restarting capture queue");
-
                         self.end_of_drain();
                     }
                 }
@@ -980,9 +995,7 @@ where
         self.restart_capture_queue();
 
         // We are flushed, let the client know.
-        self.response_sender
-            .send(CaptureThreadResponse::FlushDone(Ok(())))
-            .unwrap();
+        self.send_response(CaptureThreadResponse::FlushDone(Ok(())));
 
         self.enqueue_capture_buffers()
     }
