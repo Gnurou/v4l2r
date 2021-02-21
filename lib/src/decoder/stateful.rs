@@ -246,7 +246,7 @@ enum DecoderCommand {
 }
 
 enum CaptureThreadResponse {
-    DrainDone(anyhow::Result<bool>),
+    DrainDone(Result<bool, DrainError>),
     FlushDone(anyhow::Result<()>),
 }
 
@@ -299,6 +299,8 @@ pub enum StopError {
 
 #[derive(Debug, Error)]
 pub enum DrainError {
+    #[error("Cannot drain now: output format not yet determined")]
+    TryAgain,
     #[error("Error while sending the flush command to the capture thread")]
     SendCommand(#[from] SendCommandError),
     #[error("Error while waiting for the decoder thread to drain")]
@@ -409,7 +411,7 @@ where
                 Ok(completed) => Ok(completed),
                 Err(e) => {
                     error!("Error while draining on the capture thread: {}", e);
-                    Err(DrainError::CaptureThreadError(e))
+                    Err(e)
                 }
             },
             _ => {
@@ -732,7 +734,11 @@ where
     fn drain(&mut self, blocking: bool) {
         trace!("Processing drain command");
         let response = match &mut self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => true,
+            // We cannot initiate the flush sequence before receiving the initial
+            // resolution.
+            CaptureQueue::AwaitingResolution { .. } => {
+                Some(CaptureThreadResponse::DrainDone(Err(DrainError::TryAgain)))
+            }
             CaptureQueue::Decoding {
                 blocking_drain_in_progress,
                 ..
@@ -741,36 +747,40 @@ where
                 // and exit the loop once the buffer with the LAST tag is received.
                 ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
                 if blocking {
+                    // If we are blocking, we will send the answer when the drain
+                    // is completed.
                     *blocking_drain_in_progress = true;
+                    None
+                } else {
+                    // If not blocking, send the response now so the client can keep going.
+                    Some(CaptureThreadResponse::DrainDone(Ok(false)))
                 }
-                false
             }
         };
 
-        // If not blocking, send the response now so the client can keep going.
-        if response || !blocking {
-            self.response_sender
-                .send(CaptureThreadResponse::DrainDone(Ok(response)))
-                .unwrap();
+        if let Some(response) = response {
+            self.response_sender.send(response).unwrap();
         }
     }
 
     fn end_of_drain(&mut self) {
-        // We are supposed to be able to run the START command
-        // instead, but with vicodec the CAPTURE queue reports
-        // as ready in subsequent polls() and DQBUF returns
-        // -EPIPE...
-        self.restart_capture_queue();
         match &mut self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => (),
             CaptureQueue::Decoding {
+                capture_queue,
                 blocking_drain_in_progress,
                 ..
             } => {
-                self.response_sender
-                    .send(CaptureThreadResponse::DrainDone(Ok(true)))
-                    .unwrap();
-                *blocking_drain_in_progress = false;
+                // We are supposed to be able to run the START command
+                // instead, but with vicodec the CAPTURE queue reports
+                // as ready in subsequent polls() and DQBUF returns
+                // -EPIPE...
+                capture_queue.stream_off().unwrap();
+                capture_queue.stream_on().unwrap();
+                if *blocking_drain_in_progress {
+                    *blocking_drain_in_progress = false;
+                    self.send_response(CaptureThreadResponse::DrainDone(Ok(true)));
+                }
             }
         }
     }
