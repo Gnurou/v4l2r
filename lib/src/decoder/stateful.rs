@@ -791,12 +791,18 @@ where
                     // TODO potential problem: the handles will be dropped if no V4L2 buffer
                     // is available. There is no guarantee that the provider will get them back
                     // in this case (e.g. with the C FFI).
-                    if let Ok(buffer) = provider.get_suitable_buffer_for(&handles, capture_queue) {
-                        buffer.queue_with_handles(handles).unwrap();
-                    } else {
-                        warn!("Handles potentially lost due to no V4L2 buffer being available");
-                        break 'enqueue;
+                    let buffer = match provider.get_suitable_buffer_for(&handles, capture_queue) {
+                        Ok(buffer) => buffer,
+                        Err(e) => {
+                            error!("Could not find suitable buffer for handles: {}", e);
+                            warn!("Handles potentially lost due to no V4L2 buffer being available");
+                            break 'enqueue;
+                        }
                     };
+                    match buffer.queue_with_handles(handles) {
+                        Ok(()) => (),
+                        Err(e) => error!("Error while queueing CAPTURE buffer: {}", e),
+                    }
                 }
             }
         }
