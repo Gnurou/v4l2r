@@ -778,7 +778,8 @@ where
     fn enqueue_capture_buffers(&mut self) {
         trace!("Queueing available CAPTURE buffers");
         match &mut self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => unreachable!(),
+            // Capture queue is not set up yet, no buffers to queue.
+            CaptureQueue::AwaitingResolution { .. } => (),
             CaptureQueue::Decoding {
                 capture_queue,
                 provider,
