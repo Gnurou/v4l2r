@@ -87,6 +87,10 @@ impl DQBuffer {
         BufferFlags::from_bits_truncate(self.v4l2_buffer.flags)
     }
 
+    pub fn timestamp(&self) -> bindings::timeval {
+        self.v4l2_buffer.timestamp
+    }
+
     pub fn sequence(&self) -> u32 {
         self.v4l2_buffer.sequence
     }
