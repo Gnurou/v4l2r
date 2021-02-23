@@ -957,6 +957,7 @@ where
                 if is_last {
                     debug!("CAPTURE buffer marked with LAST flag");
                     if self.is_drc_event_pending().unwrap() {
+                        debug!("DRC event pending, updating CAPTURE format");
                         self = self.update_capture_format().unwrap()
                     }
                     // No DRC event pending, this is the end of the stream.
