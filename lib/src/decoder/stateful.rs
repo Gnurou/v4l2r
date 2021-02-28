@@ -367,7 +367,7 @@ where
     ///
     /// This will stop any pending operation consume the decoder, which cannot
     /// be used anymore. To make sure all submitted encoded buffers have been
-    /// processed, call the [`drain`] method and wait for the output buffer with
+    /// processed, call the [`Decoder::drain`] method and wait for the output buffer with
     /// the LAST flag before calling this method.
     ///
     /// TODO potential bug: the LAST buffer could also be the one signaling a
@@ -405,7 +405,7 @@ where
     /// The client can keep submitting buffers with encoded data as the drain is
     /// ongoing. They will be processed in order and their frames will come
     /// after the ones still in the pipeline. For a way to cancel all the
-    /// pending jobs, see the [`flush`] method.
+    /// pending jobs, see the [`Decoder::flush`] method.
     pub fn drain(&self, blocking: bool) -> Result<bool, DrainError> {
         debug!("Drain requested");
         self.send_command(DecoderCommand::Drain(blocking))?;
@@ -435,7 +435,7 @@ where
     /// The canceled input buffers will be returned as
     /// `CompletedInputBuffer::Canceled` through the input done callback.
     ///
-    /// If a [`drain`] operation was in progress, it is also canceled.
+    /// If a [`Decoder::drain`] operation was in progress, it is also canceled.
     ///
     /// This function is blocking. When is returns, the frame decoded callback
     /// has been called for all pre-flush frames, and the decoder can accept new
