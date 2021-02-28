@@ -3,6 +3,7 @@ name = "v4l2r"
 version = "0.0.1"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2018"
+license = "MIT"
 
 [dependencies]
 libc = "0.2.79"
