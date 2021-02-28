@@ -62,7 +62,9 @@ impl<'a> DQBufPlane<'a> {
 /// Information for a dequeued buffer. Safe variant of `struct v4l2_buffer`.
 pub struct DQBuffer {
     v4l2_buffer: bindings::v4l2_buffer,
-    v4l2_planes: PlaneData,
+    // Use a `Box` to make sure that the `m.planes` pointer of `v4l2_buffer`
+    // stays stable and valid even as we move this object around.
+    v4l2_planes: Box<PlaneData>,
 }
 
 /// DQBuffer is safe to send across threads.
@@ -145,7 +147,7 @@ impl DQBuf for DQBuffer {
     ) -> Self {
         let mut dqbuf = DQBuffer {
             v4l2_buffer,
-            v4l2_planes: match v4l2_planes {
+            v4l2_planes: Box::new(match v4l2_planes {
                 Some(planes) => planes,
                 // In single-plane mode, reproduce the buffer information into
                 // a v4l2_plane in order to present a unified interface.
@@ -163,7 +165,7 @@ impl DQBuf for DQBuffer {
 
                     pdata
                 }
-            },
+            }),
         };
 
         // Since the planes have moved, update the planes pointer if we are
