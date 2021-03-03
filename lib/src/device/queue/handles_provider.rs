@@ -35,7 +35,7 @@ pub trait HandlesProvider: Send + 'static {
     /// Request a set of handles. Returns `None` if no handle is currently
     /// available. If that is the case, `waker` will be signaled when handles
     /// are available again.
-    fn get_handles(&mut self, waker: &Arc<Waker>) -> Option<Self::HandleType>;
+    fn get_handles(&self, waker: &Arc<Waker>) -> Option<Self::HandleType>;
 
     fn get_suitable_buffer_for<'a, Q>(
         &self,
@@ -57,8 +57,8 @@ pub trait HandlesProvider: Send + 'static {
 impl<P: HandlesProvider> HandlesProvider for Box<P> {
     type HandleType = P::HandleType;
 
-    fn get_handles(&mut self, waker: &Arc<Waker>) -> Option<Self::HandleType> {
-        self.as_mut().get_handles(waker)
+    fn get_handles(&self, waker: &Arc<Waker>) -> Option<Self::HandleType> {
+        self.as_ref().get_handles(waker)
     }
 
     fn get_suitable_buffer_for<'a, Q>(
@@ -88,7 +88,7 @@ impl MMAPProvider {
 impl HandlesProvider for MMAPProvider {
     type HandleType = Vec<MMAPHandle>;
 
-    fn get_handles(&mut self, _waker: &Arc<Waker>) -> Option<Self::HandleType> {
+    fn get_handles(&self, _waker: &Arc<Waker>) -> Option<Self::HandleType> {
         Some(self.0.clone())
     }
 }
@@ -125,7 +125,7 @@ impl<H: BufferHandles> PooledHandlesProvider<H> {
 impl<H: BufferHandles> HandlesProvider for PooledHandlesProvider<H> {
     type HandleType = PooledHandles<H>;
 
-    fn get_handles(&mut self, waker: &Arc<Waker>) -> Option<PooledHandles<H>> {
+    fn get_handles(&self, waker: &Arc<Waker>) -> Option<PooledHandles<H>> {
         let mut d = self.d.lock().unwrap();
         match d.buffers.pop_front() {
             Some(handles) => Some(PooledHandles::new(&self.d, handles)),
