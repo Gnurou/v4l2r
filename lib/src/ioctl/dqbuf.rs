@@ -89,6 +89,10 @@ impl DQBuffer {
         BufferFlags::from_bits_truncate(self.v4l2_buffer.flags)
     }
 
+    pub fn is_last(&self) -> bool {
+        self.flags().contains(BufferFlags::LAST)
+    }
+
     pub fn timestamp(&self) -> bindings::timeval {
         self.v4l2_buffer.timestamp
     }

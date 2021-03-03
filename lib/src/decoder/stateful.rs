@@ -1047,7 +1047,7 @@ where
         {
             match capture_queue.try_dequeue() {
                 Ok(mut cap_buf) => {
-                    let is_last = cap_buf.data.flags().contains(ioctl::BufferFlags::LAST);
+                    let is_last = cap_buf.data.is_last();
 
                     // Add a drop callback to the dequeued buffer so we
                     // re-queue it as soon as it is dropped.
