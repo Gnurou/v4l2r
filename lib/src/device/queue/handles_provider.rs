@@ -77,6 +77,29 @@ impl<P: HandlesProvider> HandlesProvider for Box<P> {
     }
 }
 
+impl<P: HandlesProvider + Sync> HandlesProvider for Arc<P> {
+    type HandleType = P::HandleType;
+
+    fn get_handles(&self, waker: &Arc<Waker>) -> Option<Self::HandleType> {
+        self.as_ref().get_handles(waker)
+    }
+
+    fn get_suitable_buffer_for<'a, Q>(
+        &self,
+        handles: &Self::HandleType,
+        queue: &'a Q,
+    ) -> Result<
+        <Q as CaptureQueueableProvider<'a, Self::HandleType>>::Queueable,
+        GetSuitableBufferError,
+    >
+    where
+        Q: GetCaptureBufferByIndex<'a, Self::HandleType>
+            + GetFreeCaptureBuffer<'a, Self::HandleType>,
+    {
+        self.as_ref().get_suitable_buffer_for(handles, queue)
+    }
+}
+
 pub struct MMAPProvider(Vec<MMAPHandle>);
 
 impl MMAPProvider {
