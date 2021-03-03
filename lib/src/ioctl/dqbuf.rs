@@ -67,6 +67,20 @@ pub struct DQBuffer {
     v4l2_planes: Box<PlaneData>,
 }
 
+impl Clone for DQBuffer {
+    fn clone(&self) -> Self {
+        let mut ret = Self {
+            v4l2_buffer: self.v4l2_buffer,
+            v4l2_planes: self.v4l2_planes.clone(),
+        };
+        // Make the planes pointer of the cloned data point to the right copy.
+        if self.is_multi_planar() {
+            ret.v4l2_buffer.m.planes = ret.v4l2_planes.as_mut_ptr();
+        }
+        ret
+    }
+}
+
 /// DQBuffer is safe to send across threads.
 unsafe impl Send for DQBuffer {}
 
