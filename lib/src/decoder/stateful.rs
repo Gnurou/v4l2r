@@ -644,10 +644,6 @@ where
     capture_queue: CaptureQueue<P>,
     poller: Poller,
 
-    // Switched when we need the capture thread to quit and return the decoder
-    // to its initial state.
-    stop_flag: bool,
-
     output_ready_cb: FrameDecodedCb,
     set_capture_format_cb: FormatChangedCb,
 
@@ -726,7 +722,6 @@ where
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
-            stop_flag: false,
             output_ready_cb,
             set_capture_format_cb,
             command_waker,
@@ -745,11 +740,6 @@ where
         trace!("Sending response: {:?}", response);
 
         self.response_sender.send(response).unwrap();
-    }
-
-    fn stop(&mut self) {
-        trace!("Processing stop command");
-        self.stop_flag = true;
     }
 
     fn drain(&mut self, blocking: bool) {
@@ -1076,7 +1066,7 @@ where
     }
 
     fn run(mut self) -> Self {
-        'mainloop: while !self.stop_flag {
+        'mainloop: loop {
             if let CaptureQueue::Decoding { capture_queue, .. } = &self.capture_queue {
                 match capture_queue.num_queued_buffers() {
                     // If there are no buffers on the CAPTURE queue, poll() will return
@@ -1127,7 +1117,10 @@ where
                             match command {
                                 DecoderCommand::Drain(blocking) => self.drain(blocking),
                                 DecoderCommand::Flush => self.flush(),
-                                DecoderCommand::Stop => self.stop(),
+                                DecoderCommand::Stop => {
+                                    trace!("Processing stop command");
+                                    break 'mainloop;
+                                }
                             }
                         }
                         self
