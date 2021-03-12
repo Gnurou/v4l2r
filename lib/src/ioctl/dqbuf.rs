@@ -3,9 +3,9 @@ use crate::bindings;
 use crate::QueueType;
 
 use nix::{self, errno::Errno, Error};
-use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use std::{fmt::Debug, pin::Pin};
 use thiserror::Error;
 
 /// Implementors can receive the result from the `dqbuf` ioctl.
@@ -62,9 +62,9 @@ impl<'a> DQBufPlane<'a> {
 /// Information for a dequeued buffer. Safe variant of `struct v4l2_buffer`.
 pub struct DQBuffer {
     v4l2_buffer: bindings::v4l2_buffer,
-    // Use a `Box` to make sure that the `m.planes` pointer of `v4l2_buffer`
-    // stays stable and valid even as we move this object around.
-    v4l2_planes: Box<PlaneData>,
+    // The `m.planes` pointer of `v4l2_buffer` points here and must stay stable
+    // as we move this object around.
+    v4l2_planes: Pin<Box<PlaneData>>,
 }
 
 impl Clone for DQBuffer {
@@ -81,7 +81,8 @@ impl Clone for DQBuffer {
     }
 }
 
-/// DQBuffer is safe to send across threads.
+/// DQBuffer is safe to send across threads. `v4l2_buffer` is !Send because it
+/// contains a pointer, but we are making sure to use it safely here.
 unsafe impl Send for DQBuffer {}
 
 impl Debug for DQBuffer {
@@ -165,7 +166,7 @@ impl DQBuf for DQBuffer {
     ) -> Self {
         let mut dqbuf = DQBuffer {
             v4l2_buffer,
-            v4l2_planes: Box::new(match v4l2_planes {
+            v4l2_planes: Box::pin(match v4l2_planes {
                 Some(planes) => planes,
                 // In single-plane mode, reproduce the buffer information into
                 // a v4l2_plane in order to present a unified interface.
