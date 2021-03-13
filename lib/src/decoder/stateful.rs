@@ -837,19 +837,7 @@ where
                     self = self.update_capture_format().unwrap()
                 }
             }
-            CaptureQueue::Decoding { .. } => {
-                // TODO normally we shouldn't listen to events while in Decoding
-                // state. We do this as a workaround for virtio-video. Remove
-                // this block once the issue is fixed in that driver and replace
-                // it with unreachable!().
-                if self.is_drc_event_pending().unwrap() {
-                    warn!("Detected DRC during decode.");
-                    for _ in 0..16 {
-                        self.process_capture_buffer();
-                    }
-                    self = self.update_capture_format().unwrap()
-                }
-            }
+            CaptureQueue::Decoding { .. } => unreachable!(),
         }
 
         self
@@ -861,14 +849,11 @@ where
         let mut capture_queue = match self.capture_queue {
             // Initial resolution
             CaptureQueue::AwaitingResolution { capture_queue } => {
-                // Keep listening to DRC event as workaround for virtio-video.
-                /*
                 // Stop listening to V4L2 events. We will check them when we get
                 // a buffer with the LAST flag.
                 self.poller
                     .disable_event(DeviceEvent::V4L2Event)
                     .map_err(UpdateCaptureError::PollerEvents)?;
-                */
                 // Listen to CAPTURE buffers being ready to dequeue, as we will
                 // be streaming soon.
                 self.poller
