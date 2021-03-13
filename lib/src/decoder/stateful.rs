@@ -172,19 +172,19 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
     }
 
     #[allow(clippy::type_complexity)]
-    pub fn start<P, InputDoneCb, FrameDecodedCb, FormatChangedCb>(
+    pub fn start<P, InputDoneCb, DecoderEventCb, FormatChangedCb>(
         self,
         input_done_cb: InputDoneCb,
-        output_ready_cb: FrameDecodedCb,
+        decoder_event_cb: DecoderEventCb,
         set_capture_format_cb: FormatChangedCb,
     ) -> Result<
-        Decoder<Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>>,
+        Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>,
         StartDecoderError,
     >
     where
         P: HandlesProvider,
         InputDoneCb: InputDoneCallback<OP>,
-        FrameDecodedCb: FrameDecodedCallback<P>,
+        DecoderEventCb: DecoderEventCallback<P>,
         FormatChangedCb: FormatChangedCallback<P>,
         for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
             GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
@@ -205,7 +205,7 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
         let mut decoder_thread = DecoderThread::new(
             &self.device,
             self.state.capture_queue,
-            output_ready_cb,
+            decoder_event_cb,
             set_capture_format_cb,
             command_receiver,
             response_sender,
@@ -252,12 +252,12 @@ enum CaptureThreadResponse {
     FlushDone(anyhow::Result<()>),
 }
 
-pub struct Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>
+pub struct Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
 where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
     output_queue: Queue<Output, BuffersAllocated<OP>>,
@@ -268,15 +268,15 @@ where
     command_sender: mpsc::Sender<DecoderCommand>,
     response_receiver: mpsc::Receiver<CaptureThreadResponse>,
 
-    handle: JoinHandle<DecoderThread<P, FrameDecodedCb, FormatChangedCb>>,
+    handle: JoinHandle<DecoderThread<P, DecoderEventCb, FormatChangedCb>>,
 }
-impl<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb> DecoderState
-    for Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>
+impl<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb> DecoderState
+    for Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
 where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
 }
@@ -331,13 +331,13 @@ type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DQBufError<DQBuffer<Ou
 type CanceledBuffers<OP: BufferHandles> =
     Vec<<Queue<Output, BuffersAllocated<OP>> as Stream>::Canceled>;
 
-impl<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>
-    Decoder<Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>>
+impl<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
+    Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>
 where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
     pub fn num_output_buffers(&self) -> usize {
@@ -515,14 +515,14 @@ where
     }
 }
 
-impl<'a, OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb> OutputQueueableProvider<'a, OP>
-    for Decoder<Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>>
+impl<'a, OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb> OutputQueueableProvider<'a, OP>
+    for Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>
 where
     Queue<Output, BuffersAllocated<OP>>: OutputQueueableProvider<'a, OP>,
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
     type Queueable =
@@ -540,15 +540,15 @@ pub enum GetBufferError<OP: BufferHandles> {
 }
 
 /// Let the decoder provide the buffers from the OUTPUT queue.
-impl<'a, OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>
+impl<'a, OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
     GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
-    for Decoder<Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>>
+    for Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>
 where
     Queue<Output, BuffersAllocated<OP>>: GetFreeOutputBuffer<'a, OP>,
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
     /// Returns a V4L2 buffer to be filled with a frame to decode if one
@@ -564,14 +564,14 @@ where
 
 // If [`GetFreeBuffer`] is implemented, we can also provide a blocking `get_buffer`
 // method.
-impl<'a, OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>
-    Decoder<Decoding<OP, P, InputDoneCb, FrameDecodedCb, FormatChangedCb>>
+impl<'a, OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
+    Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>
 where
     Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
     /// Returns the number of currently queued encoded buffers.
@@ -634,17 +634,17 @@ enum CaptureQueue<P: HandlesProvider> {
     },
 }
 
-struct DecoderThread<P, FrameDecodedCb, FormatChangedCb>
+struct DecoderThread<P, DecoderEventCb, FormatChangedCb>
 where
     P: HandlesProvider,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
 {
     device: Arc<Device>,
     capture_queue: CaptureQueue<P>,
     poller: Poller,
 
-    output_ready_cb: FrameDecodedCb,
+    event_cb: DecoderEventCb,
     set_capture_format_cb: FormatChangedCb,
 
     // Waker signaled when the main thread has commands pending for us.
@@ -695,10 +695,10 @@ enum ProcessEventsError {
     UpdateCapture(#[from] UpdateCaptureError),
 }
 
-impl<P, FrameDecodedCb, FormatChangedCb> DecoderThread<P, FrameDecodedCb, FormatChangedCb>
+impl<P, DecoderEventCb, FormatChangedCb> DecoderThread<P, DecoderEventCb, FormatChangedCb>
 where
     P: HandlesProvider,
-    FrameDecodedCb: FrameDecodedCallback<P>,
+    DecoderEventCb: DecoderEventCallback<P>,
     FormatChangedCb: FormatChangedCallback<P>,
     for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
         GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
@@ -706,7 +706,7 @@ where
     fn new(
         device: &Arc<Device>,
         capture_queue: Queue<Capture, QueueInit>,
-        output_ready_cb: FrameDecodedCb,
+        event_cb: DecoderEventCb,
         set_capture_format_cb: FormatChangedCb,
         command_receiver: mpsc::Receiver<DecoderCommand>,
         response_sender: mpsc::Sender<CaptureThreadResponse>,
@@ -722,7 +722,7 @@ where
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
-            output_ready_cb,
+            event_cb,
             set_capture_format_cb,
             command_waker,
             command_receiver,
@@ -789,7 +789,9 @@ where
                 capture_queue.stream_off().unwrap();
                 capture_queue.stream_on().unwrap();
                 if *blocking_drain_in_progress {
+                    debug!("Signaling end of blocking drain");
                     *blocking_drain_in_progress = false;
+                    (self.event_cb)(DecoderEvent::DrainCompleted);
                     self.send_response(CaptureThreadResponse::DrainDone(Ok(true)));
                 }
             }
@@ -1033,7 +1035,7 @@ where
                     });
 
                     // Pass buffers to the client
-                    (self.output_ready_cb)(cap_buf);
+                    (self.event_cb)(DecoderEvent::FrameDecoded(cap_buf));
                     is_last
                 }
                 Err(e) => {

@@ -10,15 +10,6 @@ use std::{
 };
 
 use anyhow::ensure;
-use v4l2r::{
-    decoder::stateful::Decoder,
-    device::{
-        poller::PollError,
-        queue::{direction::Capture, dqbuf::DQBuffer},
-    },
-    memory::{DMABufHandle, DMABufferHandles},
-    Format, Rect,
-};
 use v4l2r::{decoder::stateful::GetBufferError, QueueType};
 use v4l2r::{
     decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
@@ -28,6 +19,15 @@ use v4l2r::{
         FormatBuilder,
     },
     memory::{MemoryType, UserPtrHandle},
+};
+use v4l2r::{
+    decoder::{stateful::Decoder, DecoderEvent},
+    device::{
+        poller::PollError,
+        queue::{direction::Capture, dqbuf::DQBuffer},
+    },
+    memory::{DMABufHandle, DMABufferHandles},
+    Format, Rect,
 };
 
 use clap::{App, Arg};
@@ -87,7 +87,7 @@ fn main() {
     let start_time = std::time::Instant::now();
     let mut output_buffer_size = 0usize;
     let mut frame_counter = 0usize;
-    let output_ready_cb =
+    let mut output_ready_cb =
         move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<DMABufferHandles<File>>>| {
             let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
             // Ignore zero-sized buffers.
@@ -117,6 +117,11 @@ fn main() {
                     .write_all(&mapping)
                     .expect("Error while writing output data");
             }
+        };
+    let decoder_event_cb =
+        move |event: DecoderEvent<PooledHandlesProvider<Vec<DMABufHandle<File>>>>| match event {
+            DecoderEvent::FrameDecoded(dqbuf) => output_ready_cb(dqbuf),
+            DecoderEvent::DrainCompleted => (),
         };
     type PooledDMABufHandlesProvider = PooledHandlesProvider<Vec<DMABufHandle<File>>>;
     let device_path_cb = String::from(device_path);
@@ -169,7 +174,7 @@ fn main() {
         .allocate_output_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(NUM_OUTPUT_BUFFERS)
         .expect("Failed to allocate output buffers")
         .set_poll_counter(poll_count_writer)
-        .start(|_| (), output_ready_cb, set_capture_format_cb)
+        .start(|_| (), decoder_event_cb, set_capture_format_cb)
         .expect("Failed to start decoder");
 
     // Remove mutability.

@@ -25,14 +25,33 @@ where
 {
 }
 
-pub trait FrameDecodedCallback<P: HandlesProvider>:
-    FnMut(DQBuffer<Capture, P::HandleType>) + Send + 'static
+/// TODO: add errors?
+pub enum DecoderEvent<P: HandlesProvider> {
+    /// Emitted when a frame is decoded.
+    ///
+    /// The parameter is the dequeued buffer, containing the plane handles of
+    /// the decoded frame as well as its V4L2 parameters such as flags. The
+    /// flags remain untouched, but the client should not take action on some
+    /// of them: for instance, when the `V4L2_BUF_FLAG_LAST` is set, the proper
+    /// corresponding event (resolution change or end of stream) will be
+    /// signaled appropriately.
+    FrameDecoded(DQBuffer<Capture, P::HandleType>),
+    /// Emitted when a previously requested `drain` request completes.
+    ///
+    /// When this event is emitted, the client knows that all the frames
+    /// corresponding to all the input buffers queued before the `drain` request
+    /// have been emitted.
+    DrainCompleted,
+}
+
+pub trait DecoderEventCallback<P: HandlesProvider>:
+    FnMut(DecoderEvent<P>) + Send + 'static
 {
 }
-impl<P, F> FrameDecodedCallback<P> for F
+impl<P, F> DecoderEventCallback<P> for F
 where
     P: HandlesProvider,
-    F: FnMut(DQBuffer<Capture, P::HandleType>) + Send + 'static,
+    F: FnMut(DecoderEvent<P>) + Send + 'static,
 {
 }
 
