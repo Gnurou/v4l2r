@@ -41,7 +41,7 @@ pub enum DecoderEvent<P: HandlesProvider> {
     /// When this event is emitted, the client knows that all the frames
     /// corresponding to all the input buffers queued before the `drain` request
     /// have been emitted.
-    DrainCompleted,
+    EndOfStream,
 }
 
 pub trait DecoderEventCallback<P: HandlesProvider>:

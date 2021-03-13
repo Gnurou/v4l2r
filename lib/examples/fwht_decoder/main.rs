@@ -121,7 +121,7 @@ fn main() {
     let decoder_event_cb =
         move |event: DecoderEvent<PooledHandlesProvider<Vec<DMABufHandle<File>>>>| match event {
             DecoderEvent::FrameDecoded(dqbuf) => output_ready_cb(dqbuf),
-            DecoderEvent::DrainCompleted => (),
+            DecoderEvent::EndOfStream => (),
         };
     type PooledDMABufHandlesProvider = PooledHandlesProvider<Vec<DMABufHandle<File>>>;
     let device_path_cb = String::from(device_path);

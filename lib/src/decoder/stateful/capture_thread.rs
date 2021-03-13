@@ -179,7 +179,7 @@ where
         }
     }
 
-    fn end_of_drain(&mut self) {
+    fn end_of_stream(&mut self) {
         match &mut self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => (),
             CaptureQueue::Decoding {
@@ -193,10 +193,10 @@ where
                 // -EPIPE...
                 capture_queue.stream_off().unwrap();
                 capture_queue.stream_on().unwrap();
+                (self.event_cb)(DecoderEvent::EndOfStream);
                 if *blocking_drain_in_progress {
                     debug!("Signaling end of blocking drain");
                     *blocking_drain_in_progress = false;
-                    (self.event_cb)(DecoderEvent::DrainCompleted);
                     self.send_response(CaptureThreadResponse::DrainDone(Ok(true)));
                 }
             }
@@ -353,7 +353,7 @@ where
                     // them will return `EPIPE`.
                     else {
                         debug!("No DRC event pending, restarting capture queue");
-                        self.end_of_drain();
+                        self.end_of_stream();
                     }
                 }
             }
