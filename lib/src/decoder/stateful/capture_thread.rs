@@ -28,8 +28,35 @@ use std::{
 use log::{debug, error, trace, warn};
 use thiserror::Error;
 
-// TODO use ::new functions that take the queue and configure the state properly, with
-// the poller, wakers, and all.
+/// Check if `device` has a dynamic resolution change event pending.
+///
+/// Dequeues all pending V4L2 events and returns `true` if a
+/// SRC_CHANGE_EVENT (indicating a format change on the CAPTURE queue) was
+/// detected. This consumes all the event, meaning that if this method
+/// returned `true` once it will return `false` until a new resolution
+/// change happens in the stream.
+fn is_drc_event_pending(device: &Device) -> Result<bool, ioctl::DQEventError> {
+    let mut drc_pending = false;
+
+    loop {
+        // TODO what if we used an iterator here?
+        let event = match ioctl::dqevent(device) {
+            Ok(event) => event,
+            Err(ioctl::DQEventError::NotReady) => return Ok(drc_pending),
+            Err(e) => return Err(e),
+        };
+
+        match event {
+            ioctl::Event::SrcChangeEvent(changes) => {
+                if changes.contains(ioctl::SrcChanges::RESOLUTION) {
+                    debug!("Received resolution change event");
+                    drc_pending = true;
+                }
+            }
+        }
+    }
+}
+
 enum CaptureQueue<P: HandlesProvider> {
     AwaitingResolution {
         capture_queue: Queue<Capture, QueueInit>,
@@ -179,59 +206,57 @@ where
         }
     }
 
-    fn end_of_stream(&mut self) {
+    fn flush(&mut self) {
+        trace!("Processing flush command");
         match &mut self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => (),
+            CaptureQueue::AwaitingResolution { .. } => {}
             CaptureQueue::Decoding {
                 capture_queue,
                 blocking_drain_in_progress,
                 ..
             } => {
-                // We are supposed to be able to run the START command
-                // instead, but with vicodec the CAPTURE queue reports
-                // as ready in subsequent polls() and DQBUF returns
-                // -EPIPE...
+                // Stream the capture queue off and back on, dropping any queued
+                // buffer, and making the decoder ready to work again if it was
+                // halted.
                 capture_queue.stream_off().unwrap();
                 capture_queue.stream_on().unwrap();
-                (self.event_cb)(DecoderEvent::EndOfStream);
-                if *blocking_drain_in_progress {
-                    debug!("Signaling end of blocking drain");
-                    *blocking_drain_in_progress = false;
-                    self.send_response(CaptureThreadResponse::DrainDone(Ok(true)));
-                }
+                *blocking_drain_in_progress = false;
             }
         }
+
+        self.send_response(CaptureThreadResponse::FlushDone(Ok(())));
+        self.enqueue_capture_buffers()
     }
 
     fn enqueue_capture_buffers(&mut self) {
         trace!("Queueing available CAPTURE buffers");
-        match &mut self.capture_queue {
+        let (capture_queue, provider, cap_buffer_waker) = match &mut self.capture_queue {
             // Capture queue is not set up yet, no buffers to queue.
-            CaptureQueue::AwaitingResolution { .. } => (),
+            CaptureQueue::AwaitingResolution { .. } => return,
             CaptureQueue::Decoding {
                 capture_queue,
                 provider,
                 cap_buffer_waker,
                 ..
-            } => {
-                // Requeue all available CAPTURE buffers.
-                'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
-                    // TODO potential problem: the handles will be dropped if no V4L2 buffer
-                    // is available. There is no guarantee that the provider will get them back
-                    // in this case (e.g. with the C FFI).
-                    let buffer = match provider.get_suitable_buffer_for(&handles, capture_queue) {
-                        Ok(buffer) => buffer,
-                        Err(e) => {
-                            error!("Could not find suitable buffer for handles: {}", e);
-                            warn!("Handles potentially lost due to no V4L2 buffer being available");
-                            break 'enqueue;
-                        }
-                    };
-                    match buffer.queue_with_handles(handles) {
-                        Ok(()) => (),
-                        Err(e) => error!("Error while queueing CAPTURE buffer: {}", e),
-                    }
+            } => (capture_queue, provider, cap_buffer_waker),
+        };
+
+        // Requeue all available CAPTURE buffers.
+        'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
+            // TODO potential problem: the handles will be dropped if no V4L2 buffer
+            // is available. There is no guarantee that the provider will get them back
+            // in this case (e.g. with the C FFI).
+            let buffer = match provider.get_suitable_buffer_for(&handles, capture_queue) {
+                Ok(buffer) => buffer,
+                Err(e) => {
+                    error!("Could not find suitable buffer for handles: {}", e);
+                    warn!("Handles potentially lost due to no V4L2 buffer being available");
+                    break 'enqueue;
                 }
+            };
+            match buffer.queue_with_handles(handles) {
+                Ok(()) => (),
+                Err(e) => error!("Error while queueing CAPTURE buffer: {}", e),
             }
         }
     }
@@ -240,7 +265,7 @@ where
         trace!("Processing V4L2 event");
         match self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {
-                if self.is_drc_event_pending().unwrap() {
+                if is_drc_event_pending(&*self.device).unwrap() {
                     self = self.update_capture_format().unwrap()
                 }
             }
@@ -335,126 +360,82 @@ where
         })
     }
 
-    fn dequeue_capture_buffers(mut self) -> Self {
-        trace!("Dequeueing decoded CAPTURE buffers");
-        match self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => unreachable!(),
-            CaptureQueue::Decoding { .. } => {
-                let is_last = self.process_capture_buffer();
-                if is_last {
-                    debug!("CAPTURE buffer marked with LAST flag");
-                    if self.is_drc_event_pending().unwrap() {
-                        debug!("DRC event pending, updating CAPTURE format");
-                        self = self.update_capture_format().unwrap()
-                    }
-                    // No DRC event pending, this is the end of the stream.
-                    // We need to stop and restart the CAPTURE queue, otherwise
-                    // it will keep signaling buffers as ready and dequeueing
-                    // them will return `EPIPE`.
-                    else {
-                        debug!("No DRC event pending, restarting capture queue");
-                        self.end_of_stream();
-                    }
-                }
-            }
-        }
-        self
-    }
-
-    /// Stream the capture queue off and back on, dropping any queued buffer,
-    /// and making the decoder ready to work again if it was halted.
-    fn restart_capture_queue(&mut self) {
-        match &mut self.capture_queue {
-            CaptureQueue::AwaitingResolution { .. } => {}
-            CaptureQueue::Decoding {
-                capture_queue,
-                blocking_drain_in_progress,
-                ..
-            } => {
-                capture_queue.stream_off().unwrap();
-                capture_queue.stream_on().unwrap();
-                *blocking_drain_in_progress = false;
-            }
-        }
-    }
-
-    fn flush(&mut self) {
-        trace!("Processing flush command");
-        self.restart_capture_queue();
-
-        // We are flushed, let the client know.
-        self.send_response(CaptureThreadResponse::FlushDone(Ok(())));
-
-        self.enqueue_capture_buffers()
-    }
-
-    /// Check if we have a dynamic resolution change event pending.
+    /// Attempt to dequeue and process a single CAPTURE buffer.
     ///
-    /// Dequeues all pending V4L2 events and returns `true` if a
-    /// SRC_CHANGE_EVENT (indicating a format change on the CAPTURE queue) was
-    /// detected. This consumes all the event, meaning that if this method
-    /// returned `true` once it will return `false` until a new resolution
-    /// change happens in the stream.
-    fn is_drc_event_pending(&self) -> Result<bool, ioctl::DQEventError> {
-        let mut drc_pending = false;
-
-        loop {
-            // TODO what if we used an iterator here?
-            let event = match ioctl::dqevent(&*self.device) {
-                Ok(event) => event,
-                Err(ioctl::DQEventError::NotReady) => return Ok(drc_pending),
-                Err(e) => return Err(e),
+    /// If a buffer can be dequeued, then the following processing takes place:
+    /// * Invoke the event callback with a `FrameDecoded` event containing the
+    ///   dequeued buffer,
+    /// * If the buffer has the LAST flag set:
+    ///   * If a resolution change event is pending, start the resolution change
+    ///     procedure,
+    ///   * If a resolution change event is not pending, invoke the event
+    ///     callback with an 'EndOfStream` event,
+    ///   * If a blocking drain was in progress, complete it.
+    fn dequeue_capture_buffer(mut self) -> Self {
+        trace!("Dequeueing decoded CAPTURE buffers");
+        let (capture_queue, cap_buffer_waker, blocking_drain_in_progress) =
+            match &mut self.capture_queue {
+                CaptureQueue::AwaitingResolution { .. } => unreachable!(),
+                CaptureQueue::Decoding {
+                    capture_queue,
+                    cap_buffer_waker,
+                    blocking_drain_in_progress,
+                    ..
+                } => (capture_queue, cap_buffer_waker, blocking_drain_in_progress),
             };
 
-            match event {
-                ioctl::Event::SrcChangeEvent(changes) => {
-                    if changes.contains(ioctl::SrcChanges::RESOLUTION) {
-                        debug!("Received resolution change event");
-                        drc_pending = true;
-                    }
+        let mut cap_buf = match capture_queue.try_dequeue() {
+            Ok(cap_buf) => cap_buf,
+            Err(e) => {
+                warn!(
+                    "Expected a CAPTURE buffer but none available, possible driver bug: {}",
+                    e
+                );
+                return self;
+            }
+        };
+
+        let is_last = cap_buf.data.is_last();
+
+        // Add a drop callback to the dequeued buffer so we
+        // re-queue it as soon as it is dropped.
+        let cap_waker = Arc::clone(&cap_buffer_waker);
+        cap_buf.add_drop_callback(move |_dqbuf| {
+            // Intentionally ignore the result here.
+            let _ = cap_waker.wake();
+        });
+
+        // Pass buffers to the client
+        (self.event_cb)(DecoderEvent::FrameDecoded(cap_buf));
+
+        if is_last {
+            debug!("CAPTURE buffer marked with LAST flag");
+            if is_drc_event_pending(&*self.device).unwrap() {
+                debug!("DRC event pending, updating CAPTURE format");
+                self = self.update_capture_format().unwrap()
+            }
+            // No DRC event pending, this is the end of the stream.
+            // We need to stop and restart the CAPTURE queue, otherwise
+            // it will keep signaling buffers as ready and dequeueing
+            // them will return `EPIPE`.
+            else {
+                debug!("No DRC event pending, restarting capture queue");
+                // We are supposed to be able to run the START command
+                // instead, but with vicodec the CAPTURE queue reports
+                // as ready in subsequent polls() and DQBUF returns
+                // -EPIPE...
+                capture_queue.stream_off().unwrap();
+                capture_queue.stream_on().unwrap();
+                (self.event_cb)(DecoderEvent::EndOfStream);
+                if *blocking_drain_in_progress {
+                    debug!("Signaling end of blocking drain");
+                    *blocking_drain_in_progress = false;
+                    self.send_response(CaptureThreadResponse::DrainDone(Ok(true)));
                 }
             }
         }
-    }
 
-    /// Try to dequeue and process a single CAPTURE buffer.
-    ///
-    /// Returns `true` if the buffer had the LAST flag set, `false` otherwise.
-    fn process_capture_buffer(&mut self) -> bool {
-        if let CaptureQueue::Decoding {
-            capture_queue,
-            cap_buffer_waker,
-            ..
-        } = &mut self.capture_queue
-        {
-            match capture_queue.try_dequeue() {
-                Ok(mut cap_buf) => {
-                    let is_last = cap_buf.data.is_last();
-
-                    // Add a drop callback to the dequeued buffer so we
-                    // re-queue it as soon as it is dropped.
-                    let cap_waker = Arc::clone(&cap_buffer_waker);
-                    cap_buf.add_drop_callback(move |_dqbuf| {
-                        // Intentionally ignore the result here.
-                        let _ = cap_waker.wake();
-                    });
-
-                    // Pass buffers to the client
-                    (self.event_cb)(DecoderEvent::FrameDecoded(cap_buf));
-                    is_last
-                }
-                Err(e) => {
-                    warn!(
-                        "Expected a CAPTURE buffer but none available, possible driver bug: {}",
-                        e
-                    );
-                    false
-                }
-            }
-        } else {
-            // TODO replace with something more elegant.
-            panic!();
-        }
+        self
     }
 
     pub(super) fn run(mut self) -> Self {
@@ -490,7 +471,7 @@ where
             for event in events {
                 self = match event {
                     PollEvent::Device(DeviceEvent::V4L2Event) => self.process_v4l2_event(),
-                    PollEvent::Device(DeviceEvent::CaptureReady) => self.dequeue_capture_buffers(),
+                    PollEvent::Device(DeviceEvent::CaptureReady) => self.dequeue_capture_buffer(),
                     PollEvent::Waker(CAPTURE_READY) => {
                         self.enqueue_capture_buffers();
                         self
