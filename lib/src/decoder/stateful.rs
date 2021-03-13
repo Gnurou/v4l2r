@@ -202,7 +202,7 @@ impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
         let (command_sender, command_receiver) = mpsc::channel::<DecoderCommand>();
         let (response_sender, response_receiver) = mpsc::channel::<CaptureThreadResponse>();
 
-        let mut decoder_thread = DecoderThread::new(
+        let mut decoder_thread = CaptureThread::new(
             &self.device,
             self.state.capture_queue,
             decoder_event_cb,
@@ -268,7 +268,7 @@ where
     command_sender: mpsc::Sender<DecoderCommand>,
     response_receiver: mpsc::Receiver<CaptureThreadResponse>,
 
-    handle: JoinHandle<DecoderThread<P, DecoderEventCb, FormatChangedCb>>,
+    handle: JoinHandle<CaptureThread<P, DecoderEventCb, FormatChangedCb>>,
 }
 impl<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb> DecoderState
     for Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
@@ -634,7 +634,7 @@ enum CaptureQueue<P: HandlesProvider> {
     },
 }
 
-struct DecoderThread<P, DecoderEventCb, FormatChangedCb>
+struct CaptureThread<P, DecoderEventCb, FormatChangedCb>
 where
     P: HandlesProvider,
     DecoderEventCb: DecoderEventCallback<P>,
@@ -695,7 +695,7 @@ enum ProcessEventsError {
     UpdateCapture(#[from] UpdateCaptureError),
 }
 
-impl<P, DecoderEventCb, FormatChangedCb> DecoderThread<P, DecoderEventCb, FormatChangedCb>
+impl<P, DecoderEventCb, FormatChangedCb> CaptureThread<P, DecoderEventCb, FormatChangedCb>
 where
     P: HandlesProvider,
     DecoderEventCb: DecoderEventCallback<P>,
@@ -718,7 +718,7 @@ where
         poller.enable_event(DeviceEvent::V4L2Event)?;
         let command_waker = poller.add_waker(COMMAND_WAITING)?;
 
-        let decoder_thread = DecoderThread {
+        let decoder_thread = CaptureThread {
             device: Arc::clone(&device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
