@@ -1,3 +1,5 @@
+//! High-level interface for a V4L2 video decoder. Currently only supports the
+//! [stateful interface](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-encoder.html).
 use crate::{
     device::queue::{
         direction::{Capture, Output},
@@ -25,7 +27,7 @@ where
 {
 }
 
-/// TODO: add errors?
+// TODO: add errors?
 pub enum DecoderEvent<P: HandlesProvider> {
     /// Emitted when a frame is decoded.
     ///

@@ -1,6 +1,6 @@
-//! Provides an interface to the V4L2 primitives that is both safe and
-//! higher-level than `ioctl`, while staying low-level enough to allow the
-//! implementation of any kind of V4L2 program on top of it.
+//! Interface to the V4L2 primitives that is both safe and higher-level than
+//! `ioctl`, while staying low-level enough to allow the implementation of any
+//! kind of V4L2 program on top of it.
 //!
 //! The `Device` struct lets the user open a V4L2 device and querying its
 //! capabilities, from which `Queue` objects can be created.

@@ -1,5 +1,5 @@
-//! Abstracts the different kinds of backing memory (MMAP, USERPTR, DMABUF)
-//! supported by V4L2.
+//! Abstracts the different kinds of backing memory (`MMAP`, `USERPTR`,
+//! `DMABUF`) supported by V4L2.
 //!
 //! V4L2 allows to use either memory that is provided by the device itself
 //! (MMAP) or memory imported via user allocation (USERPTR) or the dma-buf

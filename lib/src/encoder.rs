@@ -1,3 +1,5 @@
+//! High-level interface for a [V4L2 video
+//! encoder](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-encoder.html).
 use crate::{
     device::{
         poller::{DeviceEvent, PollError, PollEvent, Poller, Waker},

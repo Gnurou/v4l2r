@@ -1,7 +1,7 @@
-//! Provides safer versions of the V4L2 ioctls through simple functions working
-//! on a `RawFd` and Rust variants of the V4L2 structures. This module can be
-//! used directly if that's the level of abstraction you are aiming for, but
-//! the `device` module is very likely to be a better fit.
+//! Safer versions of the V4L2 ioctls through simple functions working on a
+//! `RawFd` and Rust variants of the V4L2 structures. This module can be used
+//! directly if that's the level of abstraction you are aiming for, but the
+//! `device` module is very likely to be a better fit.
 //!
 //! ioctl functions of this module typically take the input parameters as
 //! argument, and only return the values written by the kernel. Therefore,
