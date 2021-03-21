@@ -126,10 +126,10 @@ impl Decoder<AwaitingOutputBuffers> {
         self,
         memory_type: OP::SupportedMemoryType,
         num_buffers: usize,
-    ) -> Result<Decoder<OutputBuffersAllocated<OP>>, RequestBuffersError> {
+    ) -> Result<Decoder<ReadyToDecode<OP>>, RequestBuffersError> {
         Ok(Decoder {
             device: self.device,
-            state: OutputBuffersAllocated {
+            state: ReadyToDecode {
                 output_queue: self
                     .state
                     .output_queue
@@ -143,17 +143,17 @@ impl Decoder<AwaitingOutputBuffers> {
     pub fn allocate_output_buffers<OP: PrimitiveBufferHandles>(
         self,
         num_output: usize,
-    ) -> Result<Decoder<OutputBuffersAllocated<OP>>, RequestBuffersError> {
+    ) -> Result<Decoder<ReadyToDecode<OP>>, RequestBuffersError> {
         self.allocate_output_buffers_generic(OP::MEMORY_TYPE, num_output)
     }
 }
 
-pub struct OutputBuffersAllocated<OP: BufferHandles> {
+pub struct ReadyToDecode<OP: BufferHandles> {
     output_queue: Queue<Output, BuffersAllocated<OP>>,
     capture_queue: Queue<Capture, QueueInit>,
     poll_wakeups_counter: Option<Arc<AtomicUsize>>,
 }
-impl<OP: BufferHandles> DecoderState for OutputBuffersAllocated<OP> {}
+impl<OP: BufferHandles> DecoderState for ReadyToDecode<OP> {}
 
 #[derive(Debug, Error)]
 pub enum StartDecoderError {
@@ -165,7 +165,7 @@ pub enum StartDecoderError {
     StreamOnError(#[from] StreamOnError),
 }
 
-impl<OP: BufferHandles> Decoder<OutputBuffersAllocated<OP>> {
+impl<OP: BufferHandles> Decoder<ReadyToDecode<OP>> {
     pub fn set_poll_counter(mut self, poll_wakeups_counter: Arc<AtomicUsize>) -> Self {
         self.state.poll_wakeups_counter = Some(poll_wakeups_counter);
         self
