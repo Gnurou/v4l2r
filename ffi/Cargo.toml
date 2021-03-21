@@ -22,11 +22,11 @@ version = "0.0.1"
 path = "../lib"
 
 [dependencies]
-nix = "0.19.0"
+nix = "0.20.0"
 anyhow = "1.0"
 log = "0.4.14"
 env_logger = { version = "0.8.2", optional = true }
 android_logger = { version = "0.9.2", optional = true }
 
 [build-dependencies]
-cbindgen = "0.17.0"
+cbindgen = "0.18.0"
