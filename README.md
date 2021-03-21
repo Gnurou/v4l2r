@@ -1,35 +1,54 @@
-# Experimental Rust bindings for V4L2 [![Build Status](https://travis-ci.com/Gnurou/v4l2_rust.svg?branch=master)](https://travis-ci.com/Gnurou/v4l2_rust)
+# Rust bindings for V4L2 [![Build Status](https://travis-ci.com/Gnurou/v4l2_rust.svg?branch=master)](https://travis-ci.com/Gnurou/v4l2_rust)
 
 This is a work-in-progress library to implement safe Rust bindings for V4L2.
+Currently the following is implemented:
 
-**WARNING:** Do not use this for any serious project yet. This is still in the
-process of being designed, and also serves as a way for the author to learn
-Rust. As such, it cannot be regarded as quality code.
+* Safe low-level abstractions to manage OUTPUT and CAPTURE queues, as well as
+  buffers allocation/queueing/dequeuing for MMAP, USERPTR and DMABUF memory
+  types,
+* High-level abstraction of the [stateful video decoder
+  interface](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-decoder.html),
+* High-level abstraction of the [stateful video encoder
+  interface](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-encoder.html),
+* C FFI for using the video decoder interface from C programs.
 
-The goal is to make V4L2 accessible to Rust on two level of abstractions:
+The library provides several levels of abstraction over V4L2:
 
-* A very thin wrapper over the V4L2 ioctls, that stays as close as possible to
-  them while adding extra safety and removing some of the historical baggage
-  like the difference in format for single-planar and multi-planar queues.
+* At the lowest level is a very thin layer over the V4L2 ioctls, that stays as
+  close as possible to the actual kernel API while adding extra safety and
+  removing some of the historical baggage like the difference in format for
+  single-planar and multi-planar queues.
 
-* A higher-level abstraction (still in the design phase) which relies on the
-  first one and exposes devices, queues, and other V4L2 concepts as strongly
-  typed objects. The goal here is to provide an nice-to-use interface that
-  remains generic enough to be used for any kind of V4L2 device.
+* A higher-level abstraction exposes devices, queues, and other V4L2 concepts as
+  strongly typed objects. The goal here is to provide an nice-to-use interface
+  that remains generic enough to be used for any kind of V4L2 device.
 
-Other libraries are expected to build upon these abstractions in order to
-provide more specialized libraries, e.g. a simple camera or decoder/encoder
-library.
+* Finally, more specialized abstractions can be used by applications for
+  performing specific tasks, like decoding a video using hardware acceleration.
+  For these abstractions, a C FFI is usually provided so their use is not
+  limited to Rust.
 
 Dependencies shall be kept to a minimum: this library talks directly to the
 kernel using ioctls, and only depends on a few small, well-established crates.
 
+Project Layout
+--------------
+
+`lib` contains the Rust library (`v4l2r`), including the thin `ioctl`
+abstraction, the more usable `device` abstraction, and task-specific modules for
+e.g. video decoding and encoding.
+
+`ffi` contains the C FFI (`v4l2r-ffi`) which is currently exposed as a static
+library other projects can link against. A `v4l2r.h` header file with the public
+API is generated upon build.
+
 How to use
 ----------
-Check `examples/vicodec_test/ioctl_api.rs` for a short example of how to use
-the low-level ioctl interface, and `examples/vicodec_test/device_api.rs` for the
-same example using the device interface. This example program requires the
-`vicodec` virtual device, either in single or multi-planar mode.
+Check `lib/examples/vicodec_test/ioctl_api.rs` for a short example of how to use
+the low-level ioctl interface to encode generated frames into the FWHT
+compressed format, and `lib/examples/vicodec_test/device_api.rs` for the same
+example using the device interface. This example program requires the `vicodec`
+virtual device, either in single or multi-planar mode.
 
 You can try it with
 
@@ -42,10 +61,17 @@ for running the device API example, or
 for the ioctl example, assuming `/dev/video0` is the path to the `vicodec`
 encoder.
 
-`examples/fwht_encoder` contains another example program implementing a
+`lib/examples/fwht_encoder` contains another example program implementing a
 higher-level vicodec encoder running in its own thread. It can be run as
 follows:
 
     cargo run --example fwht_encoder -- /dev/video0
 
 Pass `--help` to the program for further options.
+
+`lib/examples/fwht_decoder` is a decoder example able to decode the streams
+produced by the `fwht_encoder` example above.
+
+Finally, `ffi/examples/c_fwht_decode/` contains a C program demonstrating how to
+use the C FFI to decode a FWHT stream. See the `Makefile` for build and use
+instructions.
