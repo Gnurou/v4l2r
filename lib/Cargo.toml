@@ -3,6 +3,10 @@ name = "v4l2r"
 version = "0.0.1"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2018"
+description = "Safe and high-level abstraction over V4L2"
+repository = "https://github.com/Gnurou/v4l2r"
+categories = ["os"]
+keywords = ["v4l2", "video", "linux"]
 license = "MIT"
 
 [dependencies]

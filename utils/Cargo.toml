@@ -3,6 +3,8 @@ name = "utils"
 version = "0.0.1"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2018"
+license = "MIT"
+publish = false
 
 [dependencies]
 v4l2r = { path = "../lib" }
