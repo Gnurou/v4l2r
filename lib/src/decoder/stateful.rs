@@ -613,7 +613,7 @@ where
     /// that owns the decoder every time a decoded frame is produced.
     /// That way the client can recycle its input buffers
     /// and the decoding process does not get stuck.
-    pub fn kick(&mut self) -> Result<(), DequeueOutputBufferError<OP>> {
+    pub fn kick(&self) -> Result<(), DequeueOutputBufferError<OP>> {
         info!("Kick!");
         self.dequeue_output_buffers()
     }
