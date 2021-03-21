@@ -1,0 +1,12 @@
+language = "C"
+cpp_compat = true
+style = "tag"
+sort_by = "None"
+usize_is_size_t = true
+include_guard = "V4L2R_H_"
+sys_includes = ["linux/videodev2.h"]
+
+[export.rename]
+"v4l2_buffer" = "struct v4l2_buffer"
+"v4l2_format" = "struct v4l2_format"
+"v4l2_rect" = "struct v4l2_rect"

@@ -1,0 +1,32 @@
+[package]
+name = "v4l2r-ffi"
+version = "0.0.1"
+authors = ["Alexandre Courbot <gnurou@gmail.com>"]
+edition = "2018"
+description = "FFI bindings for the v4l2r crate"
+repository = "https://github.com/Gnurou/v4l2r"
+categories = ["os"]
+keywords = ["v4l2", "video", "linux", "ffi"]
+license = "MIT"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[features]
+default = ["linux"]
+linux = ["env_logger"]
+android = ["android_logger"]
+
+[dependencies.v4l2r]
+version = "0.0.1"
+path = "../lib"
+
+[dependencies]
+nix = "0.19.0"
+anyhow = "1.0"
+log = "0.4.14"
+env_logger = { version = "0.8.2", optional = true }
+android_logger = { version = "0.9.2", optional = true }
+
+[build-dependencies]
+cbindgen = "0.17.0"

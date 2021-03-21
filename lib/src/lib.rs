@@ -17,7 +17,7 @@
 //! to provide safe, specialized APIs that support various V4L2 usage scenarios
 //! (camera, decoder/encoder, etc).
 //!
-mod bindings;
+pub mod bindings;
 pub mod decoder;
 pub mod device;
 pub mod encoder;
