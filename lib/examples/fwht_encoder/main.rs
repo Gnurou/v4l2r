@@ -80,7 +80,7 @@ fn main() {
             const ERROR_MSG: &str = "Invalid parameter for frame_size";
             let split: Vec<&str> = s.split('x').collect();
             if split.len() != 2 {
-                panic!(ERROR_MSG);
+                panic!("{}", ERROR_MSG);
             }
             let width: usize = split[0].parse().expect(ERROR_MSG);
             let height: usize = split[1].parse().expect(ERROR_MSG);
@@ -271,7 +271,7 @@ fn main() {
             {
                 break
             }
-            Err(e) => panic!(e),
+            Err(e) => panic!("{}", e),
         };
         let bytes_used = frame_gen.frame_size();
         match v4l2_buffer {

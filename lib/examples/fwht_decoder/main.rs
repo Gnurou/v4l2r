@@ -209,7 +209,7 @@ fn main() {
             {
                 break 'mainloop
             }
-            Err(e) => panic!(e),
+            Err(e) => panic!("{}", e),
         };
 
         v4l2_buffer
