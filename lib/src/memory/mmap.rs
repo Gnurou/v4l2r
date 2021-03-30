@@ -27,6 +27,6 @@ impl PlaneHandle for MMAPHandle {
 
 impl Mappable for MMAPHandle {
     fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping> {
-        Some(ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()?)
+        ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()
     }
 }
