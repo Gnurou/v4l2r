@@ -25,9 +25,9 @@ pub enum GenericSupportedMemoryType {
     DMABuf,
 }
 
-impl Into<MemoryType> for GenericSupportedMemoryType {
-    fn into(self) -> MemoryType {
-        match self {
+impl From<GenericSupportedMemoryType> for MemoryType {
+    fn from(mem_type: GenericSupportedMemoryType) -> Self {
+        match mem_type {
             GenericSupportedMemoryType::MMAP => MemoryType::MMAP,
             GenericSupportedMemoryType::UserPtr => MemoryType::UserPtr,
             GenericSupportedMemoryType::DMABuf => MemoryType::DMABuf,

@@ -77,8 +77,8 @@ pub struct v4l2r_video_frame {
 #[derive(Debug, Clone, Copy, Default)]
 pub struct VideoFrameMemoryType;
 
-impl Into<MemoryType> for VideoFrameMemoryType {
-    fn into(self) -> MemoryType {
+impl From<VideoFrameMemoryType> for MemoryType {
+    fn from(_: VideoFrameMemoryType) -> Self {
         MemoryType::DMABuf
     }
 }

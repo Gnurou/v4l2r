@@ -12,8 +12,8 @@ use thiserror::Error;
 /// ioctls.
 pub trait Fmt<E: Into<FormatConversionError>>: TryFrom<bindings::v4l2_format, Error = E> {}
 
-impl Into<FormatConversionError> for std::convert::Infallible {
-    fn into(self) -> FormatConversionError {
+impl From<std::convert::Infallible> for FormatConversionError {
+    fn from(_: std::convert::Infallible) -> Self {
         FormatConversionError::TooManyPlanes(0)
     }
 }

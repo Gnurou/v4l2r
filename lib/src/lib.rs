@@ -301,13 +301,13 @@ impl From<bindings::v4l2_rect> for Rect {
     }
 }
 
-impl Into<bindings::v4l2_rect> for Rect {
-    fn into(self) -> bindings::v4l2_rect {
+impl From<Rect> for bindings::v4l2_rect {
+    fn from(rect: Rect) -> Self {
         bindings::v4l2_rect {
-            left: self.left,
-            top: self.top,
-            width: self.width,
-            height: self.height,
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
         }
     }
 }
