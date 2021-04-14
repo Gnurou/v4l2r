@@ -1,10 +1,12 @@
 # Rust bindings for V4L2 [![Build Status](https://travis-ci.com/Gnurou/v4l2_rust.svg?branch=master)](https://travis-ci.com/Gnurou/v4l2_rust)
 
-This is a work-in-progress library to implement safe Rust bindings for V4L2.
+This is a work-in-progress library to implement safe Rust bindings and high-level
+interfaces for V4L2.
+
 Currently the following is implemented:
 
-* Safe low-level abstractions to manage OUTPUT and CAPTURE queues, as well as
-  buffers allocation/queueing/dequeuing for MMAP, USERPTR and DMABUF memory
+* Safe low-level abstractions to manage `OUTPUT` and `CAPTURE` queues, as well as
+  buffers allocation/queueing/dequeuing for `MMAP`, `USERPTR` and `DMABUF` memory
   types,
 * High-level abstraction of the [stateful video decoder
   interface](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-decoder.html),
@@ -44,21 +46,22 @@ API is generated upon build.
 
 How to use
 ----------
-Check `lib/examples/vicodec_test/ioctl_api.rs` for a short example of how to use
-the low-level ioctl interface to encode generated frames into the FWHT
-compressed format, and `lib/examples/vicodec_test/device_api.rs` for the same
-example using the device interface. This example program requires the `vicodec`
-virtual device, either in single or multi-planar mode.
+Check `lib/examples/vicodec_test/device_api.rs` for a short example of how to
+use the `device`-level interface, or `lib/examples/vicodec_test/ioctl_api.rs`
+for the same example using the lower-level `ioctl` API. Both examples encode
+generated frames into the `FWHT` format using the `vicodec` kernel driver
+(which must be inserted beforehand, using e.g. `modprobe vicodec
+multiplanar=1`).
 
-You can try it with
+You can try these examples with
 
     cargo run --example vicodec_test -- /dev/video0
 
-for running the device API example, or
+for running the `device` API example, or
 
     cargo run --example vicodec_test -- /dev/video0 --use_ioctl
 
-for the ioctl example, assuming `/dev/video0` is the path to the `vicodec`
+for the `ioctl` example, assuming `/dev/video0` is the path to the `vicodec`
 encoder.
 
 `lib/examples/fwht_encoder` contains another example program implementing a
