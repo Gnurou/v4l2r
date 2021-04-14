@@ -9,7 +9,7 @@ use log::error;
 use crate::{
     bindings,
     device::poller::Waker,
-    memory::{BufferHandles, MMAPHandle, PrimitiveBufferHandles},
+    memory::{BufferHandles, MmapHandle, PrimitiveBufferHandles},
     Format,
 };
 
@@ -100,16 +100,16 @@ impl<P: HandlesProvider + Sync> HandlesProvider for Arc<P> {
     }
 }
 
-pub struct MMAPProvider(Vec<MMAPHandle>);
+pub struct MmapProvider(Vec<MmapHandle>);
 
-impl MMAPProvider {
+impl MmapProvider {
     pub fn new(format: &Format) -> Self {
         Self(vec![Default::default(); format.plane_fmt.len()])
     }
 }
 
-impl HandlesProvider for MMAPProvider {
-    type HandleType = Vec<MMAPHandle>;
+impl HandlesProvider for MmapProvider {
+    type HandleType = Vec<MmapHandle>;
 
     fn get_handles(&self, _waker: &Arc<Waker>) -> Option<Self::HandleType> {
         Some(self.0.clone())

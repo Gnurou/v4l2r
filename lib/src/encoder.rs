@@ -5,7 +5,7 @@ use crate::{
         poller::{DeviceEvent, PollError, PollEvent, Poller, Waker},
         queue::{
             direction::{Capture, Output},
-            dqbuf::DQBuffer,
+            dqbuf::DqBuffer,
             handles_provider::HandlesProvider,
             qbuf::OutputQueueableProvider,
             qbuf::{
@@ -18,7 +18,7 @@ use crate::{
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{self, DQBufError, EncoderCommand, FormatFlags, GFmtError},
+    ioctl::{self, DqBufError, EncoderCommand, FormatFlags, GFmtError},
     memory::{BufferHandles, PrimitiveBufferHandles},
     Format,
 };
@@ -244,7 +244,7 @@ where
     ) -> io::Result<Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>>
     where
         InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-        OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send + 'static,
+        OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send + 'static,
     {
         self.state.output_queue.stream_on().unwrap();
         self.state.capture_queue.stream_on().unwrap();
@@ -284,7 +284,7 @@ pub struct Encoding<OP: BufferHandles, P, InputDoneCb, OutputReadyCb>
 where
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
     output_queue: Queue<Output, BuffersAllocated<OP>>,
     input_done_cb: InputDoneCb,
@@ -297,7 +297,7 @@ where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
 }
 
@@ -305,10 +305,10 @@ where
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
 #[allow(type_alias_bounds)]
-type DequeueOutputBufferError<OP: BufferHandles> = DQBufError<DQBuffer<Output, OP>>;
+type DequeueOutputBufferError<OP: BufferHandles> = DqBufError<DqBuffer<Output, OP>>;
 
 pub enum CompletedOutputBuffer<OP: BufferHandles> {
-    Dequeued(DQBuffer<Output, OP>),
+    Dequeued(DqBuffer<Output, OP>),
     Canceled(CanceledBuffer<OP>),
 }
 
@@ -339,7 +339,7 @@ where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
     /// Stop the encoder, and returns the encoder ready to be started again.
     pub fn stop(self) -> Result<Encoder<ReadyToEncode<OP, P>>, EncoderStopError> {
@@ -386,7 +386,7 @@ where
                 Ok(buf) => {
                     (self.state.input_done_cb)(CompletedOutputBuffer::Dequeued(buf));
                 }
-                Err(DQBufError::NotReady) => break,
+                Err(DqBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in
                 // a fatal error!
                 Err(e) => return Err(e),
@@ -419,7 +419,7 @@ where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
     type Queueable =
         <Queue<Output, BuffersAllocated<OP>> as OutputQueueableProvider<'a, OP>>::Queueable;
@@ -433,7 +433,7 @@ where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
     /// Returns a V4L2 buffer to be filled with a frame to encode if one
     /// is available.
@@ -454,7 +454,7 @@ where
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
     /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
     /// one to be available if needed.
@@ -478,7 +478,7 @@ where
 struct EncoderThread<P, OutputReadyCb>
 where
     P: HandlesProvider,
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
 {
     capture_queue: Queue<Capture, BuffersAllocated<P::HandleType>>,
     capture_memory_provider: P,
@@ -490,7 +490,7 @@ where
 impl<P, OutputReadyCb> EncoderThread<P, OutputReadyCb>
 where
     P: HandlesProvider,
-    OutputReadyCb: FnMut(DQBuffer<Capture, P::HandleType>) + Send,
+    OutputReadyCb: FnMut(DqBuffer<Capture, P::HandleType>) + Send,
     for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
         GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
 {

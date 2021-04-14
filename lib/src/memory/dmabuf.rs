@@ -5,17 +5,17 @@ use super::*;
 use crate::{bindings, ioctl};
 use std::os::unix::io::AsRawFd;
 
-pub struct DMABuf;
+pub struct DmaBuf;
 
-pub type DMABufferHandles<T> = Vec<DMABufHandle<T>>;
+pub type DmaBufferHandles<T> = Vec<DmaBufHandle<T>>;
 
-impl Memory for DMABuf {
-    const MEMORY_TYPE: MemoryType = MemoryType::DMABuf;
+impl Memory for DmaBuf {
+    const MEMORY_TYPE: MemoryType = MemoryType::DmaBuf;
 }
 
-impl Imported for DMABuf {}
+impl Imported for DmaBuf {}
 
-pub trait DMABufSource: AsRawFd + Debug + Send {
+pub trait DmaBufSource: AsRawFd + Debug + Send {
     fn len(&self) -> u64;
 
     /// Make Clippy happy.
@@ -24,7 +24,7 @@ pub trait DMABufSource: AsRawFd + Debug + Send {
     }
 }
 
-impl DMABufSource for std::fs::File {
+impl DmaBufSource for std::fs::File {
     fn len(&self) -> u64 {
         match self.metadata() {
             Err(_) => {
@@ -39,16 +39,16 @@ impl DMABufSource for std::fs::File {
 /// Handle for a DMABUF plane. Any type that can provide a file descriptor is
 /// valid.
 #[derive(Debug)]
-pub struct DMABufHandle<T: DMABufSource>(pub T);
+pub struct DmaBufHandle<T: DmaBufSource>(pub T);
 
-impl<T: DMABufSource> From<T> for DMABufHandle<T> {
+impl<T: DmaBufSource> From<T> for DmaBufHandle<T> {
     fn from(dmabuf: T) -> Self {
-        DMABufHandle(dmabuf)
+        DmaBufHandle(dmabuf)
     }
 }
 
-impl<T: DMABufSource + 'static> PlaneHandle for DMABufHandle<T> {
-    type Memory = DMABuf;
+impl<T: DmaBufSource + 'static> PlaneHandle for DmaBufHandle<T> {
+    type Memory = DmaBuf;
 
     fn fill_v4l2_plane(&self, plane: &mut bindings::v4l2_plane) {
         plane.m.fd = self.0.as_raw_fd();
@@ -56,8 +56,8 @@ impl<T: DMABufSource + 'static> PlaneHandle for DMABufHandle<T> {
     }
 }
 
-impl<T: DMABufSource> DMABufHandle<T> {
-    pub fn map(&self) -> Result<PlaneMapping, ioctl::MMAPError> {
+impl<T: DmaBufSource> DmaBufHandle<T> {
+    pub fn map(&self) -> Result<PlaneMapping, ioctl::MmapError> {
         let len = self.0.len();
 
         ioctl::mmap(&self.0, 0, len as u32)

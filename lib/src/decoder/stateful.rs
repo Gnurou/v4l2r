@@ -5,7 +5,7 @@ use crate::{
         poller::{DeviceEvent, PollError, PollEvent, Poller, Waker},
         queue::{
             direction::{Capture, Output},
-            dqbuf::DQBuffer,
+            dqbuf::DqBuffer,
             handles_provider::HandlesProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
@@ -326,7 +326,7 @@ pub enum FlushError {
 }
 
 #[allow(type_alias_bounds)]
-type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DQBufError<DQBuffer<Output, OP>>;
+type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DqBufError<DqBuffer<Output, OP>>;
 #[allow(type_alias_bounds)]
 type CanceledBuffers<OP: BufferHandles> =
     Vec<<Queue<Output, BuffersAllocated<OP>> as Stream>::Canceled>;
@@ -489,7 +489,7 @@ where
                 Ok(buf) => {
                     (self.state.input_done_cb)(CompletedInputBuffer::Dequeued(buf));
                 }
-                Err(ioctl::DQBufError::NotReady) => break,
+                Err(ioctl::DqBufError::NotReady) => break,
                 // TODO buffers with the error flag set should not result in
                 // a fatal error!
                 Err(e) => return Err(e),

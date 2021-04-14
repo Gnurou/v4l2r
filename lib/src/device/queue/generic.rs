@@ -7,10 +7,10 @@ use crate::{
         },
         BuffersAllocated, Queue,
     },
-    memory::DMABufHandle,
+    memory::DmaBufHandle,
 };
 use crate::{
-    memory::MMAPHandle,
+    memory::MmapHandle,
     memory::{BufferHandles, MemoryType, UserPtrHandle},
 };
 use std::{fmt::Debug, fs::File};
@@ -20,17 +20,17 @@ use std::{fmt::Debug, fs::File};
 /// on-the-fly using a macro.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GenericSupportedMemoryType {
-    MMAP,
+    Mmap,
     UserPtr,
-    DMABuf,
+    DmaBuf,
 }
 
 impl From<GenericSupportedMemoryType> for MemoryType {
     fn from(mem_type: GenericSupportedMemoryType) -> Self {
         match mem_type {
-            GenericSupportedMemoryType::MMAP => MemoryType::MMAP,
+            GenericSupportedMemoryType::Mmap => MemoryType::Mmap,
             GenericSupportedMemoryType::UserPtr => MemoryType::UserPtr,
-            GenericSupportedMemoryType::DMABuf => MemoryType::DMABuf,
+            GenericSupportedMemoryType::DmaBuf => MemoryType::DmaBuf,
         }
     }
 }
@@ -39,14 +39,14 @@ impl From<GenericSupportedMemoryType> for MemoryType {
 /// for cases when we want to decide the memory type of a queue at runtime.
 #[derive(Debug)]
 pub enum GenericBufferHandles {
-    MMAP(Vec<MMAPHandle>),
+    Mmap(Vec<MmapHandle>),
     User(Vec<UserPtrHandle<Vec<u8>>>),
-    DMABuf(Vec<DMABufHandle<File>>),
+    DmaBuf(Vec<DmaBufHandle<File>>),
 }
 
-impl From<Vec<MMAPHandle>> for GenericBufferHandles {
-    fn from(m: Vec<MMAPHandle>) -> Self {
-        Self::MMAP(m)
+impl From<Vec<MmapHandle>> for GenericBufferHandles {
+    fn from(m: Vec<MmapHandle>) -> Self {
+        Self::Mmap(m)
     }
 }
 
@@ -56,9 +56,9 @@ impl From<Vec<UserPtrHandle<Vec<u8>>>> for GenericBufferHandles {
     }
 }
 
-impl From<Vec<DMABufHandle<File>>> for GenericBufferHandles {
-    fn from(d: Vec<DMABufHandle<File>>) -> Self {
-        Self::DMABuf(d)
+impl From<Vec<DmaBufHandle<File>>> for GenericBufferHandles {
+    fn from(d: Vec<DmaBufHandle<File>>) -> Self {
+        Self::DmaBuf(d)
     }
 }
 
@@ -67,17 +67,17 @@ impl BufferHandles for GenericBufferHandles {
 
     fn len(&self) -> usize {
         match self {
-            GenericBufferHandles::MMAP(m) => m.len(),
+            GenericBufferHandles::Mmap(m) => m.len(),
             GenericBufferHandles::User(u) => u.len(),
-            GenericBufferHandles::DMABuf(d) => d.len(),
+            GenericBufferHandles::DmaBuf(d) => d.len(),
         }
     }
 
     fn fill_v4l2_plane(&self, index: usize, plane: &mut crate::bindings::v4l2_plane) {
         match self {
-            GenericBufferHandles::MMAP(m) => m.fill_v4l2_plane(index, plane),
+            GenericBufferHandles::Mmap(m) => m.fill_v4l2_plane(index, plane),
             GenericBufferHandles::User(u) => u.fill_v4l2_plane(index, plane),
-            GenericBufferHandles::DMABuf(d) => d.fill_v4l2_plane(index, plane),
+            GenericBufferHandles::DmaBuf(d) => d.fill_v4l2_plane(index, plane),
         }
     }
 }
@@ -85,16 +85,16 @@ impl BufferHandles for GenericBufferHandles {
 /// A QBuffer that holds either MMAP or UserPtr handles, depending on which
 /// memory type has been selected for the queue at runtime.
 pub enum GenericQBuffer<'a, D: Direction> {
-    MMAP(QBuffer<'a, D, Vec<MMAPHandle>, GenericBufferHandles>),
+    Mmap(QBuffer<'a, D, Vec<MmapHandle>, GenericBufferHandles>),
     User(QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles>),
-    DMABuf(QBuffer<'a, D, Vec<DMABufHandle<File>>, GenericBufferHandles>),
+    DmaBuf(QBuffer<'a, D, Vec<DmaBufHandle<File>>, GenericBufferHandles>),
 }
 
-impl<'a, D: Direction> From<QBuffer<'a, D, Vec<MMAPHandle>, GenericBufferHandles>>
+impl<'a, D: Direction> From<QBuffer<'a, D, Vec<MmapHandle>, GenericBufferHandles>>
     for GenericQBuffer<'a, D>
 {
-    fn from(qb: QBuffer<'a, D, Vec<MMAPHandle>, GenericBufferHandles>) -> Self {
-        GenericQBuffer::MMAP(qb)
+    fn from(qb: QBuffer<'a, D, Vec<MmapHandle>, GenericBufferHandles>) -> Self {
+        GenericQBuffer::Mmap(qb)
     }
 }
 
@@ -106,11 +106,11 @@ impl<'a, D: Direction> From<QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, GenericB
     }
 }
 
-impl<'a, D: Direction> From<QBuffer<'a, D, Vec<DMABufHandle<File>>, GenericBufferHandles>>
+impl<'a, D: Direction> From<QBuffer<'a, D, Vec<DmaBufHandle<File>>, GenericBufferHandles>>
     for GenericQBuffer<'a, D>
 {
-    fn from(qb: QBuffer<'a, D, Vec<DMABufHandle<File>>, GenericBufferHandles>) -> Self {
-        GenericQBuffer::DMABuf(qb)
+    fn from(qb: QBuffer<'a, D, Vec<DmaBufHandle<File>>, GenericBufferHandles>) -> Self {
+        GenericQBuffer::DmaBuf(qb)
     }
 }
 
@@ -121,9 +121,9 @@ impl CaptureQueueable<GenericBufferHandles> for GenericQBuffer<'_, Capture> {
         handles: GenericBufferHandles,
     ) -> QueueResult<(), GenericBufferHandles> {
         match self {
-            GenericQBuffer::MMAP(m) => m.queue_with_handles(handles),
+            GenericQBuffer::Mmap(m) => m.queue_with_handles(handles),
             GenericQBuffer::User(u) => u.queue_with_handles(handles),
-            GenericQBuffer::DMABuf(d) => d.queue_with_handles(handles),
+            GenericQBuffer::DmaBuf(d) => d.queue_with_handles(handles),
         }
     }
 }
@@ -136,9 +136,9 @@ impl OutputQueueable<GenericBufferHandles> for GenericQBuffer<'_, Output> {
         bytes_used: &[usize],
     ) -> QueueResult<(), GenericBufferHandles> {
         match self {
-            GenericQBuffer::MMAP(m) => m.queue_with_handles(handles, bytes_used),
+            GenericQBuffer::Mmap(m) => m.queue_with_handles(handles, bytes_used),
             GenericQBuffer::User(u) => u.queue_with_handles(handles, bytes_used),
-            GenericQBuffer::DMABuf(d) => d.queue_with_handles(handles, bytes_used),
+            GenericQBuffer::DmaBuf(d) => d.queue_with_handles(handles, bytes_used),
         }
     }
 }

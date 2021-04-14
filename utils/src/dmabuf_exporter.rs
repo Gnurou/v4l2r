@@ -4,7 +4,7 @@ use log::error;
 use v4l2r::{
     device::Device,
     ioctl::{self, ExpbufFlags},
-    memory::{DMABufHandle, MemoryType},
+    memory::{DmaBufHandle, MemoryType},
     Format, QueueType,
 };
 
@@ -15,7 +15,7 @@ pub fn export_dmabufs(
     queue: QueueType,
     format: &Format,
     nb_buffers: usize,
-) -> Result<Vec<Vec<DMABufHandle<File>>>> {
+) -> Result<Vec<Vec<DmaBufHandle<File>>>> {
     let mut device = Device::open(device_path, Default::default())?;
 
     let set_format: Format = ioctl::s_fmt(&mut device, queue, format.clone()).unwrap();
@@ -26,15 +26,15 @@ pub fn export_dmabufs(
         return Err(anyhow::anyhow!("Could not apply requested format"));
     }
     let nb_buffers: usize =
-        ioctl::reqbufs(&device, queue, MemoryType::MMAP, nb_buffers as u32).unwrap();
+        ioctl::reqbufs(&device, queue, MemoryType::Mmap, nb_buffers as u32).unwrap();
 
-    let fds: Vec<Vec<DMABufHandle<File>>> = (0..nb_buffers)
+    let fds: Vec<Vec<DmaBufHandle<File>>> = (0..nb_buffers)
         .into_iter()
         .map(|buffer| {
             (0..format.plane_fmt.len())
                 .into_iter()
                 .map(|plane| {
-                    DMABufHandle::from(
+                    DmaBufHandle::from(
                         ioctl::expbuf::<Device, File>(
                             &device,
                             queue,

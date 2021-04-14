@@ -24,9 +24,9 @@ use v4l2r::{
     decoder::{stateful::Decoder, DecoderEvent},
     device::{
         poller::PollError,
-        queue::{direction::Capture, dqbuf::DQBuffer},
+        queue::{direction::Capture, dqbuf::DqBuffer},
     },
-    memory::{DMABufHandle, DMABufferHandles},
+    memory::{DmaBufHandle, DmaBufferHandles},
     Format, Rect,
 };
 
@@ -88,7 +88,7 @@ fn main() {
     let mut output_buffer_size = 0usize;
     let mut frame_counter = 0usize;
     let mut output_ready_cb =
-        move |mut cap_dqbuf: DQBuffer<Capture, PooledHandles<DMABufferHandles<File>>>| {
+        move |mut cap_dqbuf: DqBuffer<Capture, PooledHandles<DmaBufferHandles<File>>>| {
             let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
             // Ignore zero-sized buffers.
             if bytes_used == 0 {
@@ -119,17 +119,17 @@ fn main() {
             }
         };
     let decoder_event_cb =
-        move |event: DecoderEvent<PooledHandlesProvider<Vec<DMABufHandle<File>>>>| match event {
+        move |event: DecoderEvent<PooledHandlesProvider<Vec<DmaBufHandle<File>>>>| match event {
             DecoderEvent::FrameDecoded(dqbuf) => output_ready_cb(dqbuf),
             DecoderEvent::EndOfStream => (),
         };
-    type PooledDMABufHandlesProvider = PooledHandlesProvider<Vec<DMABufHandle<File>>>;
+    type PooledDmaBufHandlesProvider = PooledHandlesProvider<Vec<DmaBufHandle<File>>>;
     let device_path_cb = String::from(device_path);
     let set_capture_format_cb =
         move |f: FormatBuilder,
               visible_rect: Rect,
               min_num_buffers: usize|
-              -> anyhow::Result<FormatChangedReply<PooledDMABufHandlesProvider>> {
+              -> anyhow::Result<FormatChangedReply<PooledDmaBufHandlesProvider>> {
             let format = f.set_pixelformat(b"RGB3").apply()?;
 
             println!(
@@ -149,7 +149,7 @@ fn main() {
                 provider: PooledHandlesProvider::new(dmabuf_fds),
                 // TODO: can't the provider report the memory type that it is
                 // actually serving itself?
-                mem_type: MemoryType::DMABuf,
+                mem_type: MemoryType::DmaBuf,
                 num_buffers: min_num_buffers,
             })
         };

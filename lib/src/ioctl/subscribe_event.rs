@@ -22,7 +22,7 @@ bitflags! {
 
 pub enum EventType {
     VSync,
-    EOS,
+    Eos,
     Ctrl(u32),
     FrameSync,
     SourceChange,
@@ -77,7 +77,7 @@ fn build_v4l2_event_subscription(
     bindings::v4l2_event_subscription {
         type_: match event {
             EventType::VSync => bindings::V4L2_EVENT_VSYNC,
-            EventType::EOS => bindings::V4L2_EVENT_EOS,
+            EventType::Eos => bindings::V4L2_EVENT_EOS,
             EventType::Ctrl(_) => bindings::V4L2_EVENT_CTRL,
             EventType::FrameSync => bindings::V4L2_EVENT_FRAME_SYNC,
             EventType::SourceChange => bindings::V4L2_EVENT_SOURCE_CHANGE,
@@ -140,7 +140,7 @@ pub fn unsubscribe_all_events(fd: &impl AsRawFd) -> Result<(), SubscribeEventErr
 }
 
 #[derive(Debug, Error)]
-pub enum DQEventError {
+pub enum DqEventError {
     #[error("No event ready for dequeue")]
     NotReady,
     #[error("Error while converting event")]
@@ -149,7 +149,7 @@ pub enum DQEventError {
     IoctlError(nix::Error),
 }
 
-impl From<nix::Error> for DQEventError {
+impl From<nix::Error> for DqEventError {
     fn from(error: nix::Error) -> Self {
         match error {
             nix::Error::Sys(Errno::ENOENT) => Self::NotReady,
@@ -158,7 +158,7 @@ impl From<nix::Error> for DQEventError {
     }
 }
 
-pub fn dqevent(fd: &impl AsRawFd) -> Result<Event, DQEventError> {
+pub fn dqevent(fd: &impl AsRawFd) -> Result<Event, DqEventError> {
     // Safe because this struct is expected to be initialized to 0.
     let mut event: bindings::v4l2_event = unsafe { mem::zeroed() };
     unsafe { ioctl::vidioc_dqevent(fd.as_raw_fd(), &mut event) }?;

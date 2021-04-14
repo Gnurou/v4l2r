@@ -1,4 +1,4 @@
-use ioctl::DQBufResult;
+use ioctl::DqBufResult;
 
 use super::queue::{direction::Direction, Queue, QueueInit};
 use crate::ioctl;
@@ -16,7 +16,7 @@ pub trait TryDequeue {
     /// It can be moved into a `Rc` or `Arc` and passed across threads.
     ///
     /// The data in the `DQBuffer` is read-only.
-    fn try_dequeue(&self) -> DQBufResult<Self::Dequeued>;
+    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued>;
 }
 
 /// Trait for streaming a queue on and off.

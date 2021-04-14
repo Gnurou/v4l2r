@@ -9,7 +9,7 @@ use std::{fmt::Debug, pin::Pin};
 use thiserror::Error;
 
 /// Implementors can receive the result from the `dqbuf` ioctl.
-pub trait DQBuf: Sized {
+pub trait DqBuf: Sized {
     /// Try to retrieve the data from `v4l2_buf`. If `v4l2_planes` is `None`,
     /// then the buffer is single-planar. If it has data, the buffer is
     /// multi-planar and `v4l2_planes` shall be used to retrieve the plane data.
@@ -17,25 +17,25 @@ pub trait DQBuf: Sized {
 }
 
 /// Allows to dequeue a buffer without caring for any of its data.
-impl DQBuf for () {
+impl DqBuf for () {
     fn from_v4l2_buffer(_v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
     }
 }
 
 /// Useful for the case where we are only interested in the index of a dequeued
 /// buffer
-impl DQBuf for u32 {
+impl DqBuf for u32 {
     fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
         v4l2_buf.index
     }
 }
 
 /// Information about a single plane of a dequeued buffer.
-pub struct DQBufPlane<'a> {
+pub struct DqBufPlane<'a> {
     plane: &'a bindings::v4l2_plane,
 }
 
-impl<'a> Debug for DQBufPlane<'a> {
+impl<'a> Debug for DqBufPlane<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DQBufPlane")
             .field("length", &self.length())
@@ -45,7 +45,7 @@ impl<'a> Debug for DQBufPlane<'a> {
     }
 }
 
-impl<'a> DQBufPlane<'a> {
+impl<'a> DqBufPlane<'a> {
     pub fn length(&self) -> u32 {
         self.plane.length
     }
@@ -60,14 +60,14 @@ impl<'a> DQBufPlane<'a> {
 }
 
 /// Information for a dequeued buffer. Safe variant of `struct v4l2_buffer`.
-pub struct DQBuffer {
+pub struct DqBuffer {
     v4l2_buffer: bindings::v4l2_buffer,
     // The `m.planes` pointer of `v4l2_buffer` points here and must stay stable
     // as we move this object around.
     v4l2_planes: Pin<Box<PlaneData>>,
 }
 
-impl Clone for DQBuffer {
+impl Clone for DqBuffer {
     fn clone(&self) -> Self {
         let mut ret = Self {
             v4l2_buffer: self.v4l2_buffer,
@@ -83,9 +83,9 @@ impl Clone for DQBuffer {
 
 /// DQBuffer is safe to send across threads. `v4l2_buffer` is !Send because it
 /// contains a pointer, but we are making sure to use it safely here.
-unsafe impl Send for DQBuffer {}
+unsafe impl Send for DqBuffer {}
 
-impl Debug for DQBuffer {
+impl Debug for DqBuffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DQBuffer")
             .field("index", &self.index())
@@ -95,7 +95,7 @@ impl Debug for DQBuffer {
     }
 }
 
-impl DQBuffer {
+impl DqBuffer {
     pub fn index(&self) -> u32 {
         self.v4l2_buffer.index
     }
@@ -134,17 +134,17 @@ impl DQBuffer {
 
     /// Returns the first plane of the buffer. This method is guaranteed to
     /// succeed because every buffer has at least one plane.
-    pub fn get_first_plane(&self) -> DQBufPlane {
-        DQBufPlane {
+    pub fn get_first_plane(&self) -> DqBufPlane {
+        DqBufPlane {
             plane: &self.v4l2_planes[0],
         }
     }
 
     /// Returns plane `index` of the buffer, or `None` if `index` is larger than
     /// the number of planes in this buffer.
-    pub fn get_plane(&self, index: usize) -> Option<DQBufPlane> {
+    pub fn get_plane(&self, index: usize) -> Option<DqBufPlane> {
         if index < self.num_planes() {
-            Some(DQBufPlane {
+            Some(DqBufPlane {
                 plane: &self.v4l2_planes[index],
             })
         } else {
@@ -159,12 +159,12 @@ impl DQBuffer {
     }
 }
 
-impl DQBuf for DQBuffer {
+impl DqBuf for DqBuffer {
     fn from_v4l2_buffer(
         v4l2_buffer: bindings::v4l2_buffer,
         v4l2_planes: Option<PlaneData>,
     ) -> Self {
-        let mut dqbuf = DQBuffer {
+        let mut dqbuf = DqBuffer {
             v4l2_buffer,
             v4l2_planes: Box::pin(match v4l2_planes {
                 Some(planes) => planes,
@@ -204,9 +204,9 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum DQBufError<T: Debug> {
+pub enum DqBufError<T: Debug> {
     #[error("End-of-stream reached")]
-    EOS,
+    Eos,
     #[error("No buffer ready for dequeue")]
     NotReady,
     #[error("Buffer with ERROR flag dequeued")]
@@ -215,20 +215,20 @@ pub enum DQBufError<T: Debug> {
     IoctlError(Error),
 }
 
-impl<T: Debug> From<Error> for DQBufError<T> {
+impl<T: Debug> From<Error> for DqBufError<T> {
     fn from(error: Error) -> Self {
         match error {
             Error::Sys(Errno::EAGAIN) => Self::NotReady,
-            Error::Sys(Errno::EPIPE) => Self::EOS,
+            Error::Sys(Errno::EPIPE) => Self::Eos,
             error => Self::IoctlError(error),
         }
     }
 }
 
-pub type DQBufResult<T> = Result<T, DQBufError<T>>;
+pub type DqBufResult<T> = Result<T, DqBufError<T>>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: DQBuf + Debug, F: AsRawFd>(fd: &F, queue: QueueType) -> DQBufResult<T> {
+pub fn dqbuf<T: DqBuf + Debug, F: AsRawFd>(fd: &F, queue: QueueType) -> DqBufResult<T> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }

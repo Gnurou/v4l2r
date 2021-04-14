@@ -46,9 +46,9 @@ use std::os::unix::io::AsRawFd;
 /// All the supported V4L2 memory types.
 #[derive(Debug, Clone, Copy)]
 pub enum MemoryType {
-    MMAP = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
+    Mmap = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
     UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR as isize,
-    DMABuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF as isize,
+    DmaBuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF as isize,
 }
 
 /// Trait describing a memory type that can be used to back V4L2 buffers.

@@ -12,14 +12,14 @@ use v4l2r::{
         poller::PollError,
         queue::{
             direction::Capture,
-            dqbuf::DQBuffer,
+            dqbuf::DqBuffer,
             generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
-            handles_provider::MMAPProvider,
+            handles_provider::MmapProvider,
             qbuf::OutputQueueable,
         },
     },
     encoder::*,
-    memory::{MMAPHandle, UserPtrHandle},
+    memory::{MmapHandle, UserPtrHandle},
     Format, QueueType,
 };
 
@@ -94,9 +94,9 @@ fn main() {
         .map(|s| File::create(s).expect("Invalid output file specified."));
 
     let output_mem = match matches.value_of("output_mem") {
-        Some("mmap") => GenericSupportedMemoryType::MMAP,
+        Some("mmap") => GenericSupportedMemoryType::Mmap,
         Some("user") => GenericSupportedMemoryType::UserPtr,
-        Some("dmabuf") => GenericSupportedMemoryType::DMABuf,
+        Some("dmabuf") => GenericSupportedMemoryType::DmaBuf,
         _ => panic!("Invalid value for output_mem"),
     };
 
@@ -177,7 +177,7 @@ fn main() {
     const NUM_BUFFERS: usize = 2;
 
     let free_buffers: Option<VecDeque<_>> = match output_mem {
-        GenericSupportedMemoryType::MMAP | GenericSupportedMemoryType::DMABuf => None,
+        GenericSupportedMemoryType::Mmap | GenericSupportedMemoryType::DmaBuf => None,
         GenericSupportedMemoryType::UserPtr => Some(
             std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
                 .take(NUM_BUFFERS)
@@ -193,7 +193,7 @@ fn main() {
         };
         match handles {
             // We have nothing to do for MMAP buffers.
-            GenericBufferHandles::MMAP(_) => {}
+            GenericBufferHandles::Mmap(_) => {}
             // For user-allocated memory, return the buffer to the free list.
             GenericBufferHandles::User(mut u) => {
                 free_buffers
@@ -202,7 +202,7 @@ fn main() {
                     .unwrap()
                     .push_back(u.remove(0).0);
             }
-            GenericBufferHandles::DMABuf(d) => {
+            GenericBufferHandles::DmaBuf(d) => {
                 dmabufs.borrow_mut().push_back(d);
             }
         };
@@ -213,7 +213,7 @@ fn main() {
     let poll_count_reader = Arc::new(AtomicUsize::new(0));
     let poll_count_writer = Arc::clone(&poll_count_reader);
     let mut frame_counter = 0usize;
-    let output_ready_cb = move |cap_dqbuf: DQBuffer<Capture, Vec<MMAPHandle>>| {
+    let output_ready_cb = move |cap_dqbuf: DqBuffer<Capture, Vec<MmapHandle>>| {
         let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
         // Ignore zero-sized buffers.
         if bytes_used == 0 {
@@ -249,7 +249,7 @@ fn main() {
     let mut encoder = encoder
         .allocate_output_buffers_generic::<GenericBufferHandles>(output_mem, NUM_BUFFERS)
         .expect("Failed to allocate OUTPUT buffers")
-        .allocate_capture_buffers(NUM_BUFFERS, MMAPProvider::new(&capture_format))
+        .allocate_capture_buffers(NUM_BUFFERS, MmapProvider::new(&capture_format))
         .expect("Failed to allocate CAPTURE buffers")
         .set_poll_counter(poll_count_writer)
         .start(input_done_cb, output_ready_cb)
@@ -275,7 +275,7 @@ fn main() {
         };
         let bytes_used = frame_gen.frame_size();
         match v4l2_buffer {
-            GenericQBuffer::MMAP(buf) => {
+            GenericQBuffer::Mmap(buf) => {
                 let mut mapping = buf
                     .get_plane_mapping(0)
                     .expect("Failed to get MMAP mapping");
@@ -301,7 +301,7 @@ fn main() {
                 )
                 .expect("Failed to queue input frame");
             }
-            GenericQBuffer::DMABuf(buf) => {
+            GenericQBuffer::DmaBuf(buf) => {
                 let buffer = dmabufs
                     .borrow_mut()
                     .pop_front()

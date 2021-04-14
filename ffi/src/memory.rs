@@ -21,7 +21,7 @@ use v4l2r::{
             },
         },
     },
-    memory::{BufferHandles, DMABufHandle, DMABufSource, MemoryType, PrimitiveBufferHandles},
+    memory::{BufferHandles, DmaBufHandle, DmaBufSource, MemoryType, PrimitiveBufferHandles},
 };
 
 /// The simplest type used to represent a DMABUF fd. It does not take ownership
@@ -31,29 +31,29 @@ use v4l2r::{
 /// Since no ownership is taken at all, this is mostly useful for using DMABUFs
 /// managed from unsafe code, i.e. code that calls into us using the C ffi.
 #[derive(Debug)]
-pub struct DMABufFd {
+pub struct DmaBufFd {
     fd: RawFd,
     len: u64,
 }
 
-impl DMABufFd {
+impl DmaBufFd {
     /// Create a new `RawFd` to be used with the DMABUF API.
     /// `fd` is the unix raw fd, `len` is the size of the memory behind it (not
     /// just the amound of used data, but the whole size of the buffer).
     /// No ownership is taken over `fd`, which will not be closed as the `RawFd`
     /// is dropped ; thus the caller is responsible for managing its lifetime.
-    pub fn new(fd: RawFd, len: u64) -> DMABufFd {
-        DMABufFd { fd, len }
+    pub fn new(fd: RawFd, len: u64) -> DmaBufFd {
+        DmaBufFd { fd, len }
     }
 }
 
-impl AsRawFd for DMABufFd {
+impl AsRawFd for DmaBufFd {
     fn as_raw_fd(&self) -> RawFd {
         self.fd
     }
 }
 
-impl DMABufSource for DMABufFd {
+impl DmaBufSource for DmaBufFd {
     fn len(&self) -> u64 {
         self.len
     }
@@ -79,7 +79,7 @@ pub struct VideoFrameMemoryType;
 
 impl From<VideoFrameMemoryType> for MemoryType {
     fn from(_: VideoFrameMemoryType) -> Self {
-        MemoryType::DMABuf
+        MemoryType::DmaBuf
     }
 }
 
@@ -99,7 +99,7 @@ impl BufferHandles for v4l2r_video_frame {
 
 impl PrimitiveBufferHandles for v4l2r_video_frame {
     // TODO: Uh? This is bullocks but somehow it compiles??
-    type HandleType = DMABufHandle<DMABufFd>;
+    type HandleType = DmaBufHandle<DmaBufFd>;
 
     const MEMORY_TYPE: Self::SupportedMemoryType = VideoFrameMemoryType;
 }

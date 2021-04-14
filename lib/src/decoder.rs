@@ -3,7 +3,7 @@
 use crate::{
     device::queue::{
         direction::{Capture, Output},
-        dqbuf::DQBuffer,
+        dqbuf::DqBuffer,
         handles_provider::HandlesProvider,
         CanceledBuffer, FormatBuilder,
     },
@@ -15,7 +15,7 @@ pub mod format;
 pub mod stateful;
 
 pub enum CompletedInputBuffer<OP: BufferHandles> {
-    Dequeued(DQBuffer<Output, OP>),
+    Dequeued(DqBuffer<Output, OP>),
     Canceled(CanceledBuffer<OP>),
 }
 
@@ -37,7 +37,7 @@ pub enum DecoderEvent<P: HandlesProvider> {
     /// of them: for instance, when the `V4L2_BUF_FLAG_LAST` is set, the proper
     /// corresponding event (resolution change or end of stream) will be
     /// signaled appropriately.
-    FrameDecoded(DQBuffer<Capture, P::HandleType>),
+    FrameDecoded(DqBuffer<Capture, P::HandleType>),
     /// Emitted when a previously requested `drain` request completes.
     ///
     /// When this event is emitted, the client knows that all the frames

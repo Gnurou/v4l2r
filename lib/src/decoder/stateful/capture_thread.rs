@@ -35,14 +35,14 @@ use thiserror::Error;
 /// detected. This consumes all the event, meaning that if this method
 /// returned `true` once it will return `false` until a new resolution
 /// change happens in the stream.
-fn is_drc_event_pending(device: &Device) -> Result<bool, ioctl::DQEventError> {
+fn is_drc_event_pending(device: &Device) -> Result<bool, ioctl::DqEventError> {
     let mut drc_pending = false;
 
     loop {
         // TODO what if we used an iterator here?
         let event = match ioctl::dqevent(device) {
             Ok(event) => event,
-            Err(ioctl::DQEventError::NotReady) => return Ok(drc_pending),
+            Err(ioctl::DqEventError::NotReady) => return Ok(drc_pending),
             Err(e) => return Err(e),
         };
 
@@ -124,7 +124,7 @@ const COMMAND_WAITING: u32 = 2;
 #[derive(Debug, Error)]
 enum ProcessEventsError {
     #[error("Error while dequeueing event")]
-    DQEvent(#[from] ioctl::DQEventError),
+    DqEvent(#[from] ioctl::DqEventError),
     #[error("Error while requesting buffers")]
     RequestBuffers(#[from] queue::RequestBuffersError),
     #[error("Error while updating CAPTURE format")]

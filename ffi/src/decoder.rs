@@ -28,21 +28,21 @@ use v4l2r::{
         CompletedInputBuffer, DecoderEvent, DecoderEventCallback, FormatChangedCallback,
         FormatChangedReply, InputDoneCallback,
     },
-    device::queue::{direction::Capture, dqbuf::DQBuffer, qbuf::OutputQueueable, FormatBuilder},
-    memory::DMABufHandle,
+    device::queue::{direction::Capture, dqbuf::DqBuffer, qbuf::OutputQueueable, FormatBuilder},
+    memory::DmaBufHandle,
     PixelFormat, PlaneLayout, Rect,
 };
 
 use crate::memory::{
     v4l2r_video_frame, v4l2r_video_frame_provider, v4l2r_video_frame_provider_queue_frame,
-    DMABufFd, VideoFrameMemoryType,
+    DmaBufFd, VideoFrameMemoryType,
 };
 
-type DynCBDecoder = Decoder<
+type DynCbDecoder = Decoder<
     Decoding<
-        Vec<DMABufHandle<DMABufFd>>,
+        Vec<DmaBufHandle<DmaBufFd>>,
         Arc<v4l2r_video_frame_provider>,
-        Box<dyn InputDoneCallback<Vec<DMABufHandle<DMABufFd>>>>,
+        Box<dyn InputDoneCallback<Vec<DmaBufHandle<DmaBufFd>>>>,
         Box<dyn DecoderEventCallback<Arc<v4l2r_video_frame_provider>>>,
         Box<dyn FormatChangedCallback<Arc<v4l2r_video_frame_provider>>>,
     >,
@@ -50,7 +50,7 @@ type DynCBDecoder = Decoder<
 
 /// A V4L2 decoder instance.
 pub struct v4l2r_decoder {
-    decoder: DynCBDecoder,
+    decoder: DynCbDecoder,
     // Reference to the video frame provider for our callbacks.
     provider: Option<Arc<v4l2r_video_frame_provider>>,
     // Keep the size of input buffers at hand.
@@ -185,7 +185,7 @@ fn set_capture_format_cb(
 
 fn frame_decoded_cb(
     decoder: &mut v4l2r_decoder,
-    mut dqbuf: DQBuffer<Capture, v4l2r_video_frame>,
+    mut dqbuf: DqBuffer<Capture, v4l2r_video_frame>,
     event_cb: v4l2r_decoder_event_cb,
     cb_data: *mut c_void,
 ) {
@@ -308,7 +308,7 @@ fn v4l2r_decoder_new_safe(
     let cb_data = SendablePtr(cb_data);
 
     let decoder =
-        match decoder.allocate_output_buffers::<Vec<DMABufHandle<DMABufFd>>>(num_input_buffers) {
+        match decoder.allocate_output_buffers::<Vec<DmaBufHandle<DmaBufFd>>>(num_input_buffers) {
             Ok(decoder) => decoder,
             Err(e) => {
                 error!("Error while allocating OUTPUT buffers: {}", e);
@@ -323,7 +323,7 @@ fn v4l2r_decoder_new_safe(
 
     let decoder = match decoder.start(
         Box::new(
-            move |buf: CompletedInputBuffer<Vec<DMABufHandle<DMABufFd>>>| {
+            move |buf: CompletedInputBuffer<Vec<DmaBufHandle<DmaBufFd>>>| {
                 match buf {
                     CompletedInputBuffer::Dequeued(dqbuf) => {
                         debug!("Input buffer {} done", dqbuf.data.index());
@@ -337,7 +337,7 @@ fn v4l2r_decoder_new_safe(
                     CompletedInputBuffer::Canceled(_) => (),
                 }
             },
-        ) as Box<dyn InputDoneCallback<Vec<DMABufHandle<DMABufFd>>>>,
+        ) as Box<dyn InputDoneCallback<Vec<DmaBufHandle<DmaBufFd>>>>,
         Box::new(move |event: DecoderEvent<Arc<v4l2r_video_frame_provider>>| {
             let decoder = unsafe { decoder_ptr.0.as_mut().unwrap() };
 
@@ -413,7 +413,7 @@ fn v4l2r_decoder_decode_safe(
     match v4l2_buffer
         .set_timestamp(TimeVal::seconds(bitstream_id as i64))
         .queue_with_handles(
-            vec![DMABufHandle::from(DMABufFd::new(
+            vec![DmaBufHandle::from(DmaBufFd::new(
                 fd,
                 decoder.input_buf_size,
             ))],
@@ -627,6 +627,7 @@ pub unsafe extern "C" fn v4l2r_decoder_kick(decoder: *const v4l2r_decoder) {
 
 /// Possible responses for the [`v4l2r_decoder_drain`] commmand.
 #[repr(C)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum v4l2r_decoder_drain_response {
     /// The drain has already completed as [`v4l2r_decoder_drain`] returned.
     DRAIN_COMPLETED,

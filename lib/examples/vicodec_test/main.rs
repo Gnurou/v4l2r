@@ -72,12 +72,12 @@ fn main() {
         .map(|s| File::create(s).expect("Invalid output file specified."));
 
     let output_mem = match matches.value_of("output_mem") {
-        Some("mmap") => MemoryType::MMAP,
+        Some("mmap") => MemoryType::Mmap,
         Some("user") => MemoryType::UserPtr,
         _ => panic!("Invalid value for output_mem"),
     };
     let capture_mem = match matches.value_of("capture_mem") {
-        Some("mmap") => MemoryType::MMAP,
+        Some("mmap") => MemoryType::Mmap,
         _ => panic!("Invalid value for capture_mem"),
     };
 

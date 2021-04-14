@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use utils::framegen::FrameGenerator;
 
-use v4l2r::memory::{MMAPHandle, MemoryType};
+use v4l2r::memory::{MemoryType, MmapHandle};
 use v4l2r::{ioctl::*, memory::UserPtrHandle};
 use v4l2r::{Format, QueueType::*};
 
@@ -49,9 +49,9 @@ pub fn run<F: FnMut(&[u8])>(
     // requesting 0 MMAP buffers on the OUTPUT queue. The working queue will
     // return a success.
     let (output_queue_type, _capture_queue_type, use_multi_planar) =
-        if reqbufs::<(), _>(&fd, VideoOutput, MemoryType::MMAP, 0).is_ok() {
+        if reqbufs::<(), _>(&fd, VideoOutput, MemoryType::Mmap, 0).is_ok() {
             (VideoOutput, VideoCapture, false)
-        } else if reqbufs::<(), _>(&fd, VideoOutputMplane, MemoryType::MMAP, 0).is_ok() {
+        } else if reqbufs::<(), _>(&fd, VideoOutputMplane, MemoryType::Mmap, 0).is_ok() {
             (VideoOutputMplane, VideoCaptureMplane, true)
         } else {
             panic!("Both single-planar and multi-planar queues are unusable.");
@@ -118,13 +118,13 @@ pub fn run<F: FnMut(&[u8])>(
     println!("Adjusted capture format: {:?}", capture_format);
 
     match output_mem {
-        MemoryType::MMAP => (),
+        MemoryType::Mmap => (),
         MemoryType::UserPtr => (),
         m => panic!("Unsupported output memory type {:?}", m),
     }
 
     match capture_mem {
-        MemoryType::MMAP => (),
+        MemoryType::Mmap => (),
         m => panic!("Unsupported capture memory type {:?}", m),
     }
 
@@ -160,7 +160,7 @@ pub fn run<F: FnMut(&[u8])>(
 
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let mut output_buffers: Vec<UserPtrHandle<Vec<u8>>> = match output_mem {
-        MemoryType::MMAP => Default::default(),
+        MemoryType::Mmap => Default::default(),
         MemoryType::UserPtr => std::iter::repeat(vec![0u8; output_image_size])
             .take(num_output_buffers)
             .map(UserPtrHandle::from)
@@ -195,7 +195,7 @@ pub fn run<F: FnMut(&[u8])>(
 
         // Generate the frame data and buffer to queue.
         match output_mem {
-            MemoryType::MMAP => {
+            MemoryType::Mmap => {
                 let buffer_info: QueryBuffer =
                     querybuf(&fd, output_queue_type, output_buffer_index)
                         .expect("Failed to query output buffer");
@@ -207,7 +207,7 @@ pub fn run<F: FnMut(&[u8])>(
                     .next_frame(&mut mapping)
                     .expect("Failed to generate frame");
 
-                let out_qbuf = QBuffer::<MMAPHandle> {
+                let out_qbuf = QBuffer::<MmapHandle> {
                     planes: vec![QBufPlane::new(frame_gen.frame_size())],
                     ..Default::default()
                 };
@@ -235,7 +235,7 @@ pub fn run<F: FnMut(&[u8])>(
         }
         .expect("Error queueing output buffer");
 
-        let cap_qbuf = QBuffer::<MMAPHandle> {
+        let cap_qbuf = QBuffer::<MmapHandle> {
             planes: vec![QBufPlane::new(0)],
             ..Default::default()
         };
@@ -249,7 +249,7 @@ pub fn run<F: FnMut(&[u8])>(
         dqbuf::<(), _>(&fd, output_queue).expect("Failed to dequeue output buffer");
 
         // The CAPTURE buffer, on the other hand, we want to examine more closely.
-        let cap_dqbuf: DQBuffer =
+        let cap_dqbuf: DqBuffer =
             dqbuf(&fd, capture_queue).expect("Failed to dequeue capture buffer");
         let bytes_used = cap_dqbuf.get_first_plane().bytesused() as usize;
 
@@ -275,7 +275,7 @@ pub fn run<F: FnMut(&[u8])>(
     drop(capture_mappings);
 
     // Free the buffers.
-    reqbufs::<(), _>(&fd, capture_queue, MemoryType::MMAP, 0)
+    reqbufs::<(), _>(&fd, capture_queue, MemoryType::Mmap, 0)
         .expect("Failed to release capture buffers");
     reqbufs::<(), _>(&fd, output_queue, MemoryType::UserPtr, 0)
         .expect("Failed to release output buffers");

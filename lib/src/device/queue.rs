@@ -10,7 +10,7 @@ use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIn
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::{
     ioctl::{
-        self, DQBufError, DQBufResult, Fmt, GFmtError, QueryBuffer, SFmtError, SelectionTarget,
+        self, DqBufError, DqBufResult, Fmt, GFmtError, QueryBuffer, SFmtError, SelectionTarget,
         SelectionType, StreamOffError, StreamOnError, TryFmtError,
     },
     PlaneLayout, Rect,
@@ -233,7 +233,7 @@ impl<D: Direction> Queue<D, QueueInit> {
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
         // Obtain its capacities while we are at it.
         let capabilities: ioctl::BufferCapabilities =
-            ioctl::reqbufs(&*device, queue_type, MemoryType::MMAP, 0)?;
+            ioctl::reqbufs(&*device, queue_type, MemoryType::Mmap, 0)?;
 
         used_queues.insert(queue_type);
 
@@ -473,21 +473,21 @@ impl<D: Direction, P: BufferHandles> Stream for Queue<D, BuffersAllocated<P>> {
 }
 
 impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>> {
-    type Dequeued = DQBuffer<D, P>;
+    type Dequeued = DqBuffer<D, P>;
 
-    fn try_dequeue(&self) -> DQBufResult<Self::Dequeued> {
-        let dqbuf: ioctl::DQBuffer;
+    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued> {
+        let dqbuf: ioctl::DqBuffer;
         let mut error_flag_set = false;
 
         dqbuf = match ioctl::dqbuf(&self.inner, self.inner.type_) {
             Ok(dqbuf) => dqbuf,
-            Err(DQBufError::CorruptedBuffer(dqbuf)) => {
+            Err(DqBufError::CorruptedBuffer(dqbuf)) => {
                 error_flag_set = true;
                 dqbuf
             }
-            Err(DQBufError::EOS) => return Err(DQBufError::EOS),
-            Err(DQBufError::NotReady) => return Err(DQBufError::NotReady),
-            Err(DQBufError::IoctlError(e)) => return Err(DQBufError::IoctlError(e)),
+            Err(DqBufError::Eos) => return Err(DqBufError::Eos),
+            Err(DqBufError::NotReady) => return Err(DqBufError::NotReady),
+            Err(DqBufError::IoctlError(e)) => return Err(DqBufError::IoctlError(e)),
         };
 
         let id = dqbuf.index() as usize;
@@ -510,10 +510,10 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        let dqbuffer = DQBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
+        let dqbuffer = DqBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
 
         if error_flag_set {
-            Err(DQBufError::CorruptedBuffer(dqbuffer))
+            Err(DqBufError::CorruptedBuffer(dqbuffer))
         } else {
             Ok(dqbuffer)
         }
@@ -555,14 +555,14 @@ mod private {
             let buffer_info = self.try_get_buffer_info(index)?;
 
             Ok(match self.state.memory_type {
-                GenericSupportedMemoryType::MMAP => {
-                    GenericQBuffer::MMAP(QBuffer::new(self, buffer_info))
+                GenericSupportedMemoryType::Mmap => {
+                    GenericQBuffer::Mmap(QBuffer::new(self, buffer_info))
                 }
                 GenericSupportedMemoryType::UserPtr => {
                     GenericQBuffer::User(QBuffer::new(self, buffer_info))
                 }
-                GenericSupportedMemoryType::DMABuf => {
-                    GenericQBuffer::DMABuf(QBuffer::new(self, buffer_info))
+                GenericSupportedMemoryType::DmaBuf => {
+                    GenericQBuffer::DmaBuf(QBuffer::new(self, buffer_info))
                 }
             })
         }

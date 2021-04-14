@@ -17,9 +17,9 @@ use std::{
 /// information as what the `ioctl` interface provides, but it also includes
 /// the plane handles that have been provided when the buffer was queued to
 /// return their ownership to the user.
-pub struct DQBuffer<D: Direction, P: BufferHandles> {
+pub struct DqBuffer<D: Direction, P: BufferHandles> {
     /// Dequeued buffer information as reported by V4L2.
-    pub data: ioctl::DQBuffer,
+    pub data: ioctl::DqBuffer,
     /// The backing memory that has been provided for this buffer.
     plane_handles: Option<P>,
 
@@ -33,21 +33,21 @@ pub struct DQBuffer<D: Direction, P: BufferHandles> {
     _d: std::marker::PhantomData<D>,
 }
 
-impl<D: Direction, P: BufferHandles> Debug for DQBuffer<D, P> {
+impl<D: Direction, P: BufferHandles> Debug for DqBuffer<D, P> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.data.fmt(f)
     }
 }
 
-impl<D: Direction, P: BufferHandles> DQBuffer<D, P> {
+impl<D: Direction, P: BufferHandles> DqBuffer<D, P> {
     pub(super) fn new(
         queue: &Queue<D, BuffersAllocated<P>>,
         buffer: &Arc<QueryBuffer>,
         plane_handles: P,
-        data: ioctl::DQBuffer,
+        data: ioctl::DqBuffer,
         fuse: BufferStateFuse<P>,
     ) -> Self {
-        DQBuffer {
+        DqBuffer {
             plane_handles: Some(plane_handles),
             data,
             device: Arc::downgrade(&queue.inner.device),
@@ -73,7 +73,7 @@ impl<D: Direction, P: BufferHandles> DQBuffer<D, P> {
     }
 }
 
-impl<P> DQBuffer<Capture, P>
+impl<P> DqBuffer<Capture, P>
 where
     P: PrimitiveBufferHandles,
     P::HandleType: Mappable,
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<D: Direction, P: BufferHandles> Drop for DQBuffer<D, P> {
+impl<D: Direction, P: BufferHandles> Drop for DqBuffer<D, P> {
     fn drop(&mut self) {
         // Make sure the buffer is returned to the free state before we call
         // the callbacks.
