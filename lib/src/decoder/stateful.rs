@@ -579,7 +579,7 @@ where
         self.state.output_queue.num_queued_buffers()
     }
 
-    /// Returns a V4L2 buffer to be filled with a frame to encode, waiting for
+    /// Returns a V4L2 buffer to be filled with a frame to decode, waiting for
     /// one to be available if needed.
     ///
     /// Contrary to [`Decoder::try_get_free_buffer()`], this method will wait for a buffer
