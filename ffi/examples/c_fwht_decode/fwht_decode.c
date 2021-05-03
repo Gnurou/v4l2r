@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/dma-heap.h>
 #include <linux/videodev2.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -19,62 +20,46 @@ struct allocated_dmabufs {
 
 // Helper function to allocate DMABUF memory from a V4L2 device.
 static struct allocated_dmabufs
-allocate_dmabufs(const char *device_path, const struct v4l2_format *format,
+allocate_dmabufs(const struct v4l2_format *format,
                  size_t nb_buffers) {
   struct allocated_dmabufs dmabufs;
-  struct v4l2_requestbuffers reqbufs;
-  int device;
+  int dma_device;
   int ret;
   int i;
 
   memset(&dmabufs, 0, sizeof(dmabufs));
 
-  device = open(device_path, O_RDWR | O_CLOEXEC | O_NONBLOCK);
-  if (device < 0) {
-    perror("error while opening device");
-    goto close_dev;
+  dma_device = open("/dev/dma_heap/system", O_RDWR | O_CLOEXEC);
+  if (dma_device < 0) {
+    perror("error opening DMA heap device");
+    goto end;
   }
 
-  ret = ioctl(device, VIDIOC_S_FMT, format);
-  if (ret < 0) {
-    perror("error during S_FMT ioctl");
-    goto close_dev;
-  }
-
-  memset(&reqbufs, 0, sizeof(reqbufs));
-  reqbufs.type = format->type;
-  reqbufs.memory = V4L2_MEMORY_MMAP;
-  reqbufs.count = nb_buffers;
-  ret = ioctl(device, VIDIOC_REQBUFS, &reqbufs);
-  if (ret < 0) {
-    perror("error during REQBUFS ioctl");
-    goto close_dev;
-  }
-
-  for (i = 0; i < reqbufs.count; i++) {
-    struct v4l2_exportbuffer expbuf;
+  for (i = 0; i < nb_buffers; i++) {
+    struct dma_heap_allocation_data allocation_data;
 
     // TODO support multiple planes? This is not strictly needed for
     // FWHT/RGB3...
-    memset(&expbuf, 0, sizeof(expbuf));
-    expbuf.type = format->type;
-    expbuf.index = i;
-    expbuf.plane = 0;
-    expbuf.flags = O_RDWR;
-    ret = ioctl(device, VIDIOC_EXPBUF, &expbuf);
+    memset(&allocation_data, 0, sizeof(allocation_data));
+    allocation_data.len = format->fmt.pix_mp.plane_fmt[0].sizeimage;
+    allocation_data.fd_flags = O_CLOEXEC | O_RDWR;
+    ret = ioctl(dma_device, DMA_HEAP_IOCTL_ALLOC, &allocation_data);
     if (ret < 0) {
-      perror("error during EXPBUF ioctl");
+      perror("error while allocating DMA memory");
       goto close_dev;
     }
+
     dmabufs.buffers[i].id = i;
     dmabufs.buffers[i].num_planes = 1;
-    dmabufs.buffers[i].planes[0] = expbuf.fd;
+    dmabufs.buffers[i].planes[0] = allocation_data.fd;
   }
 
-  dmabufs.nb_buffers = reqbufs.count;
+  dmabufs.nb_buffers = nb_buffers;
 
 close_dev:
-  close(device);
+  close(dma_device);
+
+end:
   return dmabufs;
 }
 
@@ -93,7 +78,9 @@ static void on_input_done(void *ptr, const struct v4l2_buffer *buffer) {
   printf("C: input done: %p %d\n", ptr, buffer->index);
 }
 
-static void on_frame_decoded(void *ptr, const struct v4l2r_decoder_frame_decoded_event *event) {
+static void
+on_frame_decoded(void *ptr,
+                 const struct v4l2r_decoder_frame_decoded_event *event) {
   printf("C: frame decoded: %p %d %d, timestamp %ld\n", ptr,
          event->buffer->index, event->buffer->m.planes[0].bytesused,
          event->buffer->timestamp.tv_sec);
@@ -104,8 +91,9 @@ static void on_frame_decoded(void *ptr, const struct v4l2r_decoder_frame_decoded
 
 static struct allocated_dmabufs dmabufs;
 
-static void on_format_change(void *ptr,
-                             const struct v4l2r_decoder_format_changed_event *event) {
+static void
+on_format_change(void *ptr,
+                 const struct v4l2r_decoder_format_changed_event *event) {
   const struct v4l2_format *format = event->new_format;
   const struct v4l2_rect *visible_rect = &event->visible_rect;
   int i;
@@ -120,7 +108,7 @@ static void on_format_change(void *ptr,
     v4l2r_video_frame_provider_drop(capture_provider);
   capture_provider = event->new_provider;
 
-  dmabufs = allocate_dmabufs(device_path, format, event->min_num_frames);
+  dmabufs = allocate_dmabufs(format, event->min_num_frames);
   printf("C: Got %zu CAPTURE frames\n", dmabufs.nb_buffers);
   for (i = 0; i < dmabufs.nb_buffers; i++)
     v4l2r_video_frame_provider_queue_frame(capture_provider,
@@ -169,7 +157,7 @@ int main() {
   printf("reported output format: %x %d\n",
          output_format.fmt.pix_mp.pixelformat,
          output_format.fmt.pix_mp.plane_fmt[0].sizeimage);
-  dmabufs = allocate_dmabufs(device_path, &output_format, 1);
+  dmabufs = allocate_dmabufs(&output_format, 1);
   if (dmabufs.nb_buffers < 1) {
     return -1;
   }
