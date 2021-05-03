@@ -10,7 +10,7 @@ use std::{
 };
 
 use anyhow::ensure;
-use v4l2r::{decoder::stateful::GetBufferError, QueueType};
+use v4l2r::decoder::stateful::GetBufferError;
 use v4l2r::{
     decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
     device::queue::{
@@ -124,7 +124,6 @@ fn main() {
             DecoderEvent::EndOfStream => (),
         };
     type PooledDmaBufHandlesProvider = PooledHandlesProvider<Vec<DmaBufHandle<File>>>;
-    let device_path_cb = String::from(device_path);
     let set_capture_format_cb =
         move |f: FormatBuilder,
               visible_rect: Rect,
@@ -137,13 +136,8 @@ fn main() {
                 format, visible_rect
             );
 
-            let dmabuf_fds: Vec<Vec<_>> = utils::dmabuf_exporter::export_dmabufs(
-                &Path::new(&device_path_cb),
-                QueueType::VideoCaptureMplane,
-                &format,
-                min_num_buffers,
-            )
-            .unwrap();
+            let dmabuf_fds: Vec<Vec<_>> =
+                utils::dmabuf_exporter::export_dmabufs(&format, min_num_buffers).unwrap();
 
             Ok(FormatChangedReply {
                 provider: PooledHandlesProvider::new(dmabuf_fds),
@@ -164,7 +158,7 @@ fn main() {
                 "FWHT format not supported"
             );
 
-            println!("Temporary output format: {:?}", format);
+            println!("Temporary CAPTURE format: {:?}", format);
 
             output_buffer_size = format.plane_fmt[0].sizeimage as usize;
 

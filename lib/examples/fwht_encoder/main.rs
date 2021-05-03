@@ -20,7 +20,7 @@ use v4l2r::{
     },
     encoder::*,
     memory::{MmapHandle, UserPtrHandle},
-    Format, QueueType,
+    Format,
 };
 
 use anyhow::ensure;
@@ -147,13 +147,7 @@ fn main() {
         .expect("Failed to get output format");
     println!("Adjusted output format: {:?}", output_format);
 
-    let dmabuf_fds = utils::dmabuf_exporter::export_dmabufs(
-        &Path::new(&device_path),
-        QueueType::VideoOutputMplane,
-        &output_format,
-        NUM_BUFFERS,
-    )
-    .unwrap();
+    let dmabuf_fds = utils::dmabuf_exporter::export_dmabufs(&output_format, NUM_BUFFERS).unwrap();
     println!("DMABufs: {:?}", dmabuf_fds);
     let dmabufs: RefCell<VecDeque<_>> = RefCell::new(dmabuf_fds.into_iter().collect());
 
