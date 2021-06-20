@@ -64,11 +64,9 @@ fn main() {
 
     let stream = BufReader::new(File::open(stream_path).expect("Compressed stream not found"));
 
-    let mut output_file: Option<File> = if let Some(path) = matches.value_of("output_file") {
-        Some(File::create(path).expect("Invalid output file specified."))
-    } else {
-        None
-    };
+    let mut output_file: Option<File> = matches
+        .value_of("output_file")
+        .map(|path| File::create(path).expect("Invalid output file specified."));
 
     let lets_quit = Arc::new(AtomicBool::new(false));
     // Setup the Ctrl+c handler.
