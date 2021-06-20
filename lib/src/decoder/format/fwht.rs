@@ -1,5 +1,5 @@
+use super::{PatternSplitter, StreamSplitter};
 use std::io;
-use super::PatternSplitter;
 
 static FRAME_HEADER: [u8; 8] = [0x4f, 0x4f, 0x4f, 0x4f, 0xff, 0xff, 0xff, 0xff];
 
@@ -21,3 +21,5 @@ impl<S: io::Read> Iterator for FwhtFrameParser<S> {
         self.0.next()
     }
 }
+
+impl<S: io::Read> StreamSplitter for FwhtFrameParser<S> {}

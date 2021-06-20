@@ -1,7 +1,12 @@
 pub mod fwht;
+pub mod h264;
 
 use log::error;
 use std::io;
+
+/// Trait for classes able to iterate an encoded stream over chunks of decodable units (typically
+/// frames).
+pub trait StreamSplitter: Iterator<Item = Vec<u8>> {}
 
 /// Splits a stream at each encounter of a given pattern. Useful to extract decodable units (or
 /// frames from an encoded stream.

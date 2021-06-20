@@ -10,7 +10,6 @@ use std::{
 };
 
 use anyhow::ensure;
-use v4l2r::decoder::stateful::GetBufferError;
 use v4l2r::{
     decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
     device::queue::{
@@ -19,6 +18,13 @@ use v4l2r::{
         FormatBuilder,
     },
     memory::{MemoryType, UserPtrHandle},
+};
+use v4l2r::{
+    decoder::{
+        format::{h264::H264FrameSplitter, StreamSplitter},
+        stateful::GetBufferError,
+    },
+    PixelFormat,
 };
 use v4l2r::{
     decoder::{stateful::Decoder, DecoderEvent},
@@ -32,10 +38,15 @@ use v4l2r::{
 
 use clap::{App, Arg};
 
+enum Codec {
+    Fwht,
+    H264,
+}
+
 fn main() {
     env_logger::init();
 
-    let matches = App::new("FWHT decoder")
+    let matches = App::new("V4L2 stateful decoder")
         .arg(
             Arg::with_name("stream")
                 .required(true)
@@ -45,6 +56,14 @@ fn main() {
             Arg::with_name("device")
                 .required(true)
                 .help("Path to the vicodec device file"),
+        )
+        .arg(
+            Arg::with_name("input_format")
+                .long("input_format")
+                .required(false)
+                .takes_value(true)
+                .default_value("fwht")
+                .help("Format of the encoded stream (fwht or h264"),
         )
         .arg(
             Arg::with_name("output_file")
@@ -61,6 +80,14 @@ fn main() {
     let device_path = matches
         .value_of("device")
         .expect("Device argument not specified");
+    let codec = match matches
+        .value_of("input_format")
+        .expect("Input format not specified")
+    {
+        "fwht" => Codec::Fwht,
+        "h264" => Codec::H264,
+        _ => panic!("Invalid input format specified"),
+    };
 
     let stream = BufReader::new(File::open(stream_path).expect("Compressed stream not found"));
 
@@ -150,11 +177,15 @@ fn main() {
     let mut decoder = Decoder::open(&Path::new(&device_path))
         .expect("Failed to open device")
         .set_output_format(|f| {
-            let format: Format = f.set_pixelformat(b"FWHT").apply()?;
+            let pixel_format: PixelFormat = match codec {
+                Codec::Fwht => b"FWHT".into(),
+                Codec::H264 => b"H264".into(),
+            };
+            let format: Format = f.set_pixelformat(pixel_format).apply()?;
 
             ensure!(
-                format.pixelformat == b"FWHT".into(),
-                "FWHT format not supported"
+                format.pixelformat == pixel_format,
+                format!("{} format not supported by device", pixel_format)
             );
 
             println!("Tentative OUTPUT format: {:?}", format);
@@ -176,8 +207,16 @@ fn main() {
     println!("Allocated {} buffers", decoder.num_output_buffers());
     println!("Required size for output buffers: {}", output_buffer_size);
 
-    let parser = FwhtFrameParser::new(stream)
-        .unwrap_or_else(|| panic!("No FWHT stream detected in {}", stream_path));
+    let parser = match codec {
+        Codec::Fwht => Box::new(
+            FwhtFrameParser::new(stream)
+                .unwrap_or_else(|| panic!("No FWHT stream detected in {}", stream_path)),
+        ) as Box<dyn StreamSplitter>,
+        Codec::H264 => Box::new(
+            H264FrameSplitter::new(stream)
+                .unwrap_or_else(|| panic!("No H.264 stream detected in {}", stream_path)),
+        ) as Box<dyn StreamSplitter>,
+    };
 
     'mainloop: for mut frame in parser {
         // Ctrl-c ?
