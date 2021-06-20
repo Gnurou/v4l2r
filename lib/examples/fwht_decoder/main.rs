@@ -14,10 +14,9 @@ use v4l2r::{
     decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
     device::queue::{
         handles_provider::{PooledHandles, PooledHandlesProvider},
-        qbuf::OutputQueueable,
         FormatBuilder,
     },
-    memory::{MemoryType, UserPtrHandle},
+    memory::{MemoryType, MmapHandle},
     PlaneLayout,
 };
 use v4l2r::{
@@ -111,7 +110,6 @@ fn main() {
     let poll_count_reader = Arc::new(AtomicUsize::new(0));
     let poll_count_writer = Arc::clone(&poll_count_reader);
     let start_time = std::time::Instant::now();
-    let mut output_buffer_size = 0usize;
     let mut frame_counter = 0usize;
     let mut output_ready_cb =
         move |mut cap_dqbuf: DqBuffer<Capture, PooledHandles<DmaBufferHandles<File>>>| {
@@ -198,22 +196,16 @@ fn main() {
 
             println!("Tentative OUTPUT format: {:?}", format);
 
-            output_buffer_size = format.plane_fmt[0].sizeimage as usize;
-
             Ok(())
         })
         .expect("Failed to set output format")
-        .allocate_output_buffers::<Vec<UserPtrHandle<Vec<u8>>>>(NUM_OUTPUT_BUFFERS)
+        .allocate_output_buffers::<Vec<MmapHandle>>(NUM_OUTPUT_BUFFERS)
         .expect("Failed to allocate output buffers")
         .set_poll_counter(poll_count_writer)
         .start(|_| (), decoder_event_cb, set_capture_format_cb)
         .expect("Failed to start decoder");
 
-    // Remove mutability.
-    let output_buffer_size = output_buffer_size;
-
     println!("Allocated {} buffers", decoder.num_output_buffers());
-    println!("Required size for output buffers: {}", output_buffer_size);
 
     let parser = match codec {
         Codec::Fwht => Box::new(
@@ -226,17 +218,10 @@ fn main() {
         ) as Box<dyn StreamSplitter>,
     };
 
-    'mainloop: for mut frame in parser {
+    'mainloop: for frame in parser {
         // Ctrl-c ?
         if lets_quit.load(Ordering::SeqCst) {
             break;
-        }
-
-        let bytes_used = frame.len();
-
-        // Resize to the minimum required OUTPUT buffer size.
-        if frame.len() < output_buffer_size {
-            frame.resize(output_buffer_size, 0u8);
         }
 
         let v4l2_buffer = match decoder.get_buffer() {
@@ -250,8 +235,12 @@ fn main() {
             Err(e) => panic!("{}", e),
         };
 
+        let mut mapping = v4l2_buffer
+            .get_plane_mapping(0)
+            .expect("Failed to get OUTPUT buffer mapping");
+        mapping.as_mut()[0..frame.len()].copy_from_slice(&frame);
         v4l2_buffer
-            .queue_with_handles(vec![UserPtrHandle::from(frame)], &[bytes_used])
+            .queue(&[frame.len()])
             .expect("Failed to queue input frame");
     }
 
