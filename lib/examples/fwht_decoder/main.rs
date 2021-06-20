@@ -178,8 +178,6 @@ fn main() {
     let parser = FwhtFrameParser::new(stream)
         .unwrap_or_else(|| panic!("No FWHT stream detected in {}", stream_path));
 
-    let mut total_size: usize = 0;
-
     'mainloop: for (_cpt, mut frame) in parser.enumerate() {
         // Ctrl-c ?
         if lets_quit.load(Ordering::SeqCst) {
@@ -207,13 +205,9 @@ fn main() {
         v4l2_buffer
             .queue_with_handles(vec![UserPtrHandle::from(frame)], &[bytes_used])
             .expect("Failed to queue input frame");
-
-        total_size += bytes_used;
     }
 
     decoder.drain(true).unwrap();
     decoder.stop().unwrap();
     println!();
-
-    println!("Total size: {}", total_size);
 }
