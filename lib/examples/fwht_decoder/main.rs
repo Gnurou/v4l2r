@@ -156,7 +156,7 @@ fn main() {
                 "FWHT format not supported"
             );
 
-            println!("Temporary CAPTURE format: {:?}", format);
+            println!("Tentative OUTPUT format: {:?}", format);
 
             output_buffer_size = format.plane_fmt[0].sizeimage as usize;
 
