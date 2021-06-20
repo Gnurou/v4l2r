@@ -1,25 +1,15 @@
-use log::error;
 use std::io;
-
-pub struct FwhtFrameParser<S: io::Read> {
-    stream: io::Bytes<S>,
-}
+use super::PatternSplitter;
 
 static FRAME_HEADER: [u8; 8] = [0x4f, 0x4f, 0x4f, 0x4f, 0xff, 0xff, 0xff, 0xff];
 
+/// Iterator that returns exactly one frame worth of data from a FWHT stream.
+pub struct FwhtFrameParser<S: io::Read>(PatternSplitter<S>);
+
 /// Given a reader, return individual compressed FWHT frames.
 impl<S: io::Read> FwhtFrameParser<S> {
-    /// Create a new FWHT parser, ready to return the first compressed frame.
-    /// `stream` will be moved to the first detected FWHT frame.
-    /// Returns None if no FWHT frame can be detected in the whole stream.
     pub fn new(stream: S) -> Option<Self> {
-        let mut parser = FwhtFrameParser {
-            stream: stream.bytes(),
-        };
-
-        // Catch the first frame header, if any.
-        parser.next()?;
-        Some(parser)
+        Some(Self(PatternSplitter::new(FRAME_HEADER.to_vec(), stream)?))
     }
 }
 
@@ -28,52 +18,6 @@ impl<S: io::Read> Iterator for FwhtFrameParser<S> {
 
     /// Returns the next frame in the stream, header included.
     fn next(&mut self) -> Option<Self::Item> {
-        let mut frame_data: Vec<u8> = Vec::with_capacity(0x10000);
-        // Add the header of the frame since we are already past it.
-        frame_data.extend(&FRAME_HEADER);
-        // Window used to try and detect the next frame header.
-        let mut header_window: Vec<u8> = Vec::with_capacity(FRAME_HEADER.len());
-        // Iterator to the next character expected for a frame header.
-        let mut header_iter = FRAME_HEADER.iter().peekable();
-
-        loop {
-            let b = match self.stream.next() {
-                Some(Ok(b)) => b,
-                // End of stream, commit all read data and return.
-                None => {
-                    frame_data.extend(&header_window);
-                    // If the only data is our pre-filled header, then we haven't
-                    // read anything and thus there is no frame to return.
-                    return if frame_data.len() <= FRAME_HEADER.len() {
-                        None
-                    } else {
-                        Some(frame_data)
-                    };
-                }
-                Some(Err(e)) => {
-                    error!("Error while reading FWHT stream: {}", e);
-                    return None;
-                }
-            };
-
-            // Add the read byte to the header candidate buffer.
-            header_window.push(b);
-
-            // Possibly a header?
-            if Some(&&b) == header_iter.peek() {
-                header_iter.next();
-                // Found next frame's header, return read data.
-                if header_iter.peek().is_none() {
-                    return Some(frame_data);
-                }
-            } else {
-                // Not a header, commit header window data to current frame and reset.
-                frame_data.extend(&header_window);
-                if header_window.len() > 1 {
-                    header_iter = FRAME_HEADER.iter().peekable();
-                }
-                header_window.clear();
-            }
-        }
+        self.0.next()
     }
 }
