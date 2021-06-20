@@ -179,7 +179,7 @@ fn main() {
     let parser = FwhtFrameParser::new(stream)
         .unwrap_or_else(|| panic!("No FWHT stream detected in {}", stream_path));
 
-    'mainloop: for (_cpt, mut frame) in parser.enumerate() {
+    'mainloop: for mut frame in parser {
         // Ctrl-c ?
         if lets_quit.load(Ordering::SeqCst) {
             break;
