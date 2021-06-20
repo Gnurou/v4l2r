@@ -18,6 +18,7 @@ use v4l2r::{
         FormatBuilder,
     },
     memory::{MemoryType, UserPtrHandle},
+    PlaneLayout,
 };
 use v4l2r::{
     decoder::{
@@ -181,7 +182,14 @@ fn main() {
                 Codec::Fwht => b"FWHT".into(),
                 Codec::H264 => b"H264".into(),
             };
-            let format: Format = f.set_pixelformat(pixel_format).apply()?;
+            let format: Format = f
+                .set_pixelformat(pixel_format)
+                // 1 MB per decoding unit should be enough for most streams.
+                .set_planes_layout(vec![PlaneLayout {
+                    sizeimage: 1024 * 1024,
+                    ..Default::default()
+                }])
+                .apply()?;
 
             ensure!(
                 format.pixelformat == pixel_format,
