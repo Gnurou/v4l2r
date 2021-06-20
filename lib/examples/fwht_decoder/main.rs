@@ -127,7 +127,8 @@ fn main() {
               visible_rect: Rect,
               min_num_buffers: usize|
               -> anyhow::Result<FormatChangedReply<PooledDmaBufHandlesProvider>> {
-            let format = f.set_pixelformat(b"RGB3").apply()?;
+            // Let's keep the pixel format that the decoder found convenient.
+            let format = f.format();
 
             println!(
                 "New CAPTURE format: {:?} (visible rect: {})",
