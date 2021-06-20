@@ -1,8 +1,8 @@
 use log::error;
-use std::{io, slice};
+use std::io;
 
 pub struct FwhtFrameParser<S: io::Read> {
-    stream: S,
+    stream: io::Bytes<S>,
 }
 
 static FRAME_HEADER: [u8; 8] = [0x4f, 0x4f, 0x4f, 0x4f, 0xff, 0xff, 0xff, 0xff];
@@ -13,7 +13,9 @@ impl<S: io::Read> FwhtFrameParser<S> {
     /// `stream` will be moved to the first detected FWHT frame.
     /// Returns None if no FWHT frame can be detected in the whole stream.
     pub fn new(stream: S) -> Option<Self> {
-        let mut parser = FwhtFrameParser { stream };
+        let mut parser = FwhtFrameParser {
+            stream: stream.bytes(),
+        };
 
         // Catch the first frame header, if any.
         parser.next()?;
@@ -35,11 +37,10 @@ impl<S: io::Read> Iterator for FwhtFrameParser<S> {
         let mut header_iter = FRAME_HEADER.iter().peekable();
 
         loop {
-            let mut b = 0u8;
-            match self.stream.read_exact(slice::from_mut(&mut b)) {
-                Ok(()) => (),
+            let b = match self.stream.next() {
+                Some(Ok(b)) => b,
                 // End of stream, commit all read data and return.
-                Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => {
+                None => {
                     frame_data.extend(&header_window);
                     // If the only data is our pre-filled header, then we haven't
                     // read anything and thus there is no frame to return.
@@ -49,11 +50,11 @@ impl<S: io::Read> Iterator for FwhtFrameParser<S> {
                         Some(frame_data)
                     };
                 }
-                Err(e) => {
+                Some(Err(e)) => {
                     error!("Error while reading FWHT stream: {}", e);
                     return None;
                 }
-            }
+            };
 
             // Add the read byte to the header candidate buffer.
             header_window.push(b);
