@@ -22,6 +22,10 @@ pub struct PlaneMapping {
 }
 
 impl PlaneMapping {
+    pub fn size(&self) -> usize {
+        self.end - self.start
+    }
+
     pub fn restrict(mut self, start: usize, end: usize) -> Self {
         self.start = max(self.start, start);
         self.end = min(self.end, end);
