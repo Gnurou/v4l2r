@@ -239,6 +239,7 @@ fn main() {
             .get_plane_mapping(0)
             .expect("Failed to get OUTPUT buffer mapping");
         mapping.as_mut()[0..frame.len()].copy_from_slice(&frame);
+        drop(mapping);
         v4l2_buffer
             .queue(&[frame.len()])
             .expect("Failed to queue input frame");
