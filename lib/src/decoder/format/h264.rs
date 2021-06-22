@@ -16,6 +16,12 @@ impl<S: io::Read> H264FrameSplitter<S> {
             stream,
         )?))
     }
+
+    fn contains_frame(data: &[u8]) -> bool {
+        data[4..].windows(4).any(|window| {
+            window[0..3] == [0x0, 0x0, 0x1] && (window[3] & 0x1f == 0x5 || window[3] & 0x1f == 0x1)
+        })
+    }
 }
 
 impl<S: io::Read> Iterator for H264FrameSplitter<S> {
@@ -23,7 +29,15 @@ impl<S: io::Read> Iterator for H264FrameSplitter<S> {
 
     /// Returns the next frame in the stream, header included.
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        let mut next_slice = self.0.next()?;
+        while !Self::contains_frame(&next_slice) {
+            match self.0.next() {
+                None => return Some(next_slice),
+                Some(data) => next_slice.extend(data),
+            }
+        }
+
+        Some(next_slice)
     }
 }
 
