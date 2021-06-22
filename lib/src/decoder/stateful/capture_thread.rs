@@ -246,10 +246,17 @@ where
             // TODO potential problem: the handles will be dropped if no V4L2 buffer
             // is available. There is no guarantee that the provider will get them back
             // in this case (e.g. with the C FFI).
-            // TODO also when using MMAP buffers, get_handles() will always return something
-            // but get_suitable_buffer_for() will fail once all the buffers are in use...
             let buffer = match provider.get_suitable_buffer_for(&handles, capture_queue) {
                 Ok(buffer) => buffer,
+                // It is possible that we run out of V4L2 buffers if there are more handles than
+                // buffers allocated. One example of this scenario is the `MmapProvider` which has
+                // an infinite number of handles. Break out of the loop when this happens - we will
+                // be called again the next time a CAPTURE buffer becomes available.
+                Err(queue::handles_provider::GetSuitableBufferError::TryGetFree(
+                    queue::qbuf::get_free::GetFreeBufferError::NoFreeBuffer,
+                )) => {
+                    break 'enqueue;
+                }
                 Err(e) => {
                     error!("Could not find suitable buffer for handles: {}", e);
                     warn!("Handles potentially lost due to no V4L2 buffer being available");
