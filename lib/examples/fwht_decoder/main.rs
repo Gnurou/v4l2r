@@ -130,12 +130,14 @@ fn main() {
         io::stdout().flush().unwrap();
 
         if let Some(ref mut output) = output_file {
-            let mapping = cap_dqbuf
-                .get_plane_mapping(0)
-                .expect("Failed to map capture buffer");
-            output
-                .write_all(&mapping)
-                .expect("Error while writing output data");
+            for i in 0..cap_dqbuf.data.num_planes() {
+                let mapping = cap_dqbuf
+                    .get_plane_mapping(i)
+                    .expect("Failed to map capture buffer plane");
+                output
+                    .write_all(&mapping)
+                    .expect("Error while writing output data");
+            }
         }
     };
     let decoder_event_cb = move |event: DecoderEvent<MmapProvider>| match event {
