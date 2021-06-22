@@ -10,6 +10,7 @@ use std::{
 };
 
 use anyhow::ensure;
+use nix::sys::time::{TimeVal, TimeValLike};
 use v4l2r::{
     decoder::{format::fwht::FwhtFrameParser, FormatChangedReply},
     device::queue::{
@@ -218,7 +219,7 @@ fn main() {
         ) as Box<dyn StreamSplitter>,
     };
 
-    'mainloop: for frame in parser {
+    'mainloop: for (bitstream_id, frame) in parser.enumerate() {
         // Ctrl-c ?
         if lets_quit.load(Ordering::SeqCst) {
             break;
@@ -240,7 +241,11 @@ fn main() {
             .expect("Failed to get OUTPUT buffer mapping");
         mapping.as_mut()[0..frame.len()].copy_from_slice(&frame);
         drop(mapping);
+
+        // TODO setting the timestamp should not be necessary. This is a requirement of the crosvm
+        // video device.
         v4l2_buffer
+            .set_timestamp(TimeVal::seconds(bitstream_id as i64))
             .queue(&[frame.len()])
             .expect("Failed to queue input frame");
     }
