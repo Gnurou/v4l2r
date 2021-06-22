@@ -410,6 +410,8 @@ fn v4l2r_decoder_decode_safe(
     };
     let v4l2_buffer_id = v4l2_buffer.index();
 
+    // TODO setting the timestamp should not be necessary. This is a requirement of the crosvm
+    // video device.
     match v4l2_buffer
         .set_timestamp(TimeVal::seconds(bitstream_id as i64))
         .queue_with_handles(
