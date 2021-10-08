@@ -669,10 +669,10 @@ impl<P: BufferHandles> BufferStateFuse<P> {
         self.buffer_info = Weak::new();
     }
 
-    /// Trigger the fuse, i.e. make the buffer return to the Free state, unless
-    /// the fuse has been `disarm`ed. This method should only be called when
-    /// the buffer is being dropped, otherwise inconsistent state may ensue.
-    /// The fuse will be disarmed after this call.
+    /// Trigger the fuse, i.e. make the buffer return to the Free state, unless the fuse has been
+    /// `disarm`ed or the buffer freed. This method should only be called when the reference to the
+    /// buffer is being dropped, otherwise inconsistent state may ensue. The fuse will be disarmed
+    /// after this call.
     fn trigger(&mut self) {
         match self.buffer_info.upgrade() {
             None => (),
