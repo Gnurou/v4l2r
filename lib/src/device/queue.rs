@@ -39,8 +39,8 @@ use thiserror::Error;
 /// is in. This base object remains alive as long as the queue is borrowed from
 /// the `Device`.
 pub struct QueueBase {
-    /// Reference to the device, so `fd` is kept valid and to let us mark the
-    /// queue as free again upon destruction.
+    // Reference to the device, so we can perform operations on its `fd` and to let us mark the
+    // queue as free again upon destruction.
     device: Arc<Device>,
     type_: QueueType,
     capabilities: ioctl::BufferCapabilities,
