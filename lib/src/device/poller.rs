@@ -16,18 +16,13 @@ use std::{
 };
 
 use log::{error, warn};
+use nix::sys::{
+    epoll::{self, EpollEvent, EpollFlags},
+    eventfd::{eventfd, EfdFlags},
+};
 use thiserror::Error;
 
 use crate::device::Device;
-
-macro_rules! syscall {
-    ($f: ident ( $($args: expr),* $(,)* ) ) => {{
-        match unsafe { libc::$f($($args, )*) } {
-            err if err < 0 => Err(std::io::Error::last_os_error()),
-            res => Ok(res)
-        }
-    }};
-}
 
 #[derive(Debug, PartialEq)]
 pub enum DeviceEvent {
@@ -43,7 +38,7 @@ pub enum PollEvent {
 }
 
 pub struct PollEvents {
-    events: [libc::epoll_event; 4],
+    events: [EpollEvent; 4],
     nb_events: usize,
     cur_event: usize,
 }
@@ -69,17 +64,24 @@ impl Iterator for PollEvents {
         }
 
         let slot = &mut self.events[self.cur_event];
-        match slot.u64 {
+        match slot.data() {
             DEVICE_ID => {
                 // Figure out which event to return next, if any for this slot.
-                if slot.events & libc::EPOLLOUT as u32 != 0 {
-                    slot.events &= !libc::EPOLLOUT as u32;
+                if slot.events().contains(EpollFlags::EPOLLOUT) {
+                    *slot = EpollEvent::new(
+                        slot.events().difference(EpollFlags::EPOLLOUT),
+                        slot.data(),
+                    );
                     Some(PollEvent::Device(DeviceEvent::OutputReady))
-                } else if slot.events & libc::EPOLLIN as u32 != 0 {
-                    slot.events &= !libc::EPOLLIN as u32;
+                } else if slot.events().contains(EpollFlags::EPOLLIN) {
+                    *slot =
+                        EpollEvent::new(slot.events().difference(EpollFlags::EPOLLIN), slot.data());
                     Some(PollEvent::Device(DeviceEvent::CaptureReady))
-                } else if slot.events & libc::EPOLLPRI as u32 != 0 {
-                    slot.events &= !libc::EPOLLPRI as u32;
+                } else if slot.events().contains(EpollFlags::EPOLLPRI) {
+                    *slot = EpollEvent::new(
+                        slot.events().difference(EpollFlags::EPOLLPRI),
+                        slot.data(),
+                    );
                     Some(PollEvent::Device(DeviceEvent::V4L2Event))
                 } else {
                     // If no more events for this slot, try the next one.
@@ -102,7 +104,7 @@ pub struct Waker {
 
 impl Waker {
     fn new() -> io::Result<Self> {
-        let fd = syscall!(eventfd(0, libc::EFD_CLOEXEC | libc::EFD_NONBLOCK))?;
+        let fd = eventfd(0, EfdFlags::EFD_CLOEXEC | EfdFlags::EFD_NONBLOCK)?;
 
         Ok(Waker {
             fd: unsafe { File::from_raw_fd(fd) },
@@ -155,14 +157,16 @@ const DEVICE_ID: u64 = 1 << 32;
 #[derive(Debug, Error)]
 pub enum PollError {
     #[error("Error during call to epoll_wait: {0}")]
-    EPollWait(#[from] io::Error),
+    EPollWait(nix::Error),
+    #[error("Error while resetting the waker: {0}")]
+    WakerReset(io::Error),
     #[error("V4L2 device returned EPOLLERR")]
     V4L2Device,
 }
 
 impl Poller {
-    pub fn new(device: Arc<Device>) -> io::Result<Self> {
-        let epoll = syscall!(epoll_create1(libc::EFD_CLOEXEC))
+    pub fn new(device: Arc<Device>) -> nix::Result<Self> {
+        let epoll = epoll::epoll_create1(epoll::EpollCreateFlags::EPOLL_CLOEXEC)
             .map(|fd| unsafe { File::from_raw_fd(fd) })?;
 
         // Register our device.
@@ -174,35 +178,24 @@ impl Poller {
         // CAPTURE queue is not streaming, but it will set the right hooks in the kernel
         // and we can now reconfigure our events to only include EPOLLPRI and have poll
         // working as expected.
-        syscall!(epoll_ctl(
+        epoll::epoll_ctl(
             epoll.as_raw_fd(),
-            libc::EPOLL_CTL_ADD,
+            epoll::EpollOp::EpollCtlAdd,
             device.as_raw_fd(),
-            &mut libc::epoll_event {
-                events: libc::EPOLLIN as u32,
-                u64: DEVICE_ID,
-            }
-        ))?;
+            Some(&mut EpollEvent::new(EpollFlags::EPOLLIN, DEVICE_ID)),
+        )?;
         // This call should return an EPOLLERR event immediately. But it will
         // also ensure that the CAPTURE and OUTPUT poll handlers are registered
         // in the kernel for our device.
-        syscall!(epoll_wait(
-            epoll.as_raw_fd(),
-            &mut libc::epoll_event { ..mem::zeroed() },
-            1,
-            10
-        ))?;
+        epoll::epoll_wait(epoll.as_raw_fd(), &mut [EpollEvent::empty()], 10)?;
         // Now reset our device events. We must keep it registered for the
         // workaround's effect to persist.
-        syscall!(epoll_ctl(
+        epoll::epoll_ctl(
             epoll.as_raw_fd(),
-            libc::EPOLL_CTL_MOD,
+            epoll::EpollOp::EpollCtlMod,
             device.as_raw_fd(),
-            &mut libc::epoll_event {
-                events: 0u32,
-                u64: DEVICE_ID,
-            }
-        ))?;
+            Some(&mut EpollEvent::new(EpollFlags::empty(), DEVICE_ID)),
+        )?;
 
         Ok(Poller {
             device,
@@ -223,15 +216,15 @@ impl Poller {
             std::collections::btree_map::Entry::Vacant(entry) => {
                 let waker = Waker::new()?;
 
-                syscall!(epoll_ctl(
+                epoll::epoll_ctl(
                     self.epoll.as_raw_fd(),
-                    libc::EPOLL_CTL_ADD,
+                    epoll::EpollOp::EpollCtlAdd,
                     waker.fd.as_raw_fd(),
-                    &mut libc::epoll_event {
-                        events: libc::EPOLLIN as u32,
-                        u64: FIRST_WAKER_ID + id as u64,
-                    }
-                ))?;
+                    Some(&mut EpollEvent::new(
+                        EpollFlags::EPOLLIN,
+                        FIRST_WAKER_ID + id as u64,
+                    )),
+                )?;
 
                 let waker = Arc::new(waker);
                 entry.insert(Arc::clone(&waker));
@@ -251,15 +244,15 @@ impl Poller {
                 format!("No waker with id {} in this poller", id),
             )),
             std::collections::btree_map::Entry::Occupied(entry) => {
-                syscall!(epoll_ctl(
+                epoll::epoll_ctl(
                     self.epoll.as_raw_fd(),
-                    libc::EPOLL_CTL_DEL,
+                    epoll::EpollOp::EpollCtlDel,
                     entry.get().fd.as_raw_fd(),
-                    &mut libc::epoll_event {
-                        events: libc::EPOLLIN as u32,
-                        u64: FIRST_WAKER_ID + id as u64,
-                    }
-                ))?;
+                    Some(&mut EpollEvent::new(
+                        EpollFlags::EPOLLIN,
+                        FIRST_WAKER_ID + id as u64,
+                    )),
+                )?;
 
                 Ok(entry.remove())
             }
@@ -270,32 +263,30 @@ impl Poller {
         self.poll_wakeups_counter = Some(poll_wakeup_counter);
     }
 
-    fn update_device_registration(&mut self) -> io::Result<()> {
-        let mut epoll_event = libc::epoll_event {
-            events: 0u32,
-            u64: DEVICE_ID,
-        };
-
+    fn update_device_registration(&mut self) -> nix::Result<()> {
+        let mut epoll_flags = EpollFlags::empty();
         if self.capture_enabled {
-            epoll_event.events |= libc::EPOLLIN as u32;
+            epoll_flags.insert(EpollFlags::EPOLLIN);
         }
         if self.output_enabled {
-            epoll_event.events |= libc::EPOLLOUT as u32;
+            epoll_flags.insert(EpollFlags::EPOLLOUT);
         }
         if self.events_enabled {
-            epoll_event.events |= libc::EPOLLPRI as u32;
+            epoll_flags.insert(EpollFlags::EPOLLPRI);
         }
 
-        syscall!(epoll_ctl(
+        let mut epoll_event = EpollEvent::new(epoll_flags, DEVICE_ID);
+
+        epoll::epoll_ctl(
             self.epoll.as_raw_fd(),
-            libc::EPOLL_CTL_MOD,
+            epoll::EpollOp::EpollCtlMod,
             self.device.as_raw_fd(),
-            &mut epoll_event
-        ))
+            Some(&mut epoll_event),
+        )
         .map(|_| ())
     }
 
-    fn set_event(&mut self, event: DeviceEvent, enable: bool) -> io::Result<()> {
+    fn set_event(&mut self, event: DeviceEvent, enable: bool) -> nix::Result<()> {
         let event = match event {
             DeviceEvent::CaptureReady => &mut self.capture_enabled,
             DeviceEvent::OutputReady => &mut self.output_enabled,
@@ -312,12 +303,12 @@ impl Poller {
     }
 
     /// Enable listening to (and reporting) `event`.
-    pub fn enable_event(&mut self, event: DeviceEvent) -> io::Result<()> {
+    pub fn enable_event(&mut self, event: DeviceEvent) -> nix::Result<()> {
         self.set_event(event, true)
     }
 
     /// Disable listening to (and reporting of) `event`.
-    pub fn disable_event(&mut self, event: DeviceEvent) -> io::Result<()> {
+    pub fn disable_event(&mut self, event: DeviceEvent) -> nix::Result<()> {
         self.set_event(event, false)
     }
 
@@ -332,17 +323,13 @@ impl Poller {
 
     pub fn poll(&mut self, duration: Option<std::time::Duration>) -> Result<PollEvents, PollError> {
         let mut events = PollEvents::new();
-        let duration: i32 = match duration {
+        let duration: isize = match duration {
             None => -1,
-            Some(d) => d.as_millis() as i32,
+            Some(d) => d.as_millis() as isize,
         };
 
-        events.nb_events = syscall!(epoll_wait(
-            self.epoll.as_raw_fd(),
-            events.events.as_mut_ptr(),
-            events.events.len() as i32,
-            duration
-        ))? as usize;
+        events.nb_events = epoll::epoll_wait(self.epoll.as_raw_fd(), &mut events.events, duration)
+            .map_err(PollError::EPollWait)?;
 
         // Update our wake up stats
         if let Some(wakeup_counter) = &self.poll_wakeups_counter {
@@ -351,16 +338,16 @@ impl Poller {
 
         // Reset all the wakers that have been signaled.
         for event in &events.events[0..events.nb_events] {
-            if event.u64 <= LAST_WAKER_ID {
-                match self.wakers.get(&(event.u64 as u32)) {
-                    Some(waker) => waker.reset()?,
+            if event.data() <= LAST_WAKER_ID {
+                match self.wakers.get(&(event.data() as u32)) {
+                    Some(waker) => waker.reset().map_err(PollError::WakerReset)?,
                     None => warn!("Unregistered waker has been signaled."),
                 }
             }
         }
 
         for event in &events.events[0..events.nb_events] {
-            if event.u64 == DEVICE_ID && event.events & libc::EPOLLERR as u32 != 0 {
+            if event.data() == DEVICE_ID && event.events().contains(EpollFlags::EPOLLERR) {
                 error!("V4L2 device returned EPOLLERR!");
                 return Err(PollError::V4L2Device);
             }
@@ -374,6 +361,7 @@ impl Poller {
 mod tests {
     use super::{DeviceEvent::*, PollEvent::*, PollEvents};
     use super::{DEVICE_ID, FIRST_WAKER_ID};
+    use nix::sys::epoll::{EpollEvent, EpollFlags};
 
     #[test]
     fn test_pollevents_iterator() {
@@ -382,30 +370,27 @@ mod tests {
 
         // Single device events
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = DEVICE_ID;
-        poll_events.events[0].events = libc::EPOLLIN as u32;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLIN, DEVICE_ID);
         poll_events.nb_events = 1;
         assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
         assert_eq!(poll_events.next(), None);
 
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = DEVICE_ID;
-        poll_events.events[0].events = libc::EPOLLOUT as u32;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLOUT, DEVICE_ID);
         poll_events.nb_events = 1;
         assert_eq!(poll_events.next(), Some(Device(OutputReady)));
         assert_eq!(poll_events.next(), None);
 
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = DEVICE_ID;
-        poll_events.events[0].events = libc::EPOLLPRI as u32;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLPRI, DEVICE_ID);
         poll_events.nb_events = 1;
         assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
         assert_eq!(poll_events.next(), None);
 
         // Multiple device events in one event
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = DEVICE_ID;
-        poll_events.events[0].events = (libc::EPOLLPRI | libc::EPOLLOUT) as u32;
+        poll_events.events[0] =
+            EpollEvent::new(EpollFlags::EPOLLPRI | EpollFlags::EPOLLOUT, DEVICE_ID);
         poll_events.nb_events = 1;
         assert_eq!(poll_events.next(), Some(Device(OutputReady)));
         assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
@@ -413,10 +398,9 @@ mod tests {
 
         // Separated device events
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = DEVICE_ID;
-        poll_events.events[0].events = libc::EPOLLIN as u32;
-        poll_events.events[1].u64 = DEVICE_ID;
-        poll_events.events[1].events = (libc::EPOLLPRI | libc::EPOLLOUT) as u32;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLIN, DEVICE_ID);
+        poll_events.events[1] =
+            EpollEvent::new(EpollFlags::EPOLLPRI | EpollFlags::EPOLLOUT, DEVICE_ID);
         poll_events.nb_events = 2;
         assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
         assert_eq!(poll_events.next(), Some(Device(OutputReady)));
@@ -425,16 +409,16 @@ mod tests {
 
         // Single waker event
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = FIRST_WAKER_ID;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID);
         poll_events.nb_events = 1;
         assert_eq!(poll_events.next(), Some(Waker(0)));
         assert_eq!(poll_events.next(), None);
 
         // Multiple waker events
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = FIRST_WAKER_ID + 20;
-        poll_events.events[1].u64 = FIRST_WAKER_ID + 42;
-        poll_events.events[2].u64 = FIRST_WAKER_ID;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID + 20);
+        poll_events.events[1] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID + 42);
+        poll_events.events[2] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID);
         poll_events.nb_events = 3;
         assert_eq!(poll_events.next(), Some(Waker(20)));
         assert_eq!(poll_events.next(), Some(Waker(42)));
@@ -443,11 +427,11 @@ mod tests {
 
         // Wakers and device events
         let mut poll_events = PollEvents::new();
-        poll_events.events[0].u64 = FIRST_WAKER_ID + 20;
-        poll_events.events[1].u64 = FIRST_WAKER_ID + 42;
-        poll_events.events[2].u64 = DEVICE_ID;
-        poll_events.events[2].events = (libc::EPOLLPRI | libc::EPOLLIN) as u32;
-        poll_events.events[3].u64 = FIRST_WAKER_ID;
+        poll_events.events[0] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID + 20);
+        poll_events.events[1] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID + 42);
+        poll_events.events[2] =
+            EpollEvent::new(EpollFlags::EPOLLPRI | EpollFlags::EPOLLIN, DEVICE_ID);
+        poll_events.events[3] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID);
         poll_events.nb_events = 4;
         assert_eq!(poll_events.next(), Some(Waker(20)));
         assert_eq!(poll_events.next(), Some(Waker(42)));

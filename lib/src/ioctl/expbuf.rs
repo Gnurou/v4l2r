@@ -1,5 +1,6 @@
 //! Safe wrapper for the `VIDIOC_EXPBUF` ioctl.
 use bitflags::bitflags;
+use nix::fcntl::OFlag;
 use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use thiserror::Error;
@@ -9,10 +10,10 @@ use crate::{bindings, QueueType};
 bitflags! {
     /// Flags that can be passed when exporting the buffer.
     pub struct ExpbufFlags: u32 {
-        const CLOEXEC = libc::O_CLOEXEC as u32;
-        const RDONLY = libc::O_RDONLY as u32;
-        const WRONLY = libc::O_WRONLY as u32;
-        const RDWR = libc::O_RDWR as u32;
+        const CLOEXEC = OFlag::O_CLOEXEC.bits() as u32;
+        const RDONLY = OFlag::O_RDONLY.bits() as u32;
+        const WRONLY = OFlag::O_WRONLY.bits() as u32;
+        const RDWR = OFlag::O_RDWR.bits() as u32;
     }
 }
 

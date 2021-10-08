@@ -10,7 +10,6 @@ keywords = ["v4l2", "video", "linux"]
 license = "MIT"
 
 [dependencies]
-libc = "0.2.79"
 nix = "0.23.0"
 bitflags = "1.2.1"
 thiserror = "1.0"

@@ -261,7 +261,7 @@ fn main() {
             Ok(buffer) => buffer,
             // If we got interrupted while waiting for a buffer, just exit normally.
             Err(GetBufferError::PollError(PollError::EPollWait(e)))
-                if e.kind() == io::ErrorKind::Interrupted =>
+                if e == nix::errno::Errno::EINTR =>
             {
                 break
             }

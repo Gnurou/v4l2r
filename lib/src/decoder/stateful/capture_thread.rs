@@ -287,11 +287,13 @@ where
                 // a buffer with the LAST flag.
                 self.poller
                     .disable_event(DeviceEvent::V4L2Event)
+                    .map_err(Into::<io::Error>::into)
                     .map_err(UpdateCaptureError::PollerEvents)?;
                 // Listen to CAPTURE buffers being ready to dequeue, as we will
                 // be streaming soon.
                 self.poller
                     .enable_event(DeviceEvent::CaptureReady)
+                    .map_err(Into::<io::Error>::into)
                     .map_err(UpdateCaptureError::PollerEvents)?;
                 capture_queue
             }

@@ -157,10 +157,16 @@ impl<OP: BufferHandles> DecoderState for ReadyToDecode<OP> {}
 
 #[derive(Debug, Error)]
 pub enum StartDecoderError {
-    #[error("IO error")]
-    IoError(#[from] io::Error),
+    #[error("Error while creating poller")]
+    CannotCreatePoller(nix::Error),
     #[error("Cannot subscribe to decoder event")]
     SubscribeEventError(#[from] ioctl::SubscribeEventError),
+    #[error("Error while enabling event")]
+    CannotEnableEvent(nix::Error),
+    #[error("Error while creating capture thread")]
+    CannotCreateCaptureThread(io::Error),
+    #[error("Error while activating capture thread")]
+    CannotStartCaptureThread(io::Error),
     #[error("Error while starting the output queue")]
     StreamOnError(#[from] StreamOnError),
 }
@@ -196,8 +202,11 @@ impl<OP: BufferHandles> Decoder<ReadyToDecode<OP>> {
             ioctl::SubscribeEventFlags::empty(),
         )?;
 
-        let mut output_poller = Poller::new(Arc::clone(&self.device))?;
-        output_poller.enable_event(DeviceEvent::OutputReady)?;
+        let mut output_poller =
+            Poller::new(Arc::clone(&self.device)).map_err(StartDecoderError::CannotCreatePoller)?;
+        output_poller
+            .enable_event(DeviceEvent::OutputReady)
+            .map_err(StartDecoderError::CannotEnableEvent)?;
 
         let (command_sender, command_receiver) = mpsc::channel::<DecoderCommand>();
         let (response_sender, response_receiver) = mpsc::channel::<CaptureThreadResponse>();
@@ -209,7 +218,8 @@ impl<OP: BufferHandles> Decoder<ReadyToDecode<OP>> {
             set_capture_format_cb,
             command_receiver,
             response_sender,
-        )?;
+        )
+        .map_err(StartDecoderError::CannotCreateCaptureThread)?;
 
         let command_waker = Arc::clone(&decoder_thread.command_waker);
 
@@ -220,7 +230,8 @@ impl<OP: BufferHandles> Decoder<ReadyToDecode<OP>> {
 
         let handle = std::thread::Builder::new()
             .name("V4L2 Decoder".into())
-            .spawn(move || decoder_thread.run())?;
+            .spawn(move || decoder_thread.run())
+            .map_err(StartDecoderError::CannotStartCaptureThread)?;
 
         self.state.output_queue.stream_on()?;
 
