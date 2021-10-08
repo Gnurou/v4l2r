@@ -390,7 +390,9 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
         canceled_buffers
     }
 
-    fn try_get_buffer_info(&self, index: usize) -> Result<&Arc<BufferInfo<P>>, TryGetBufferError> {
+    /// Try to obtain a buffer to pass to userspace so it can be queued. `index` must be the index
+    /// of a buffer in the `Free` state, otherwise an `AlreadyUsed` error is returned.
+    fn try_obtain_buffer(&self, index: usize) -> Result<&Arc<BufferInfo<P>>, TryGetBufferError> {
         let buffer_info = self
             .state
             .buffer_info
@@ -543,7 +545,7 @@ mod private {
 
         // Take buffer `id` in order to prepare it for queueing, provided it is available.
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
-            Ok(QBuffer::new(self, self.try_get_buffer_info(index)?))
+            Ok(QBuffer::new(self, self.try_obtain_buffer(index)?))
         }
     }
 
@@ -551,7 +553,7 @@ mod private {
         type Queueable = GenericQBuffer<'a, D>;
 
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
-            let buffer_info = self.try_get_buffer_info(index)?;
+            let buffer_info = self.try_obtain_buffer(index)?;
 
             Ok(match self.state.memory_type {
                 GenericSupportedMemoryType::Mmap => {
