@@ -21,7 +21,7 @@ log = "0.4.14"
 [dev-dependencies]
 ctrlc = "3.1.4"
 clap = "2.33"
-env_logger = "0.8.2"
+env_logger = "0.9.0"
 utils = { path = "../utils" }
 
 # For convenience we are building the bindings manually and integrating them with
