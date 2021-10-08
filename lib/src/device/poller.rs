@@ -13,6 +13,7 @@ use std::{
     os::unix::io::{AsRawFd, FromRawFd},
     sync::atomic::{AtomicUsize, Ordering},
     sync::Arc,
+    task::Wake,
 };
 
 use log::{error, warn};
@@ -111,7 +112,8 @@ impl Waker {
         })
     }
 
-    pub fn wake(&self) -> io::Result<()> {
+    /// Users will want to use the `wake()` method on an Arc<Waker>.
+    fn wake_direct(&self) -> io::Result<()> {
         let buf = 1u64.to_ne_bytes();
         // Files support concurrent access at the OS level. The implementation
         // of Write for &File lets us call the write mutable method even on a
@@ -131,6 +133,14 @@ impl Waker {
             Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(()),
             Err(e) => Err(e),
         }
+    }
+}
+
+impl Wake for Waker {
+    fn wake(self: Arc<Self>) {
+        self.wake_direct().unwrap_or_else(|e| {
+            error!("Failed to signal Waker: {}", e);
+        });
     }
 }
 

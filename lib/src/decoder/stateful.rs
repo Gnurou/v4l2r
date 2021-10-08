@@ -28,6 +28,7 @@ use std::{
     io,
     path::Path,
     sync::{atomic::AtomicUsize, mpsc, Arc},
+    task::Wake,
     thread::JoinHandle,
 };
 use thiserror::Error;
@@ -296,8 +297,6 @@ where
 pub enum SendCommandError {
     #[error("Error while queueing the message")]
     SendError,
-    #[error("Error while poking the command waker")]
-    WakerError(#[from] io::Error),
 }
 
 #[derive(Debug, Error)]
@@ -363,7 +362,7 @@ where
             .command_sender
             .send(command)
             .map_err(|_| SendCommandError::SendError)?;
-        self.state.command_waker.wake()?;
+        self.state.command_waker.wake_by_ref();
 
         Ok(())
     }

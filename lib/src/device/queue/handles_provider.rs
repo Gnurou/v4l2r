@@ -2,6 +2,7 @@ use std::{
     collections::VecDeque,
     fmt::Debug,
     sync::{Arc, Mutex, Weak},
+    task::Wake,
 };
 
 use log::error;
@@ -199,9 +200,7 @@ impl<H: BufferHandles> Drop for PooledHandles<H> {
                 let mut provider = provider.lock().unwrap();
                 provider.buffers.push_back(self.handles.take().unwrap());
                 if let Some(waker) = provider.waker.take() {
-                    waker.wake().unwrap_or_else(|e| {
-                        error!("Error signaling waker after PooledHandles drop: {}", e);
-                    });
+                    waker.wake();
                 }
             }
         }

@@ -23,6 +23,7 @@ use crate::{
 use std::{
     io,
     sync::{mpsc, Arc},
+    task::Wake,
 };
 
 use log::{debug, error, trace, warn};
@@ -112,8 +113,6 @@ enum UpdateCaptureError {
     RequestBuffers(#[from] queue::RequestBuffersError),
     #[error("Error while adding the CAPTURE buffer waker: {0}")]
     AddWaker(io::Error),
-    #[error("Error while signaling the CAPTURE buffer waker: {0}")]
-    WakeWaker(io::Error),
     #[error("Error while streaming CAPTURE queue: {0}")]
     StreamOn(#[from] ioctl::StreamOnError),
 }
@@ -355,9 +354,7 @@ where
 
         // Ready to decode - signal the waker so we immediately enqueue buffers
         // and start streaming.
-        cap_buffer_waker
-            .wake()
-            .map_err(UpdateCaptureError::WakeWaker)?;
+        cap_buffer_waker.wake_by_ref();
         capture_queue.stream_on()?;
 
         Ok(Self {

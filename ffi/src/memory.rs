@@ -8,6 +8,7 @@ use std::{
         unix::io::{AsRawFd, RawFd},
     },
     sync::{Arc, Mutex},
+    task::Wake,
 };
 use v4l2r::{
     bindings,
@@ -216,16 +217,9 @@ pub unsafe extern "C" fn v4l2r_video_frame_provider_queue_frame(
     let mut provider = provider.d.lock().unwrap();
     provider.frames.push_back(frame);
     if let Some(waker) = provider.waker.take() {
-        match waker.wake() {
-            Err(e) => {
-                error!("Error signaling output frame queued waker: {}", e);
-                false
-            }
-            Ok(()) => true,
-        }
-    } else {
-        true
+        waker.wake_by_ref();
     }
+    true
 }
 
 /// Delete a video frame provider.

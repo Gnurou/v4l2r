@@ -29,6 +29,7 @@ use std::{
     io,
     path::Path,
     sync::{atomic::AtomicUsize, Arc},
+    task::Wake,
     thread::JoinHandle,
 };
 use thiserror::Error;
@@ -561,8 +562,7 @@ where
                             // re-queue it as soon as it is dropped.
                             let cap_waker = Arc::clone(&self.waker);
                             cap_buf.add_drop_callback(move |_dqbuf| {
-                                // Intentionally ignore the result here.
-                                let _ = cap_waker.wake();
+                                cap_waker.wake();
                             });
 
                             // Empty buffers do not need to be passed to the client.
