@@ -152,7 +152,7 @@ pub enum DqEventError {
 impl From<nix::Error> for DqEventError {
     fn from(error: nix::Error) -> Self {
         match error {
-            nix::Error::Sys(Errno::ENOENT) => Self::NotReady,
+            Errno::ENOENT => Self::NotReady,
             error => Self::IoctlError(error),
         }
     }

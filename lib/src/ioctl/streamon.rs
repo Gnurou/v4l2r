@@ -27,9 +27,9 @@ pub enum StreamOnError {
 pub fn streamon(fd: &impl AsRawFd, queue: QueueType) -> Result<(), StreamOnError> {
     match unsafe { ioctl::vidioc_streamon(fd.as_raw_fd(), &(queue as u32)) } {
         Ok(_) => Ok(()),
-        Err(Error::Sys(Errno::EINVAL)) => Err(StreamOnError::InvalidQueue(queue)),
-        Err(Error::Sys(Errno::EPIPE)) => Err(StreamOnError::InvalidPadConfig),
-        Err(Error::Sys(Errno::ENOLINK)) => Err(StreamOnError::InvalidPipelineConfig),
+        Err(Errno::EINVAL) => Err(StreamOnError::InvalidQueue(queue)),
+        Err(Errno::EPIPE) => Err(StreamOnError::InvalidPadConfig),
+        Err(Errno::ENOLINK) => Err(StreamOnError::InvalidPipelineConfig),
         Err(e) => Err(StreamOnError::IoctlError(e)),
     }
 }
@@ -46,7 +46,7 @@ pub enum StreamOffError {
 pub fn streamoff(fd: &impl AsRawFd, queue: QueueType) -> Result<(), StreamOffError> {
     match unsafe { ioctl::vidioc_streamoff(fd.as_raw_fd(), &(queue as u32)) } {
         Ok(_) => Ok(()),
-        Err(Error::Sys(Errno::EINVAL)) => Err(StreamOffError::InvalidQueue),
+        Err(Errno::EINVAL) => Err(StreamOffError::InvalidQueue),
         Err(e) => Err(StreamOffError::IoctlError(e)),
     }
 }

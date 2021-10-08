@@ -31,8 +31,8 @@ pub enum EncoderCmdError {
 
 fn map_nix_error(error: nix::Error, command: EncoderCommand) -> EncoderCmdError {
     match error {
-        Error::Sys(Errno::EBUSY) => EncoderCmdError::DrainInProgress,
-        Error::Sys(Errno::EINVAL) => EncoderCmdError::UnsupportedCommand(command),
+        Errno::EBUSY => EncoderCmdError::DrainInProgress,
+        Errno::EINVAL => EncoderCmdError::UnsupportedCommand(command),
         e => EncoderCmdError::IoctlError(e),
     }
 }

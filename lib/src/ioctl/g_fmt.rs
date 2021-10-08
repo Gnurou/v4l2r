@@ -137,7 +137,7 @@ pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) } {
         Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
-        Err(nix::Error::Sys(Errno::EINVAL)) => Err(GFmtError::InvalidBufferType),
+        Err(Errno::EINVAL) => Err(GFmtError::InvalidBufferType),
         Err(e) => Err(GFmtError::IoctlError(e)),
     }
 }
@@ -168,8 +168,8 @@ pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_s_fmt(fd.as_raw_fd(), &mut fmt) } {
         Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
-        Err(nix::Error::Sys(Errno::EINVAL)) => Err(SFmtError::InvalidBufferType),
-        Err(nix::Error::Sys(Errno::EBUSY)) => Err(SFmtError::DeviceBusy),
+        Err(Errno::EINVAL) => Err(SFmtError::InvalidBufferType),
+        Err(Errno::EBUSY) => Err(SFmtError::DeviceBusy),
         Err(e) => Err(SFmtError::IoctlError(e)),
     }
 }
@@ -198,7 +198,7 @@ pub fn try_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) } {
         Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
-        Err(nix::Error::Sys(Errno::EINVAL)) => Err(TryFmtError::InvalidBufferType),
+        Err(Errno::EINVAL) => Err(TryFmtError::InvalidBufferType),
         Err(e) => Err(TryFmtError::IoctlError(e)),
     }
 }

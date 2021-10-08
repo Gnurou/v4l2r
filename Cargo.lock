@@ -548,7 +548,7 @@ dependencies = [
  "env_logger 0.8.4",
  "libc",
  "log",
- "nix 0.20.0",
+ "nix 0.23.0",
  "thiserror",
  "utils",
 ]
@@ -562,7 +562,7 @@ dependencies = [
  "cbindgen",
  "env_logger 0.8.4",
  "log",
- "nix 0.20.0",
+ "nix 0.23.0",
  "v4l2r",
 ]
 

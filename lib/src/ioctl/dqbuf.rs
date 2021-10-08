@@ -218,8 +218,8 @@ pub enum DqBufError<T: Debug> {
 impl<T: Debug> From<Error> for DqBufError<T> {
     fn from(error: Error) -> Self {
         match error {
-            Error::Sys(Errno::EAGAIN) => Self::NotReady,
-            Error::Sys(Errno::EPIPE) => Self::Eos,
+            Errno::EAGAIN => Self::NotReady,
+            Errno::EPIPE => Self::Eos,
             error => Self::IoctlError(error),
         }
     }

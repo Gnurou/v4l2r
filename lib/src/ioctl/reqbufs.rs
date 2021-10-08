@@ -90,7 +90,7 @@ pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) } {
         Ok(_) => Ok(T::from(reqbufs)),
-        Err(nix::Error::Sys(Errno::EINVAL)) => Err(ReqbufsError::InvalidBufferType(queue, memory)),
+        Err(Errno::EINVAL) => Err(ReqbufsError::InvalidBufferType(queue, memory)),
         Err(e) => Err(ReqbufsError::IoctlError(e)),
     }
 }

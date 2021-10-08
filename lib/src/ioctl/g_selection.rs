@@ -52,7 +52,7 @@ pub fn g_selection<F: AsRawFd>(
 
     match unsafe { ioctl::vidioc_g_selection(fd.as_raw_fd(), &mut sel) } {
         Ok(_) => Ok(Rect::from(sel.r)),
-        Err(nix::Error::Sys(Errno::EINVAL)) => Err(GSelectionError::Invalid),
+        Err(Errno::EINVAL) => Err(GSelectionError::Invalid),
         Err(e) => Err(GSelectionError::IoctlError(e)),
     }
 }

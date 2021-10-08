@@ -123,7 +123,7 @@ impl<'a, F: AsRawFd> Iterator for FormatIterator<'a, F> {
                 Some(fmtdesc)
             }
             // EINVAL means we have reached the last format.
-            Err(EnumFmtError::IoctlError(nix::Error::Sys(Errno::EINVAL))) => None,
+            Err(EnumFmtError::IoctlError(Errno::EINVAL)) => None,
             _ => {
                 error!("Unexpected return value for VIDIOC_ENUM_FMT!");
                 None

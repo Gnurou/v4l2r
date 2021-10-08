@@ -33,8 +33,8 @@ pub enum DecoderCmdError {
 
 fn map_nix_error(error: nix::Error, command: DecoderCommand) -> DecoderCmdError {
     match error {
-        Error::Sys(Errno::EBUSY) => DecoderCmdError::DrainInProgress,
-        Error::Sys(Errno::EINVAL) => DecoderCmdError::UnsupportedCommand(command),
+        Errno::EBUSY => DecoderCmdError::DrainInProgress,
+        Errno::EINVAL => DecoderCmdError::UnsupportedCommand(command),
         e => DecoderCmdError::IoctlError(e),
     }
 }
