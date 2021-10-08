@@ -7,10 +7,10 @@
 all: fwht_decode
 
 fwht_decode: fwht_decode.c
-	cc -Wall $< -o$@ ../../../target/debug/libv4l2r_ffi.a -I../../ -lpthread -ldl -lrt
+	cc -Wall $< -o$@ ../../../target/debug/libv4l2r_ffi.a -I../../ -lpthread -ldl -lrt -lm
 
 fwht_decode_release: fwht_decode.c
-	cc -Wall -O3 $< -o$@ ../../../target/release/libv4l2r_ffi.a -I../../ -lpthread -ldl -lrt
+	cc -Wall -O3 $< -o$@ ../../../target/release/libv4l2r_ffi.a -I../../ -lpthread -ldl -lrt -lm
 
 clean:
 	rm -f fwht_decode fwht_decode_release
