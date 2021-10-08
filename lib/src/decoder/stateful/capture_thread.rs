@@ -155,7 +155,7 @@ where
         let command_waker = poller.add_waker(COMMAND_WAITING)?;
 
         let decoder_thread = CaptureThread {
-            device: Arc::clone(&device),
+            device: Arc::clone(device),
             capture_queue: CaptureQueue::AwaitingResolution { capture_queue },
             poller,
             event_cb,
@@ -242,7 +242,7 @@ where
         };
 
         // Requeue all available CAPTURE buffers.
-        'enqueue: while let Some(handles) = provider.get_handles(&cap_buffer_waker) {
+        'enqueue: while let Some(handles) = provider.get_handles(cap_buffer_waker) {
             // TODO potential problem: the handles will be dropped if no V4L2 buffer
             // is available. There is no guarantee that the provider will get them back
             // in this case (e.g. with the C FFI).
@@ -401,7 +401,7 @@ where
 
         // Add a drop callback to the dequeued buffer so we
         // re-queue it as soon as it is dropped.
-        let cap_waker = Arc::clone(&cap_buffer_waker);
+        let cap_waker = Arc::clone(cap_buffer_waker);
         cap_buf.add_drop_callback(move |_dqbuf| {
             // Intentionally ignore the result here.
             let _ = cap_waker.wake();

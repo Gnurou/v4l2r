@@ -163,7 +163,7 @@ fn main() {
             );
 
             let dmabuf_fds: Vec<Vec<_>> =
-                utils::dmabuf_exporter::export_dmabufs(&format, min_num_buffers).unwrap();
+                utils::dmabuf_exporter::export_dmabufs(format, min_num_buffers).unwrap();
 
             Ok(FormatChangedReply {
                 provider: PooledHandlesProvider::new(dmabuf_fds),
@@ -174,7 +174,7 @@ fn main() {
             })
         };
 
-    let mut decoder = Decoder::open(&Path::new(&device_path))
+    let mut decoder = Decoder::open(Path::new(device_path))
         .expect("Failed to open device")
         .set_output_format(|f| {
             let pixel_format: PixelFormat = match codec {

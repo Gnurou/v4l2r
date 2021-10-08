@@ -110,7 +110,7 @@ fn main() {
         .expect("Failed to set Ctrl-C handler.");
     }
 
-    let encoder = Encoder::open(&Path::new(&device_path))
+    let encoder = Encoder::open(Path::new(&device_path))
         .expect("Failed to open device")
         .set_capture_format(|f| {
             let format: Format = f.set_pixelformat(b"FWHT").apply()?;

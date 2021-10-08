@@ -102,7 +102,7 @@ fn main() {
     if use_ioctl {
         println!("Using ioctl interface");
         ioctl_api::run(
-            &Path::new(&device_path),
+            Path::new(&device_path),
             output_mem,
             capture_mem,
             lets_quit,
@@ -112,7 +112,7 @@ fn main() {
     } else {
         println!("Using device interface");
         device_api::run(
-            &Path::new(&device_path),
+            Path::new(&device_path),
             output_mem,
             capture_mem,
             lets_quit,

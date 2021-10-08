@@ -255,7 +255,7 @@ fn v4l2r_decoder_new_safe(
     event_cb: v4l2r_decoder_event_cb,
     cb_data: *mut c_void,
 ) -> *mut v4l2r_decoder {
-    let decoder = match Decoder::open(&path) {
+    let decoder = match Decoder::open(path) {
         Ok(decoder) => decoder,
         Err(_) => return std::ptr::null_mut(),
     };
