@@ -1,9 +1,10 @@
 //! Provides types related to dequeuing buffers from a `Queue` object.
 use super::{
     direction::{Capture, Direction},
+    states::BufferInfo,
     BufferStateFuse, BuffersAllocated, Queue,
 };
-use crate::ioctl::{self, PlaneMapping, QueryBuffer};
+use crate::ioctl::{self, PlaneMapping};
 use crate::{
     device::Device,
     memory::{BufferHandles, Mappable, PrimitiveBufferHandles},
@@ -24,7 +25,7 @@ pub struct DqBuffer<D: Direction, P: BufferHandles> {
     plane_handles: Option<P>,
 
     device: Weak<Device>,
-    buffer_info: Weak<QueryBuffer>,
+    buffer_info: Weak<BufferInfo<P>>,
     /// Callbacks to be run when the object is dropped.
     drop_callbacks: Vec<Box<dyn FnOnce(&mut Self) + Send>>,
     /// Fuse that will put the buffer back into the `Free` state when this
@@ -42,7 +43,7 @@ impl<D: Direction, P: BufferHandles> Debug for DqBuffer<D, P> {
 impl<D: Direction, P: BufferHandles> DqBuffer<D, P> {
     pub(super) fn new(
         queue: &Queue<D, BuffersAllocated<P>>,
-        buffer: &Arc<QueryBuffer>,
+        buffer: &Arc<BufferInfo<P>>,
         plane_handles: P,
         data: ioctl::DqBuffer,
         fuse: BufferStateFuse<P>,
@@ -82,7 +83,7 @@ where
     pub fn get_plane_mapping(&self, plane_index: usize) -> Option<PlaneMapping> {
         // We can only obtain a mapping if this buffer has not been deleted.
         let buffer_info = self.buffer_info.upgrade()?;
-        let plane = buffer_info.planes.get(plane_index)?;
+        let plane = buffer_info.features.planes.get(plane_index)?;
         let plane_data = self.data.get_plane(plane_index)?;
         // If the buffer info was alive, then the device must also be.
         let device = self.device.upgrade()?;

@@ -1,7 +1,7 @@
 use super::BufferHandles;
 use crate::ioctl;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 /// Represents the current state of an allocated buffer.
 pub(super) enum BufferState<P: BufferHandles> {
@@ -17,6 +17,6 @@ pub(super) enum BufferState<P: BufferHandles> {
 }
 
 pub(super) struct BufferInfo<P: BufferHandles> {
-    pub(super) state: Arc<Mutex<BufferState<P>>>,
-    pub(super) features: Arc<ioctl::QueryBuffer>,
+    pub(super) state: Mutex<BufferState<P>>,
+    pub(super) features: ioctl::QueryBuffer,
 }

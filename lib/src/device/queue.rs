@@ -270,9 +270,11 @@ impl<D: Direction> Queue<D, QueueInit> {
 
         let buffer_info = buffer_features
             .into_iter()
-            .map(|features: QueryBuffer| BufferInfo {
-                state: Arc::new(Mutex::new(BufferState::Free)),
-                features: Arc::new(features),
+            .map(|features: QueryBuffer| {
+                Arc::new(BufferInfo {
+                    state: Mutex::new(BufferState::Free),
+                    features,
+                })
             })
             .collect();
 
@@ -338,7 +340,7 @@ impl Queue<Capture, QueueInit> {
 pub struct BuffersAllocated<P: BufferHandles> {
     memory_type: P::SupportedMemoryType,
     num_queued_buffers: Cell<usize>,
-    buffer_info: Vec<BufferInfo<P>>,
+    buffer_info: Vec<Arc<BufferInfo<P>>>,
 }
 impl<P: BufferHandles> QueueState for BuffersAllocated<P> {}
 
@@ -388,7 +390,7 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
         canceled_buffers
     }
 
-    fn try_get_buffer_info(&self, index: usize) -> Result<&BufferInfo<P>, TryGetBufferError> {
+    fn try_get_buffer_info(&self, index: usize) -> Result<&Arc<BufferInfo<P>>, TryGetBufferError> {
         let buffer_info = self
             .state
             .buffer_info
@@ -502,12 +504,12 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
             BufferState::Queued(plane_handles) => plane_handles,
             _ => unreachable!("Inconsistent buffer state"),
         };
-        let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
+        let fuse = BufferStateFuse::new(Arc::downgrade(buffer_info));
 
         let num_queued_buffers = self.state.num_queued_buffers.take();
         self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
-        let dqbuffer = DqBuffer::new(self, &buffer_info.features, plane_handles, dqbuf, fuse);
+        let dqbuffer = DqBuffer::new(self, buffer_info, plane_handles, dqbuf, fuse);
 
         if error_flag_set {
             Err(DqBufError::CorruptedBuffer(dqbuffer))
@@ -650,21 +652,21 @@ where
 /// A fuse that will return the buffer to the Free state when destroyed, unless
 /// it has been disarmed.
 struct BufferStateFuse<P: BufferHandles> {
-    buffer_state: Weak<Mutex<BufferState<P>>>,
+    buffer_info: Weak<BufferInfo<P>>,
 }
 
 impl<P: BufferHandles> BufferStateFuse<P> {
     /// Create a new fuse that will set `state` to `BufferState::Free` if
     /// destroyed before `disarm()` has been called.
-    fn new(buffer_state: Weak<Mutex<BufferState<P>>>) -> Self {
-        BufferStateFuse { buffer_state }
+    fn new(buffer_info: Weak<BufferInfo<P>>) -> Self {
+        BufferStateFuse { buffer_info }
     }
 
     /// Disarm this fuse, e.g. the monitored state will be left untouched when
     /// the fuse is destroyed.
     fn disarm(&mut self) {
         // Drop our weak reference.
-        self.buffer_state = Weak::new();
+        self.buffer_info = Weak::new();
     }
 
     /// Trigger the fuse, i.e. make the buffer return to the Free state, unless
@@ -672,12 +674,12 @@ impl<P: BufferHandles> BufferStateFuse<P> {
     /// the buffer is being dropped, otherwise inconsistent state may ensue.
     /// The fuse will be disarmed after this call.
     fn trigger(&mut self) {
-        match self.buffer_state.upgrade() {
+        match self.buffer_info.upgrade() {
             None => (),
-            Some(buffer_state_locked) => {
-                let mut buffer_state = buffer_state_locked.lock().unwrap();
+            Some(buffer_info_locked) => {
+                let mut buffer_state = buffer_info_locked.state.lock().unwrap();
                 *buffer_state = BufferState::Free;
-                self.buffer_state = Weak::new();
+                self.disarm();
             }
         };
     }

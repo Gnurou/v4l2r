@@ -72,10 +72,10 @@ pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles
 impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QBuffer<'a, D, P, Q> {
     pub(super) fn new(
         queue: &'a Queue<D, BuffersAllocated<Q>>,
-        buffer_info: &BufferInfo<Q>,
+        buffer_info: &Arc<BufferInfo<Q>>,
     ) -> Self {
         let buffer = &buffer_info.features;
-        let fuse = BufferStateFuse::new(Arc::downgrade(&buffer_info.state));
+        let fuse = BufferStateFuse::new(Arc::downgrade(buffer_info));
 
         QBuffer {
             queue,
