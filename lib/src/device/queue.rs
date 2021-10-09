@@ -1,9 +1,9 @@
+pub mod buffer;
 pub mod direction;
 pub mod dqbuf;
 pub mod generic;
 pub mod handles_provider;
 pub mod qbuf;
-pub mod states;
 
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
@@ -17,6 +17,7 @@ use crate::{
 };
 use crate::{memory::*, FormatConversionError};
 use crate::{Format, PixelFormat, QueueType};
+use buffer::*;
 use direction::*;
 use dqbuf::*;
 use generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType};
@@ -26,13 +27,9 @@ use qbuf::{
     get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
     *,
 };
-use states::*;
 
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::{
-    cell::Cell,
-    sync::{Arc, Mutex, Weak},
-};
+use std::sync::{Arc, Weak};
 use thiserror::Error;
 
 /// Base values of a queue, that are always value no matter the state the queue
@@ -268,13 +265,12 @@ impl<D: Direction> Queue<D, QueueInit> {
             buffer_features.push(ioctl::querybuf(&self.inner, self.inner.type_, i)?);
         }
 
+        let buffer_stats = Arc::new(BufferStats::new());
+
         let buffer_info = buffer_features
             .into_iter()
             .map(|features: QueryBuffer| {
-                Arc::new(BufferInfo {
-                    state: Mutex::new(BufferState::Free),
-                    features,
-                })
+                Arc::new(BufferInfo::new(features, Arc::clone(&buffer_stats)))
             })
             .collect();
 
@@ -283,8 +279,8 @@ impl<D: Direction> Queue<D, QueueInit> {
             _d: std::marker::PhantomData,
             state: BuffersAllocated {
                 memory_type,
-                num_queued_buffers: Default::default(),
                 buffer_info,
+                buffer_stats,
             },
         })
     }
@@ -339,8 +335,10 @@ impl Queue<Capture, QueueInit> {
 /// streamed on and off, and buffers can be queued and dequeued.
 pub struct BuffersAllocated<P: BufferHandles> {
     memory_type: P::SupportedMemoryType,
-    num_queued_buffers: Cell<usize>,
+    /// Keep one `Arc` per buffer. This allows us to invalidate this buffer only in case it gets
+    /// deallocated alone (V4L2 currently does not allow this, but might in the future).
     buffer_info: Vec<Arc<BufferInfo<P>>>,
+    buffer_stats: Arc<BufferStats>,
 }
 impl<P: BufferHandles> QueueState for BuffersAllocated<P> {}
 
@@ -354,25 +352,27 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
             .buffer_info
             .iter()
             .filter_map(|buffer_info| {
-                let buffer_index = buffer_info.features.index;
-                let mut state = buffer_info.state.lock().unwrap();
-                // Filter entries not in queued state.
-                match *state {
-                    BufferState::Queued(_) => (),
-                    _ => return None,
-                };
-
-                // Set entry to Free state and steal its handles.
-                let old_state = std::mem::replace(&mut (*state), BufferState::Free);
+                // Take the handles of queued entries and make them free again.
+                // Skip entries in any other state.
+                let plane_handles = buffer_info.update_state(|state| {
+                    match *state {
+                        // Set queued entry to `Free` state and steal its handles.
+                        BufferState::Queued(_) => {
+                            // We just matched the state but need to do it again in order to take
+                            // the handles since `state` is a reference...
+                            match std::mem::replace(state, BufferState::Free) {
+                                BufferState::Queued(handles) => Some(handles),
+                                _ => unreachable!(),
+                            }
+                        }
+                        // Filter out entries not in queued state.
+                        _ => None,
+                    }
+                })?;
 
                 Some(CanceledBuffer {
-                    index: buffer_index as u32,
-                    plane_handles: match old_state {
-                        // We have already tested for this state above, so this
-                        // branch is guaranteed.
-                        BufferState::Queued(plane_handles) => plane_handles,
-                        _ => unreachable!("Inconsistent buffer state!"),
-                    },
+                    index: buffer_info.features.index as u32,
+                    plane_handles,
                 })
             })
             .collect();
@@ -383,9 +383,7 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
             self.get_type()
         );
 
-        let num_queued_buffers = self.state.num_queued_buffers.take();
-        assert_eq!(num_queued_buffers, canceled_buffers.len());
-        self.state.num_queued_buffers.set(0);
+        assert_eq!(self.state.buffer_stats.num_queued(), 0);
 
         canceled_buffers
     }
@@ -399,16 +397,13 @@ impl<D: Direction, P: BufferHandles> Queue<D, BuffersAllocated<P>> {
             .get(index)
             .ok_or(TryGetBufferError::InvalidIndex(index))?;
 
-        let mut buffer_state = buffer_info.state.lock().unwrap();
-        match *buffer_state {
-            BufferState::Free => (),
-            _ => return Err(TryGetBufferError::AlreadyUsed),
-        };
-
-        // The buffer will remain in PreQueue state until it is queued
-        // or the reference to it is lost.
-        *buffer_state = BufferState::PreQueue;
-        drop(buffer_state);
+        buffer_info.update_state(|state| match *state {
+            BufferState::Free => {
+                *state = BufferState::PreQueue;
+                Ok(())
+            }
+            _ => Err(TryGetBufferError::AlreadyUsed),
+        })?;
 
         Ok(buffer_info)
     }
@@ -422,7 +417,7 @@ impl<'a, D: Direction, P: BufferHandles + 'a> AllocatedQueue<'a, D>
     }
 
     fn num_queued_buffers(&self) -> usize {
-        self.state.num_queued_buffers.get()
+        self.state.buffer_stats.num_queued()
     }
 
     fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
@@ -498,18 +493,20 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
             .buffer_info
             .get(id)
             .expect("Inconsistent buffer state!");
-        let mut buffer_state = buffer_info.state.lock().unwrap();
 
-        // The buffer will remain Dequeued until our reference to it is destroyed.
-        let state = std::mem::replace(&mut (*buffer_state), BufferState::Dequeued);
-        let plane_handles = match state {
-            BufferState::Queued(plane_handles) => plane_handles,
-            _ => unreachable!("Inconsistent buffer state"),
-        };
+        let plane_handles = buffer_info.update_state(|state| match *state {
+            BufferState::Queued(_) => {
+                // We just matched the state but need to do it again in order to take the handles
+                // since `state` is a reference...
+                match std::mem::replace(state, BufferState::Dequeued) {
+                    BufferState::Queued(handles) => handles,
+                    _ => unreachable!(),
+                }
+            }
+            _ => unreachable!("Inconsistent buffer state!"),
+        });
+
         let fuse = BufferStateFuse::new(Arc::downgrade(buffer_info));
-
-        let num_queued_buffers = self.state.num_queued_buffers.take();
-        self.state.num_queued_buffers.set(num_queued_buffers - 1);
 
         let dqbuffer = DqBuffer::new(self, buffer_info, plane_handles, dqbuf, fuse);
 
@@ -581,7 +578,7 @@ mod private {
                 .buffer_info
                 .iter()
                 .enumerate()
-                .find(|(_, s)| matches!(*s.state.lock().unwrap(), BufferState::Free));
+                .find(|(_, s)| s.do_with_state(|s| matches!(s, BufferState::Free)));
 
             match res {
                 None => Err(GetFreeBufferError::NoFreeBuffer),
@@ -678,9 +675,8 @@ impl<P: BufferHandles> BufferStateFuse<P> {
     fn trigger(&mut self) {
         match self.buffer_info.upgrade() {
             None => (),
-            Some(buffer_info_locked) => {
-                let mut buffer_state = buffer_info_locked.state.lock().unwrap();
-                *buffer_state = BufferState::Free;
+            Some(buffer_info) => {
+                buffer_info.update_state(|state| *state = BufferState::Free);
                 self.disarm();
             }
         };

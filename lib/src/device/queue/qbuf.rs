@@ -1,5 +1,5 @@
 //! Provides types related to queuing buffers on a `Queue` object.
-use super::{states::BufferInfo, Capture, Direction, Output};
+use super::{buffer::BufferInfo, Capture, Direction, Output};
 use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
 use crate::ioctl;
 use crate::memory::*;
@@ -136,23 +136,14 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
         // We got this now.
         self.fuse.disarm();
 
-        let mut buffer_state = self
-            .queue
+        self.queue
             .state
             .buffer_info
             .get(self.index)
             .expect("Inconsistent buffer state!")
-            .state
-            .lock()
-            .unwrap();
-        *buffer_state = BufferState::Queued(plane_handles.into());
-        drop(buffer_state);
-
-        let num_queued_buffers = self.queue.state.num_queued_buffers.take();
-        self.queue
-            .state
-            .num_queued_buffers
-            .set(num_queued_buffers + 1);
+            .update_state(|state| {
+                *state = BufferState::Queued(plane_handles.into());
+            });
 
         Ok(())
     }
