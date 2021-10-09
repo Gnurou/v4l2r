@@ -5,8 +5,6 @@ use crate::ioctl;
 use std::fmt::Debug;
 
 /// Trait for trying to dequeue a readable buffer from a queue.
-///
-/// DQB is the type of dequeued buffers returned by the implementor.
 pub trait TryDequeue {
     type Dequeued: Debug + Send;
 
