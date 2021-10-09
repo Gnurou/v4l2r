@@ -47,6 +47,9 @@ pub trait AllocatedQueue<'a, D: Direction>: TryDequeue + Stream + Sized {
     /// Returns the total number of buffers allocated for this queue.
     fn num_buffers(&self) -> usize;
 
+    /// Returns the number of buffers that we can currently obtain and queue.
+    fn num_free_buffers(&self) -> usize;
+
     /// Returns the number of buffers currently queued (i.e. being processed
     /// or awaiting to be dequeued).
     fn num_queued_buffers(&self) -> usize;

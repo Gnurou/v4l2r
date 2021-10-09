@@ -420,6 +420,10 @@ impl<'a, D: Direction, P: BufferHandles + 'a> AllocatedQueue<'a, D>
         self.state.buffer_stats.num_queued()
     }
 
+    fn num_free_buffers(&self) -> usize {
+        self.state.buffer_stats.num_free()
+    }
+
     fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
         let type_ = self.inner.type_;
         ioctl::reqbufs(&self.inner, type_, self.state.memory_type.into(), 0)?;
