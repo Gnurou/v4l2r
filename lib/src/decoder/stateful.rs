@@ -600,6 +600,10 @@ where
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.
+        //
+        // Technically, a buffer can be dequeued but still not returned to the pool of free buffers.
+        // However we immediately return all the buffers we dequeue, so the assertion that all busy
+        // buffers must be queued is correct in the present case.
         if output_queue.num_queued_buffers() == output_queue.num_buffers() {
             self.wait_for_output_buffer()?;
         }
