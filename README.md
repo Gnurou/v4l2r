@@ -72,8 +72,9 @@ follows:
 
 Pass `--help` to the program for further options.
 
-`lib/examples/fwht_decoder` is a decoder example able to decode the streams
-produced by the `fwht_encoder` example above.
+`lib/examples/simple_decoder` is a decoder example able to decode the streams
+produced by the `fwht_encoder` example above, as well as simple Annex-B H.264
+streams.
 
 Finally, `ffi/examples/c_fwht_decode/` contains a C program demonstrating how to
 use the C FFI to decode a FWHT stream. See the `Makefile` for build and use
