@@ -60,7 +60,7 @@ fn main() {
                 .required(false)
                 .takes_value(true)
                 .default_value("fwht")
-                .help("Format of the encoded stream (fwht or h264"),
+                .help("Format of the encoded stream (fwht or h264)"),
         )
         .arg(
             Arg::with_name("output_file")
