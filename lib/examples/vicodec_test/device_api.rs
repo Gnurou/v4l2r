@@ -117,7 +117,7 @@ pub fn run<F: FnMut(&[u8])>(
 
     match capture_mem {
         MemoryType::Mmap => (),
-        m => panic!("Unsupported capture memory type {:?}", m),
+        m => panic!("Unsupported CAPTURE memory type {:?}", m),
     }
 
     // Move the queues into their "allocated" state.
@@ -125,7 +125,7 @@ pub fn run<F: FnMut(&[u8])>(
     let output_mem = match output_mem {
         MemoryType::Mmap => GenericSupportedMemoryType::Mmap,
         MemoryType::UserPtr => GenericSupportedMemoryType::UserPtr,
-        MemoryType::DmaBuf => panic!("DMABuf is not supported yet!"),
+        m => panic!("Unsupported OUTPUT memory type {:?}", m),
     };
 
     let output_queue = output_queue

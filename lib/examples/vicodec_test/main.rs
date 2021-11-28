@@ -47,7 +47,7 @@ fn main() {
                 .required(false)
                 .takes_value(true)
                 .default_value("user")
-                .help("Type of output memory to use (mmap or user)"),
+                .help("Type of memory to use for the OUTPUT queue (mmap or user)"),
         )
         .arg(
             Arg::with_name("capture_mem")
@@ -55,7 +55,7 @@ fn main() {
                 .required(false)
                 .takes_value(true)
                 .default_value("mmap")
-                .help("Type of capture memory to use (mmap)"),
+                .help("Type of memory to use for the CAPTURE queue (mmap)"),
         )
         .get_matches();
 

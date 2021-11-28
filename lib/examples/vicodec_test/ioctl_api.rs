@@ -120,12 +120,12 @@ pub fn run<F: FnMut(&[u8])>(
     match output_mem {
         MemoryType::Mmap => (),
         MemoryType::UserPtr => (),
-        m => panic!("Unsupported output memory type {:?}", m),
+        m => panic!("Unsupported OUTPUT memory type {:?}", m),
     }
 
     match capture_mem {
         MemoryType::Mmap => (),
-        m => panic!("Unsupported capture memory type {:?}", m),
+        m => panic!("Unsupported CAPTURE memory type {:?}", m),
     }
 
     // We could run this with as little as one buffer, but let's cycle between
