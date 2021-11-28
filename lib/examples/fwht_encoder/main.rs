@@ -61,8 +61,8 @@ fn main() {
                 .long("output_mem")
                 .required(false)
                 .takes_value(true)
-                .default_value("user")
-                .help("Type of output memory to use (mmap or user)"),
+                .default_value("mmap")
+                .help("Type of memory to use for the OUTPUT queue (mmap, user or dmabuf)"),
         )
         .get_matches();
 
