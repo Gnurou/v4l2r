@@ -68,14 +68,21 @@ encoder.
 higher-level vicodec encoder running in its own thread. It can be run as
 follows:
 
-    cargo run --example fwht_encoder -- /dev/video0
+    cargo run --example fwht_encoder -- /dev/video0 --stop_after 20 --save test_encoder.fwht
 
-Pass `--help` to the program for further options.
+This invocation will encode 20 generated frames and save the resulting stream in
+`test_encoder.fwht`. Pass `--help` to the program for further options.
 
 `lib/examples/simple_decoder` is a decoder example able to decode the streams
 produced by the `fwht_encoder` example above, as well as simple Annex-B H.264
-streams.
+streams. For instance, to decode the FWHT stream we just created above:
 
-Finally, `ffi/examples/c_fwht_decode/` contains a C program demonstrating how to
-use the C FFI to decode a FWHT stream. See the `Makefile` for build and use
-instructions.
+    cargo run --example simple_decoder -- test_encoder.fwht /dev/video1 --save test_decoder.bgr
+
+`test_decoder.bgr` can be checked with e.g. [YUView](https://github.com/IENT/YUView). The format
+will be 640x480 BGR, as reported by the decoding program.
+
+Finally, `ffi/examples/c_fwht_decode/` contains a C program demonstrating how to use the C FFI to
+decode a FWHT stream. See the `Makefile` in that directory for build and use instructions. The
+program is purely for demonstration purposes of the C FII: it is hardcoded to decode the
+`sample.fwht` file in the same directory and doesn't support any other output.
