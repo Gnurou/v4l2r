@@ -31,7 +31,7 @@ allocate_dmabufs(const struct v4l2_format *format,
 
   dma_device = open("/dev/dma_heap/system", O_RDWR | O_CLOEXEC);
   if (dma_device < 0) {
-    perror("error opening DMA heap device");
+    perror("error opening DMA heap device /dev/dma_heap/system");
     goto end;
   }
 
