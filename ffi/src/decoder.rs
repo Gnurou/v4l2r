@@ -198,7 +198,7 @@ fn frame_decoded_cb(
         dqbuf.data.flags(),
     );
     let v4l2_data = dqbuf.data.clone();
-    // Drop the DQBuffer early to the C callback can reuse the V4L2
+    // Drop the DQBuffer early so the C callback can reuse the V4L2
     // buffer if it needs to.
     drop(dqbuf);
 
