@@ -147,10 +147,6 @@ fn main() {
         .expect("Failed to get output format");
     println!("Adjusted output format: {:?}", output_format);
 
-    let dmabuf_fds = utils::dmabuf_exporter::export_dmabufs(&output_format, NUM_BUFFERS).unwrap();
-    println!("DMABufs: {:?}", dmabuf_fds);
-    let dmabufs: RefCell<VecDeque<_>> = RefCell::new(dmabuf_fds.into_iter().collect());
-
     let capture_format = encoder
         .get_capture_format()
         .expect("Failed to get capture format");
@@ -180,6 +176,17 @@ fn main() {
     };
     let free_buffers = RefCell::new(free_buffers);
 
+    let dmabufs: Option<VecDeque<_>> = match output_mem {
+        GenericSupportedMemoryType::Mmap | GenericSupportedMemoryType::UserPtr => None,
+        GenericSupportedMemoryType::DmaBuf => Some(
+            utils::dmabuf_exporter::export_dmabufs(&output_format, NUM_BUFFERS)
+                .unwrap()
+                .into_iter()
+                .collect(),
+        ),
+    };
+    let dmabufs = RefCell::new(dmabufs);
+
     let input_done_cb = |buffer: CompletedOutputBuffer<GenericBufferHandles>| {
         let handles = match buffer {
             CompletedOutputBuffer::Dequeued(mut buf) => buf.take_handles().unwrap(),
@@ -197,7 +204,7 @@ fn main() {
                     .push_back(u.remove(0).0);
             }
             GenericBufferHandles::DmaBuf(d) => {
-                dmabufs.borrow_mut().push_back(d);
+                dmabufs.borrow_mut().as_mut().unwrap().push_back(d);
             }
         };
     };
@@ -298,6 +305,8 @@ fn main() {
             GenericQBuffer::DmaBuf(buf) => {
                 let buffer = dmabufs
                     .borrow_mut()
+                    .as_mut()
+                    .unwrap()
                     .pop_front()
                     .expect("No backing dmabuf to bind");
                 let mut mapping = buffer[0].map().unwrap();
