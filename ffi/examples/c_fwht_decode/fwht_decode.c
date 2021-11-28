@@ -75,17 +75,17 @@ static bool drain_completed = false;
 const char *device_path = "/dev/video1";
 
 static void on_input_done(void *ptr, const struct v4l2_buffer *buffer) {
-  printf("C: input done: %p %d\n", ptr, buffer->index);
+  printf("Input buffer %d done\n", buffer->index);
 }
 
 static void
 on_frame_decoded(void *ptr,
                  const struct v4l2r_decoder_frame_decoded_event *event) {
-  printf("C: frame decoded: %p %d %d, timestamp %ld\n", ptr,
+  printf("Frame %d decoded, size: %d, timestamp: %ld\n",
          event->buffer->index, event->buffer->m.planes[0].bytesused,
          event->buffer->timestamp.tv_sec);
 
-  printf("C: recycling frame %d\n", event->frame.id);
+  printf("Recycling frame %d\n", event->frame.id);
   v4l2r_video_frame_provider_queue_frame(capture_provider, event->frame);
 }
 
@@ -96,11 +96,13 @@ on_format_change(void *ptr,
                  const struct v4l2r_decoder_format_changed_event *event) {
   const struct v4l2_format *format = event->new_format;
   const struct v4l2_rect *visible_rect = &event->visible_rect;
+  char fmt[4];
   int i;
 
-  printf("C: new CAPTURE format: %p %x, %dx%d, %d frames, visible rect: "
+  *((uint32_t*)&fmt) = format->fmt.pix_mp.pixelformat;
+  printf("New CAPTURE format: %c%c%c%c, %dx%d, min frames: %d visible rect: "
          "(%d,%d),%ux%u \n",
-         ptr, format->fmt.pix_mp.pixelformat, format->fmt.pix_mp.width,
+         fmt[0], fmt[1], fmt[2], fmt[3], format->fmt.pix_mp.width,
          format->fmt.pix_mp.height, event->min_num_frames, visible_rect->left,
          visible_rect->top, visible_rect->width, visible_rect->height);
 
@@ -109,7 +111,7 @@ on_format_change(void *ptr,
   capture_provider = event->new_provider;
 
   dmabufs = allocate_dmabufs(format, event->min_num_frames);
-  printf("C: Got %zu CAPTURE frames\n", dmabufs.nb_buffers);
+  printf("Got %zu CAPTURE frames\n", dmabufs.nb_buffers);
   for (i = 0; i < dmabufs.nb_buffers; i++)
     v4l2r_video_frame_provider_queue_frame(capture_provider,
                                            dmabufs.buffers[i]);
@@ -135,6 +137,7 @@ int main() {
   struct v4l2_format output_format;
   size_t output_buffer_size;
   int output_dmabuf;
+  char fmt[4];
   int i;
   int ret;
 
@@ -149,13 +152,13 @@ int main() {
   struct v4l2r_decoder *decoder =
       v4l2r_decoder_new(device_path, V4L2_PIX_FMT_FWHT, 1, 0, 0, on_input_done,
                         on_event, (void *)0xdeadbeef);
-  printf("C: Got decoder: %p\n", decoder);
 
   ret = v4l2r_decoder_get_input_format(decoder, &output_format);
   if (ret < 0)
     return ret;
-  printf("reported output format: %x %d\n",
-         output_format.fmt.pix_mp.pixelformat,
+  *((uint32_t*)&fmt) = output_format.fmt.pix_mp.pixelformat;
+  printf("Reported OUTPUT format: %c%c%c%c, %d bytes per frame\n",
+         fmt[0], fmt[1], fmt[2], fmt[3],
          output_format.fmt.pix_mp.plane_fmt[0].sizeimage);
   dmabufs = allocate_dmabufs(&output_format, 1);
   if (dmabufs.nb_buffers < 1) {
@@ -163,7 +166,7 @@ int main() {
   }
   output_dmabuf = dmabufs.buffers[0].planes[0];
   output_buffer_size = output_format.fmt.pix_mp.plane_fmt[0].sizeimage;
-  printf("C: Got DMABUF: %lu %d %zu\n", dmabufs.buffers[0].num_planes,
+  printf("Got DMABUF: %lu %d %zu\n", dmabufs.buffers[0].num_planes,
          dmabufs.buffers[0].planes[0], output_buffer_size);
 
   for (i = 0; i < 20; i++) {
@@ -192,7 +195,7 @@ int main() {
   v4l2r_decoder_destroy(decoder);
   if (capture_provider)
     v4l2r_video_frame_provider_drop(capture_provider);
-  printf("C: all done\n");
+  printf("Decoding complete\n");
 
   close(output_dmabuf);
   fclose(input_file);
