@@ -17,24 +17,9 @@ rust_library {
     ],
 }
 
-rust_library {
-    name: "libv4l2r_ffi",
-    crate_name: "v4l2r_ffi",
-    srcs: ["ffi/src/lib.rs"],
-    edition: "2018",
-    features: ["android"],
-    rustlibs: [
-        "libandroid_logger",
-        "libanyhow",
-        "liblog_rust",
-        "libnix",
-        "libv4l2r",
-    ],
-}
 
 rust_ffi_static {
     name: "libv4l2r_ffi_static",
-    stem: "libv4l2r_ffi",
     crate_name: "v4l2r_ffi",
     vendor_available: true,
     srcs: ["ffi/src/lib.rs"],
