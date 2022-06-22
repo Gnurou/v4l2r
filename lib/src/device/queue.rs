@@ -483,10 +483,9 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
     type Dequeued = DqBuffer<D, P>;
 
     fn try_dequeue(&self) -> DqBufResult<Self::Dequeued> {
-        let dqbuf: ioctl::DqBuffer;
         let mut error_flag_set = false;
 
-        dqbuf = match ioctl::dqbuf(&self.inner, self.inner.type_) {
+        let dqbuf: ioctl::DqBuffer = match ioctl::dqbuf(&self.inner, self.inner.type_) {
             Ok(dqbuf) => dqbuf,
             Err(DqBufError::CorruptedBuffer(dqbuf)) => {
                 error_flag_set = true;
