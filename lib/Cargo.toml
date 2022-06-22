@@ -10,7 +10,7 @@ keywords = ["v4l2", "video", "linux"]
 license = "MIT"
 
 [dependencies]
-nix = "0.23.0"
+nix = "0.24.0"
 bitflags = "1.2.1"
 thiserror = "1.0"
 anyhow = "1.0"
@@ -19,7 +19,7 @@ log = "0.4.14"
 # For example programs
 [dev-dependencies]
 ctrlc = "3.1.4"
-clap = "2.33"
+clap = "3.2"
 env_logger = "0.9.0"
 utils = { path = "../utils" }
 
