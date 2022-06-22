@@ -10,8 +10,8 @@ use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIn
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::{
     ioctl::{
-        self, DqBufError, DqBufResult, Fmt, GFmtError, QueryBuffer, SFmtError, SelectionTarget,
-        SelectionType, StreamOffError, StreamOnError, TryFmtError,
+        self, DqBufError, DqBufResult, Fmt, GFmtError, QueryBuffer, ReqbufsError, SFmtError,
+        SelectionTarget, SelectionType, StreamOffError, StreamOnError, TryFmtError,
     },
     PlaneLayout, Rect,
 };
@@ -227,7 +227,14 @@ impl<D: Direction> Queue<D, QueueInit> {
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
         // Obtain its capacities while we are at it.
         let capabilities: ioctl::BufferCapabilities =
-            ioctl::reqbufs(&*device, queue_type, MemoryType::Mmap, 0)?;
+            ioctl::reqbufs(&*device, queue_type, MemoryType::Mmap, 0)
+                // In the unlikely case that MMAP buffers are not supported, try DMABUF.
+                .or_else(|e| match e {
+                    ReqbufsError::InvalidBufferType(_, _) => {
+                        ioctl::reqbufs(&*device, queue_type, MemoryType::DmaBuf, 0)
+                    }
+                    _ => Err(e),
+                })?;
 
         used_queues.insert(queue_type);
 
