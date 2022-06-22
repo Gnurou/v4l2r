@@ -191,7 +191,7 @@ fn frame_decoded_cb(
 ) {
     let frame = dqbuf.take_handles().unwrap();
     debug!(
-        "Video frame {} ({}) decoded from V4L2 buffer {} {:?}",
+        "Video frame {} ({}) decoded from V4L2 buffer {} (flags: {:?})",
         frame.id,
         dqbuf.data.timestamp().tv_sec,
         dqbuf.data.index(),
@@ -257,11 +257,14 @@ fn v4l2r_decoder_new_safe(
 ) -> *mut v4l2r_decoder {
     let decoder = match Decoder::open(path) {
         Ok(decoder) => decoder,
-        Err(_) => return std::ptr::null_mut(),
+        Err(e) => {
+            error!("failed to open decoder {}: {:#?}", path.display(), e);
+            return std::ptr::null_mut();
+        }
     };
 
     info!(
-        "Opening decoder {} with format {}, {} input buffers of size {}",
+        "Opened decoder {} with format {}, {} input buffers of size {}",
         path.display(),
         v4l2r::PixelFormat::from(input_format_fourcc),
         num_input_buffers,
@@ -410,8 +413,6 @@ fn v4l2r_decoder_decode_safe(
     };
     let v4l2_buffer_id = v4l2_buffer.index();
 
-    // TODO setting the timestamp should not be necessary. This is a requirement of the crosvm
-    // video device.
     match v4l2_buffer
         .set_timestamp(TimeVal::seconds(bitstream_id as i64))
         .queue_with_handles(
@@ -678,7 +679,7 @@ pub unsafe extern "C" fn v4l2r_decoder_flush(decoder: *const v4l2r_decoder) {
     match decoder.decoder.flush() {
         Ok(()) => (),
         Err(e) => {
-            error!("Error while flushing decoder: {}", e);
+            error!("Error while flushing decoder: {:#?}", e);
         }
     }
 }

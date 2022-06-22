@@ -4,6 +4,8 @@
 //! of the features exported by this crate. For now it strictly focuses on
 //! stateful decoders.
 
+use log::debug;
+
 pub mod decoder;
 pub mod memory;
 
@@ -23,4 +25,6 @@ pub extern "C" fn v4l2r_init() {
             android_logger::Config::default().with_min_level(log::Level::Trace),
         );
     });
+
+    debug!("v4l2r initialized");
 }
