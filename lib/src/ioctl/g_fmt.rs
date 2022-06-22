@@ -87,13 +87,12 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
 
 impl Fmt<FormatConversionError> for Format {}
 
+// We cannot derive from the bindings since they are generated.
+#[allow(clippy::derivable_impls)]
 impl Default for bindings::v4l2_plane_pix_format {
     fn default() -> Self {
-        bindings::v4l2_plane_pix_format {
-            sizeimage: 0,
-            bytesperline: 0,
-            reserved: Default::default(),
-        }
+        // Safe because C does it and this results in a valid format.
+        unsafe { mem::zeroed() }
     }
 }
 
