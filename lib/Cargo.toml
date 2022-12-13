@@ -27,3 +27,10 @@ utils = { path = "../utils" }
 # the crate. They are generated as follows:
 # bindgen /usr/include/linux/videodev2.h --output src/bindings/videodev2_64.rs
 # bindgen /usr/include/linux/videodev2.h --output src/bindings/videodev2_32.rs -- --target=i686-unknown-linux-gnu
+#
+# In case we want to use locally installed headers (make headers_install in kernel source directory) we need to pass clang args:
+# bindgen usr/include/linux/videodev2.h --output videodev2_64.rs -- -Iusr/include
+# otherwise clang will mix up system-wide headers with locally installed ones resulting in inconsistent output.
+#
+# For 32-bit headers you might need to install libc6-dev-i386-cross or a similar package, and then
+# bindgen usr/include/linux/videodev2.h --output videodev2_32.rs -- --sysroot=/usr/i686-linux-gnu/ --target=i686-linux-gnu -Iusr/include
