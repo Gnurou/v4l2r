@@ -39,7 +39,7 @@ pub trait EncoderState {}
 
 pub struct Encoder<S: EncoderState> {
     // Make sure to keep the device alive as long as we are.
-    device: Arc<Device>,
+    pub device: Arc<Device>,
     state: S,
 }
 
