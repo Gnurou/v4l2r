@@ -47,7 +47,7 @@ fn main() {
         .arg(
             Arg::with_name("stream")
                 .required(true)
-                .help("Path to the FWHT stream to decode"),
+                .help("Path to the encoded stream to decode"),
         )
         .arg(
             Arg::with_name("device")

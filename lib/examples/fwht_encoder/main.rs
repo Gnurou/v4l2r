@@ -29,7 +29,7 @@ use clap::{App, Arg};
 fn main() {
     env_logger::init();
 
-    let matches = App::new("FWHT encoder")
+    let matches = App::new("V4L2 stateful encoder")
         .arg(
             Arg::with_name("num_frames")
                 .long("stop_after")
