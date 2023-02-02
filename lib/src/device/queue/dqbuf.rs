@@ -14,6 +14,8 @@ use std::{
     sync::{Arc, Weak},
 };
 
+pub type DropCallback<D, P> = Box<dyn FnOnce(&mut DqBuffer<D, P>) + Send>;
+
 /// Represents the information of a dequeued buffer. This is basically the same
 /// information as what the `ioctl` interface provides, but it also includes
 /// the plane handles that have been provided when the buffer was queued to
@@ -27,7 +29,7 @@ pub struct DqBuffer<D: Direction, P: BufferHandles> {
     device: Weak<Device>,
     buffer_info: Weak<BufferInfo<P>>,
     /// Callbacks to be run when the object is dropped.
-    drop_callbacks: Vec<Box<dyn FnOnce(&mut Self) + Send>>,
+    drop_callbacks: Vec<DropCallback<D, P>>,
     /// Fuse that will put the buffer back into the `Free` state when this
     /// object is destroyed.
     fuse: BufferStateFuse<P>,

@@ -273,7 +273,7 @@ where
         trace!("Processing V4L2 event");
         match self.capture_queue {
             CaptureQueue::AwaitingResolution { .. } => {
-                if is_drc_event_pending(&*self.device).unwrap() {
+                if is_drc_event_pending(&self.device).unwrap() {
                     self = self.update_capture_format().unwrap()
                 }
             }
@@ -410,7 +410,7 @@ where
         let cap_waker = Arc::clone(cap_buffer_waker);
         cap_buf.add_drop_callback(move |_dqbuf| {
             // Intentionally ignore the result here.
-            let _ = cap_waker.wake();
+            cap_waker.wake();
         });
 
         // Pass buffers to the client
@@ -418,7 +418,7 @@ where
 
         if is_last {
             debug!("CAPTURE buffer marked with LAST flag");
-            if is_drc_event_pending(&*self.device).unwrap() {
+            if is_drc_event_pending(&self.device).unwrap() {
                 debug!("DRC event pending, updating CAPTURE format");
                 self = self.update_capture_format().unwrap()
             }

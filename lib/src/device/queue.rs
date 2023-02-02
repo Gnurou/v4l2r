@@ -49,7 +49,7 @@ impl AsRawFd for QueueBase {
     }
 }
 
-impl<'a> Drop for QueueBase {
+impl Drop for QueueBase {
     /// Make the queue available again.
     fn drop(&mut self) {
         assert!(self.device.used_queues.lock().unwrap().remove(&self.type_));
