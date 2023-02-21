@@ -13,6 +13,12 @@ pub trait QueryCap {
     fn from(capability: bindings::v4l2_capability) -> Self;
 }
 
+impl QueryCap for bindings::v4l2_capability {
+    fn from(capability: bindings::v4l2_capability) -> Self {
+        capability
+    }
+}
+
 bitflags! {
     /// Flags returned by the `VIDIOC_QUERYCAP` ioctl into the `capabilities`
     /// or `device_capabilities` field of `v4l2_capability`.

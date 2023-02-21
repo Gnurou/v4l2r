@@ -12,7 +12,13 @@ pub trait QueryBuf: Sized {
     /// then the buffer is single-planar. If it has data, the buffer is
     /// multi-planar and the array of `struct v4l2_plane` shall be used to
     /// retrieve the plane data.
-    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self;
+    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, v4l2_planes: Option<PlaneData>) -> Self;
+}
+
+impl QueryBuf for bindings::v4l2_buffer {
+    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
+        v4l2_buf
+    }
 }
 
 #[derive(Debug)]
@@ -32,7 +38,7 @@ pub struct QueryBuffer {
 }
 
 impl QueryBuf for QueryBuffer {
-    fn from_v4l2_buffer(v4l2_buf: &bindings::v4l2_buffer, v4l2_planes: Option<&PlaneData>) -> Self {
+    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, v4l2_planes: Option<PlaneData>) -> Self {
         let planes = match v4l2_planes {
             None => vec![QueryBufPlane {
                 mem_offset: unsafe { v4l2_buf.m.offset },
@@ -86,9 +92,9 @@ pub fn querybuf<T: QueryBuf, F: AsRawFd>(
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, Some(&plane_data)))
+        Ok(T::from_v4l2_buffer(v4l2_buf, Some(plane_data)))
     } else {
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::from_v4l2_buffer(&v4l2_buf, None))
+        Ok(T::from_v4l2_buffer(v4l2_buf, None))
     }
 }

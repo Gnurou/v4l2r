@@ -15,6 +15,12 @@ pub trait EnumFmt {
     fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self;
 }
 
+impl EnumFmt for bindings::v4l2_fmtdesc {
+    fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self {
+        fmtdesc
+    }
+}
+
 bitflags! {
     /// Flags returned by the `VIDIOC_ENUM_FMT` ioctl into the `flags` field of
     /// `struct v4l2_fmtdesc`.

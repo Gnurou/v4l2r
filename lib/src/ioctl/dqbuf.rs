@@ -16,6 +16,12 @@ pub trait DqBuf: Sized {
     fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, v4l2_planes: Option<PlaneData>) -> Self;
 }
 
+impl DqBuf for bindings::v4l2_buffer {
+    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
+        v4l2_buf
+    }
+}
+
 /// Allows to dequeue a buffer without caring for any of its data.
 impl DqBuf for () {
     fn from_v4l2_buffer(_v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {

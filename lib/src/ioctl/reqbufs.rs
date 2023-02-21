@@ -13,6 +13,12 @@ pub trait ReqBufs {
     fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self;
 }
 
+impl ReqBufs for bindings::v4l2_requestbuffers {
+    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
+        reqbufs
+    }
+}
+
 bitflags! {
     /// Flags returned by the `VIDIOC_REQBUFS` ioctl into the `capabilities`
     /// field of `struct v4l2_requestbuffers`.
