@@ -29,6 +29,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display};
 
+use enumn::N;
 use thiserror::Error;
 
 // The goal of this library is to provide two layers of abstraction:
@@ -37,7 +38,7 @@ use thiserror::Error;
 
 /// Types of queues currently supported by this library.
 #[allow(unused)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, N)]
 pub enum QueueType {
     VideoCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE as isize,
     VideoOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT as isize,

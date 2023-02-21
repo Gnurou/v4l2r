@@ -40,11 +40,12 @@ use crate::{
     bindings,
     ioctl::{PlaneMapping, QueryBufPlane},
 };
+use enumn::N;
 use std::fmt::Debug;
 use std::os::unix::io::AsRawFd;
 
 /// All the supported V4L2 memory types.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, N)]
 pub enum MemoryType {
     Mmap = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
     UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR as isize,

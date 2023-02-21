@@ -136,6 +136,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enumn"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e88bcb3a067a6555d577aba299e75eff9942da276e6506fc6274327daa026132"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -498,6 +509,7 @@ dependencies = [
  "bitflags",
  "clap",
  "ctrlc",
+ "enumn",
  "env_logger",
  "log",
  "nix 0.24.1",
