@@ -51,11 +51,11 @@ impl DecoderState for AwaitingOutputFormat {}
 
 #[derive(Debug, Error)]
 pub enum DecoderOpenError {
-    #[error("Error while opening device")]
+    #[error("error while opening device")]
     DeviceOpenError(#[from] DeviceOpenError),
-    #[error("Error while creating queue")]
+    #[error("error while creating queue")]
     CreateQueueError(#[from] CreateQueueError),
-    #[error("Specified device is not a stateful decoder")]
+    #[error("specified device is not a stateful decoder")]
     NotAStatefulDecoder,
 }
 
@@ -158,17 +158,17 @@ impl<OP: BufferHandles> DecoderState for ReadyToDecode<OP> {}
 
 #[derive(Debug, Error)]
 pub enum StartDecoderError {
-    #[error("Error while creating poller")]
+    #[error("error while creating poller")]
     CannotCreatePoller(nix::Error),
-    #[error("Cannot subscribe to decoder event")]
+    #[error("cannot subscribe to decoder event")]
     SubscribeEventError(#[from] ioctl::SubscribeEventError),
-    #[error("Error while enabling event")]
+    #[error("error while enabling event")]
     CannotEnableEvent(nix::Error),
-    #[error("Error while creating capture thread")]
+    #[error("error while creating capture thread")]
     CannotCreateCaptureThread(io::Error),
-    #[error("Error while activating capture thread")]
+    #[error("error while activating capture thread")]
     CannotStartCaptureThread(io::Error),
-    #[error("Error while starting the output queue")]
+    #[error("error while starting the output queue")]
     StreamOnError(#[from] StreamOnError),
 }
 
@@ -295,43 +295,43 @@ where
 
 #[derive(Debug, Error)]
 pub enum SendCommandError {
-    #[error("Error while queueing the message")]
+    #[error("error while queueing the message")]
     SendError,
 }
 
 #[derive(Debug, Error)]
 pub enum StopError {
-    #[error("Error while sending the stop command to the capture thread")]
+    #[error("error while sending the stop command to the capture thread")]
     SendCommand(#[from] SendCommandError),
-    #[error("Error while waiting for the decoder thread to finish")]
+    #[error("error while waiting for the decoder thread to finish")]
     Join,
-    #[error("Error while stopping the OUTPUT queue")]
+    #[error("error while stopping the OUTPUT queue")]
     Streamoff(#[from] ioctl::StreamOffError),
 }
 
 #[derive(Debug, Error)]
 pub enum DrainError {
-    #[error("Cannot drain now: output format not yet determined")]
+    #[error("cannot drain now: output format not yet determined")]
     TryAgain,
-    #[error("Error while sending the flush command to the capture thread")]
+    #[error("error while sending the flush command to the capture thread")]
     SendCommand(#[from] SendCommandError),
-    #[error("Error while waiting for the decoder thread to drain")]
+    #[error("error while waiting for the decoder thread to drain")]
     RecvError(#[from] mpsc::RecvError),
-    #[error("Error while draining on the capture thread")]
+    #[error("error while draining on the capture thread")]
     CaptureThreadError(anyhow::Error),
 }
 
 #[derive(Debug, Error)]
 pub enum FlushError {
-    #[error("Error while stopping the OUTPUT queue")]
+    #[error("error while stopping the OUTPUT queue")]
     StreamoffError(#[from] ioctl::StreamOffError),
-    #[error("Error while sending the flush command to the capture thread")]
+    #[error("error while sending the flush command to the capture thread")]
     SendCommand(#[from] SendCommandError),
-    #[error("Error while waiting for the decoder thread to flush")]
+    #[error("error while waiting for the decoder thread to flush")]
     RecvError(#[from] mpsc::RecvError),
-    #[error("Error while flushing on the capture thread")]
+    #[error("error while flushing on the capture thread")]
     CaptureThreadError(anyhow::Error),
-    #[error("Error while starting the OUTPUT queue")]
+    #[error("error while starting the OUTPUT queue")]
     StreamonError(#[from] ioctl::StreamOnError),
 }
 
@@ -541,11 +541,11 @@ where
 
 #[derive(Debug, Error)]
 pub enum GetBufferError<OP: BufferHandles> {
-    #[error("Error while dequeueing buffer")]
+    #[error("error while dequeueing buffer")]
     DequeueError(#[from] DequeueOutputBufferError<OP>),
-    #[error("Error during poll")]
+    #[error("error during poll")]
     PollError(#[from] PollError),
-    #[error("Error while obtaining buffer")]
+    #[error("error while obtaining buffer")]
     GetFreeBufferError(#[from] GetFreeBufferError),
 }
 

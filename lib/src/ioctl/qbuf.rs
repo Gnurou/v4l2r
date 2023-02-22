@@ -30,11 +30,11 @@ bitflags! {
 
 #[derive(Debug, Error)]
 pub enum QBufError {
-    #[error("Invalid number of planes specified for the buffer: got {0}, expected {1}")]
+    #[error("invalid number of planes specified for the buffer: got {0}, expected {1}")]
     NumPlanesMismatch(usize, usize),
-    #[error("Data offset specified while using the single-planar API")]
+    #[error("data offset specified while using the single-planar API")]
     DataOffsetNotSupported,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 

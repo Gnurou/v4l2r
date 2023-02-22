@@ -211,13 +211,13 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum DqBufError<T: Debug> {
-    #[error("End-of-stream reached")]
+    #[error("end-of-stream reached")]
     Eos,
-    #[error("No buffer ready for dequeue")]
+    #[error("no buffer ready for dequeue")]
     NotReady,
-    #[error("Buffer with ERROR flag dequeued")]
+    #[error("buffer with ERROR flag dequeued")]
     CorruptedBuffer(T),
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 

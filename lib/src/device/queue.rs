@@ -193,17 +193,17 @@ impl QueueState for QueueInit {}
 
 #[derive(Debug, Error)]
 pub enum CreateQueueError {
-    #[error("Queue is already in use")]
+    #[error("queue is already in use")]
     AlreadyBorrowed,
-    #[error("Error while querying queue capabilities")]
+    #[error("error while querying queue capabilities")]
     ReqbufsError(#[from] ioctl::ReqbufsError),
 }
 
 #[derive(Debug, Error)]
 pub enum RequestBuffersError {
-    #[error("Error while requesting buffers")]
+    #[error("error while requesting buffers")]
     ReqbufsError(#[from] ioctl::ReqbufsError),
-    #[error("Error while querying buffer")]
+    #[error("error while querying buffer")]
     QueryBufferError(#[from] ioctl::QueryBufError),
 }
 

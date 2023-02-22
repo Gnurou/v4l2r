@@ -110,7 +110,7 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum QueryCapError {
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 

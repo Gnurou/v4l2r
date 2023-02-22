@@ -166,9 +166,9 @@ const DEVICE_ID: u64 = 1 << 32;
 
 #[derive(Debug, Error)]
 pub enum PollError {
-    #[error("Error during call to epoll_wait: {0}")]
+    #[error("error during call to epoll_wait: {0}")]
     EPollWait(nix::Error),
-    #[error("Error while resetting the waker: {0}")]
+    #[error("error while resetting the waker: {0}")]
     WakerReset(io::Error),
     #[error("V4L2 device returned EPOLLERR")]
     V4L2Device,

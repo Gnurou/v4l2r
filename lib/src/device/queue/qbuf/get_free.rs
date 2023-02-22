@@ -12,7 +12,7 @@ use super::{CaptureQueueableProvider, OutputQueueableProvider};
 
 #[derive(Debug, Error)]
 pub enum GetFreeBufferError {
-    #[error("All buffers are currently being used")]
+    #[error("all buffers are currently being used")]
     NoFreeBuffer,
 }
 

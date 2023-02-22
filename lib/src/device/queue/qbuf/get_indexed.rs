@@ -13,9 +13,9 @@ use super::{CaptureQueueableProvider, OutputQueueableProvider};
 
 #[derive(Debug, Error)]
 pub enum TryGetBufferError {
-    #[error("Buffer with provided index {0} does not exist")]
+    #[error("buffer with provided index {0} does not exist")]
     InvalidIndex(usize),
-    #[error("Buffer is already in use")]
+    #[error("buffer is already in use")]
     AlreadyUsed,
 }
 

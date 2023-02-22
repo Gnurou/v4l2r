@@ -95,25 +95,25 @@ where
 
 #[derive(Debug, Error)]
 enum UpdateCaptureError {
-    #[error("Error while enabling poller events: {0}")]
+    #[error("error while enabling poller events: {0}")]
     PollerEvents(io::Error),
-    #[error("Error while removing CAPTURE waker: {0}")]
+    #[error("error while removing CAPTURE waker: {0}")]
     RemoveWaker(io::Error),
-    #[error("Error while stopping CAPTURE queue: {0}")]
+    #[error("error while stopping CAPTURE queue: {0}")]
     Streamoff(#[from] ioctl::StreamOffError),
-    #[error("Error while freeing CAPTURE buffers: {0}")]
+    #[error("error while freeing CAPTURE buffers: {0}")]
     FreeBuffers(#[from] ioctl::ReqbufsError),
-    #[error("Error while obtaining CAPTURE format: {0}")]
+    #[error("error while obtaining CAPTURE format: {0}")]
     GFmt(#[from] ioctl::GFmtError),
-    #[error("Error while obtaining selection target from CAPTURE queue: {0}")]
+    #[error("error while obtaining selection target from CAPTURE queue: {0}")]
     GSelection(#[from] ioctl::GSelectionError),
-    #[error("Error while running the CAPTURE format callback: {0}")]
+    #[error("error while running the CAPTURE format callback: {0}")]
     Callback(#[from] anyhow::Error),
-    #[error("Error while requesting CAPTURE buffers: {0}")]
+    #[error("error while requesting CAPTURE buffers: {0}")]
     RequestBuffers(#[from] queue::RequestBuffersError),
-    #[error("Error while adding the CAPTURE buffer waker: {0}")]
+    #[error("error while adding the CAPTURE buffer waker: {0}")]
     AddWaker(io::Error),
-    #[error("Error while streaming CAPTURE queue: {0}")]
+    #[error("error while streaming CAPTURE queue: {0}")]
     StreamOn(#[from] ioctl::StreamOnError),
 }
 
@@ -122,11 +122,11 @@ const COMMAND_WAITING: u32 = 2;
 
 #[derive(Debug, Error)]
 enum ProcessEventsError {
-    #[error("Error while dequeueing event")]
+    #[error("error while dequeueing event")]
     DqEvent(#[from] ioctl::DqEventError),
-    #[error("Error while requesting buffers")]
+    #[error("error while requesting buffers")]
     RequestBuffers(#[from] queue::RequestBuffersError),
-    #[error("Error while updating CAPTURE format")]
+    #[error("error while updating CAPTURE format")]
     UpdateCapture(#[from] UpdateCaptureError),
 }
 

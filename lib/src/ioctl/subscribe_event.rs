@@ -42,9 +42,9 @@ pub enum Event {
 
 #[derive(Debug, Error)]
 pub enum EventConversionError {
-    #[error("Unrecognized event {0}")]
+    #[error("unrecognized event {0}")]
     UnrecognizedEvent(u32),
-    #[error("Unrecognized source change {0}")]
+    #[error("unrecognized source change {0}")]
     UnrecognizedSourceChange(u32),
 }
 
@@ -103,7 +103,7 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum SubscribeEventError {
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(#[from] nix::Error),
 }
 
@@ -141,11 +141,11 @@ pub fn unsubscribe_all_events(fd: &impl AsRawFd) -> Result<(), SubscribeEventErr
 
 #[derive(Debug, Error)]
 pub enum DqEventError {
-    #[error("No event ready for dequeue")]
+    #[error("no event ready for dequeue")]
     NotReady,
-    #[error("Error while converting event")]
+    #[error("error while converting event")]
     EventConversionError(#[from] EventConversionError),
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 

@@ -73,7 +73,7 @@ impl Drop for PlaneMapping {
 
 #[derive(Debug, Error)]
 pub enum MmapError {
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(#[from] nix::Error),
 }
 

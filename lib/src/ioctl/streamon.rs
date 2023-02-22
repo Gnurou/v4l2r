@@ -13,13 +13,13 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum StreamOnError {
-    #[error("Queue type ({0}) not supported, or no buffers allocated or enqueued")]
+    #[error("queue type ({0}) not supported, or no buffers allocated or enqueued")]
     InvalidQueue(QueueType),
-    #[error("Invalid pad configuration")]
+    #[error("invalid pad configuration")]
     InvalidPadConfig,
-    #[error("Invalid pipeline link configuration")]
+    #[error("invalid pipeline link configuration")]
     InvalidPipelineConfig,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 
@@ -36,9 +36,9 @@ pub fn streamon(fd: &impl AsRawFd, queue: QueueType) -> Result<(), StreamOnError
 
 #[derive(Debug, Error)]
 pub enum StreamOffError {
-    #[error("Queue type not supported")]
+    #[error("queue type not supported")]
     InvalidQueue,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 

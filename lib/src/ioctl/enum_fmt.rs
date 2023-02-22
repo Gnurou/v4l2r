@@ -78,7 +78,7 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum EnumFmtError {
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(#[from] nix::Error),
 }
 

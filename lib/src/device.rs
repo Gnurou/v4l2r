@@ -59,9 +59,9 @@ pub struct Device {
 
 #[derive(Debug, Error)]
 pub enum DeviceOpenError {
-    #[error("Error while opening device")]
+    #[error("error while opening device")]
     OpenError(#[from] nix::Error),
-    #[error("Error while querying capabilities")]
+    #[error("error while querying capabilities")]
     QueryCapError(#[from] ioctl::QueryCapError),
 }
 

@@ -1,13 +1,13 @@
 use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum NewFrameGeneratorError {
-    #[error("Invalid stride")]
+    #[error("invalid stride")]
     InvalidStride,
 }
 
 #[derive(Debug, Error)]
 pub enum GenerateFrameError {
-    #[error("Provided buffer is too small")]
+    #[error("provided buffer is too small")]
     BufferTooSmall,
 }
 

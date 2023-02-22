@@ -51,11 +51,11 @@ impl EncoderState for AwaitingCaptureFormat {}
 
 #[derive(Debug, Error)]
 pub enum EncoderOpenError {
-    #[error("Error while opening device")]
+    #[error("error while opening device")]
     DeviceOpenError(#[from] DeviceOpenError),
-    #[error("Error while creating queue")]
+    #[error("error while creating queue")]
     CreateQueueError(#[from] CreateQueueError),
-    #[error("Specified device is not an encoder")]
+    #[error("specified device is not an encoder")]
     NotAnEncoder,
 }
 
@@ -315,23 +315,23 @@ pub enum CompletedOutputBuffer<OP: BufferHandles> {
 
 #[derive(Debug, Error)]
 pub enum GetBufferError<OP: BufferHandles> {
-    #[error("Error while dequeueing buffer")]
+    #[error("error while dequeueing buffer")]
     DequeueError(#[from] DequeueOutputBufferError<OP>),
-    #[error("Error during poll")]
+    #[error("error during poll")]
     PollError(#[from] PollError),
-    #[error("Error while obtaining buffer")]
+    #[error("error while obtaining buffer")]
     GetFreeBufferError(#[from] GetFreeBufferError),
 }
 
 #[derive(Debug, Error)]
 pub enum EncoderStopError {
-    #[error("Error while sending STOP command")]
+    #[error("error while sending STOP command")]
     EncoderCmdError(#[from] ioctl::EncoderCmdError),
-    #[error("Thread has panicked")]
+    #[error("thread has panicked")]
     ThreadPanickedError(Box<dyn Any + Send + 'static>),
-    #[error("Cannot streamoff capture queue")]
+    #[error("cannot streamoff capture queue")]
     CaptureQueueStreamoffError(ioctl::StreamOffError),
-    #[error("Cannot streamoff output queue")]
+    #[error("cannot streamoff output queue")]
     OutputQueueStreamoffError(ioctl::StreamOffError),
 }
 

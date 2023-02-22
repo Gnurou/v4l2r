@@ -24,9 +24,9 @@ use super::qbuf::{
 
 #[derive(Debug, Error)]
 pub enum GetSuitableBufferError {
-    #[error("Error while calling try_get_free_buffer(): {0}")]
+    #[error("error while calling try_get_free_buffer(): {0}")]
     TryGetFree(#[from] GetFreeBufferError),
-    #[error("Error while calling try_get_buffer(): {0}")]
+    #[error("error while calling try_get_buffer(): {0}")]
     TryGetIndexed(#[from] TryGetBufferError),
 }
 

@@ -116,11 +116,11 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum GFmtError {
-    #[error("Error while converting from V4L2 format")]
+    #[error("error while converting from V4L2 format")]
     FromV4L2FormatConversionError(#[from] FormatConversionError),
-    #[error("Invalid buffer type requested")]
+    #[error("invalid buffer type requested")]
     InvalidBufferType,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("unexpected ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 
@@ -143,15 +143,15 @@ pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
 #[derive(Debug, Error)]
 pub enum SFmtError {
-    #[error("Error while converting from V4L2 format")]
+    #[error("error while converting from V4L2 format")]
     FromV4L2FormatConversionError(#[from] FormatConversionError),
-    #[error("Error while converting to V4L2 format")]
+    #[error("error while converting to V4L2 format")]
     ToV4L2FormatConversionError(FormatConversionError),
-    #[error("Invalid buffer type requested")]
+    #[error("invalid buffer type requested")]
     InvalidBufferType,
-    #[error("Device currently busy")]
+    #[error("device currently busy")]
     DeviceBusy,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 
@@ -175,13 +175,13 @@ pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
 
 #[derive(Debug, Error)]
 pub enum TryFmtError {
-    #[error("Error while converting from V4L2 format")]
+    #[error("error while converting from V4L2 format")]
     FromV4L2FormatConversionError(#[from] FormatConversionError),
-    #[error("Error while converting to V4L2 format")]
+    #[error("error while converting to V4L2 format")]
     ToV4L2FormatConversionError(FormatConversionError),
-    #[error("Invalid buffer type requested")]
+    #[error("invalid buffer type requested")]
     InvalidBufferType,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 

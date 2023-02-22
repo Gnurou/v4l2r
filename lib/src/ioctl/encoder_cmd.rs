@@ -21,11 +21,11 @@ pub enum EncoderCommand {
 
 #[derive(Debug, Error)]
 pub enum EncoderCmdError {
-    #[error("Drain already in progress")]
+    #[error("drain already in progress")]
     DrainInProgress,
-    #[error("Command not supported by device")]
+    #[error("command not supported by device")]
     UnsupportedCommand(EncoderCommand),
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 

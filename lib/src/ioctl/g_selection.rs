@@ -33,9 +33,9 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum GSelectionError {
-    #[error("Invalid type or target requested")]
+    #[error("invalid type or target requested")]
     Invalid,
-    #[error("Unexpected ioctl error: {0}")]
+    #[error("ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 

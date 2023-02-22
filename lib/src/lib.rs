@@ -194,9 +194,9 @@ pub struct Format {
 
 #[derive(Debug, Error, PartialEq)]
 pub enum FormatConversionError {
-    #[error("Too many planes ({0}) specified,")]
+    #[error("too many planes ({0}) specified,")]
     TooManyPlanes(usize),
-    #[error("Invalid buffer type requested")]
+    #[error("invalid buffer type requested")]
     InvalidBufferType(u32),
 }
 
