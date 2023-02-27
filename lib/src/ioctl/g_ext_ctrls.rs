@@ -243,8 +243,9 @@ impl From<DataConversionError> for ExtControlError {
 ///
 /// Given the above we provide an interface for querying a single control,
 /// as this greatly simplifies the code.
-pub fn g_ext_ctrl<F: AsRawFd>(
+pub fn g_ext_ctrl<F: AsRawFd, R: AsRawFd>(
     fd: &F,
+    request_fd: Option<&R>,
     ctrl_kind: ExtControlKind,
 ) -> Result<ExtControl, ExtControlError> {
     let mut control = bindings::v4l2_ext_control {
@@ -267,6 +268,10 @@ pub fn g_ext_ctrl<F: AsRawFd>(
     controls.count = 1;
     // the pointer is assigned a proper value
     controls.controls = &mut control;
+    if let Some(request_fd) = request_fd {
+        controls.request_fd = request_fd.as_raw_fd();
+        controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
+    }
 
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_g_ext_ctrls(fd.as_raw_fd(), &mut controls) } {
@@ -283,8 +288,9 @@ pub fn g_ext_ctrl<F: AsRawFd>(
 ///
 /// Given the above we provide an interface for setting a single control,
 /// as this greatly simplifies the code.
-pub fn s_ext_ctrl<F: AsRawFd>(
+pub fn s_ext_ctrl<F: AsRawFd, R: AsRawFd>(
     fd: &F,
+    request_fd: Option<&R>,
     ctrl: &ExtControl,
 ) -> Result<ExtControl, ExtControlError> {
     let mut control = bindings::v4l2_ext_control {
@@ -307,6 +313,10 @@ pub fn s_ext_ctrl<F: AsRawFd>(
     controls.count = 1;
     // the pointer is assigned a proper value
     controls.controls = &mut control;
+    if let Some(request_fd) = request_fd {
+        controls.request_fd = request_fd.as_raw_fd();
+        controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
+    }
 
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_s_ext_ctrls(fd.as_raw_fd(), &mut controls) } {

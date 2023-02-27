@@ -9,6 +9,7 @@ use nix::sys::time::{TimeVal, TimeValLike};
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use std::os::unix::prelude::RawFd;
 use thiserror::Error;
 
 bitflags! {
@@ -23,6 +24,7 @@ bitflags! {
         const ERROR = bindings::V4L2_BUF_FLAG_ERROR;
 
         const LAST = bindings::V4L2_BUF_FLAG_LAST;
+        const REQUEST_FD = bindings::V4L2_BUF_FLAG_REQUEST_FD;
     }
 }
 
@@ -109,6 +111,7 @@ pub struct QBuffer<H: PlaneHandle> {
     pub sequence: u32,
     pub timestamp: TimeVal,
     pub planes: Vec<QBufPlane>,
+    pub request: Option<RawFd>,
     pub _h: std::marker::PhantomData<H>,
 }
 
@@ -120,6 +123,7 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
             sequence: Default::default(),
             timestamp: TimeVal::zero(),
             planes: Vec::new(),
+            request: None,
             _h: std::marker::PhantomData,
         }
     }
@@ -133,6 +137,9 @@ impl<H: PlaneHandle> QBuffer<H> {
         v4l2_buf.sequence = self.sequence;
         v4l2_buf.timestamp.tv_sec = self.timestamp.tv_sec();
         v4l2_buf.timestamp.tv_usec = self.timestamp.tv_usec();
+        if let Some(request) = &self.request {
+            v4l2_buf.__bindgen_anon_1.request_fd = *request;
+        }
     }
 }
 

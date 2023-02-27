@@ -22,6 +22,7 @@ mod querybuf;
 mod querycap;
 mod queryctrl;
 mod reqbufs;
+mod request;
 mod streamon;
 mod subscribe_event;
 
@@ -41,6 +42,7 @@ pub use querybuf::*;
 pub use querycap::*;
 pub use queryctrl::*;
 pub use reqbufs::*;
+pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
 
