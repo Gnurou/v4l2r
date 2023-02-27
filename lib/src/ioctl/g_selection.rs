@@ -1,17 +1,22 @@
 use std::mem;
 use std::os::unix::io::AsRawFd;
 
+use enumn::N;
 use nix::errno::Errno;
 use thiserror::Error;
 
-use crate::{bindings, Rect};
+use crate::bindings;
+use crate::bindings::v4l2_rect;
+use crate::bindings::v4l2_selection;
 
+#[derive(Debug, N)]
 #[repr(u32)]
 pub enum SelectionType {
     Capture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE,
     Output = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT,
 }
 
+#[derive(Debug, N)]
 #[repr(u32)]
 pub enum SelectionTarget {
     Crop = bindings::V4L2_SEL_TGT_CROP,
@@ -39,19 +44,19 @@ pub enum GSelectionError {
     IoctlError(nix::Error),
 }
 
-pub fn g_selection<F: AsRawFd>(
+pub fn g_selection<F: AsRawFd, R: From<v4l2_rect>>(
     fd: &F,
     selection: SelectionType,
     target: SelectionTarget,
-) -> Result<Rect, GSelectionError> {
-    let mut sel = bindings::v4l2_selection {
+) -> Result<R, GSelectionError> {
+    let mut sel = v4l2_selection {
         type_: selection as u32,
         target: target as u32,
         ..unsafe { mem::zeroed() }
     };
 
     match unsafe { ioctl::vidioc_g_selection(fd.as_raw_fd(), &mut sel) } {
-        Ok(_) => Ok(Rect::from(sel.r)),
+        Ok(_) => Ok(R::from(sel.r)),
         Err(Errno::EINVAL) => Err(GSelectionError::Invalid),
         Err(e) => Err(GSelectionError::IoctlError(e)),
     }

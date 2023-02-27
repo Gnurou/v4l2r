@@ -302,6 +302,12 @@ impl From<bindings::v4l2_rect> for Rect {
     }
 }
 
+impl From<bindings::v4l2_selection> for Rect {
+    fn from(selection: bindings::v4l2_selection) -> Self {
+        Self::from(selection.r)
+    }
+}
+
 impl From<Rect> for bindings::v4l2_rect {
     fn from(rect: Rect) -> Self {
         bindings::v4l2_rect {
