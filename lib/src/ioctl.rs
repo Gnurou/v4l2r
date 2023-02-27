@@ -47,13 +47,12 @@ use std::{
 /// Utility function for sub-modules.
 /// Constructs an owned String instance from a slice containing a nul-terminated
 /// C string, after checking that the passed slice indeed contains a nul
-/// character. The string is duplicated in the process so no ownership is taken
-/// from the parameter.
+/// character.
 fn string_from_cstr(c_str: &[u8]) -> Result<String, FromBytesWithNulError> {
     // Make sure that our string contains a nul character.
     let slice = match c_str.iter().position(|x| *x == b'\0') {
-        // Pass an empty slice so from_bytes_with_nul returns an error.
-        None => &[],
+        // Pass the full slice, `from_bytes_with_nul` will return an error.
+        None => c_str,
         Some(pos) => &c_str[..pos + 1],
     };
 
