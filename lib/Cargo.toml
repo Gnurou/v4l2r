@@ -15,6 +15,7 @@ bitflags = "1.2.1"
 thiserror = "1.0"
 anyhow = "1.0"
 log = "0.4.14"
+enumn = "0.1.6"
 
 # For example programs
 [dev-dependencies]
