@@ -1,6 +1,7 @@
 use std::mem;
 use std::os::unix::io::AsRawFd;
 
+use bitflags::bitflags;
 use enumn::N;
 use nix::errno::Errno;
 use thiserror::Error;
@@ -27,6 +28,14 @@ pub enum SelectionTarget {
     ComposeDefault = bindings::V4L2_SEL_TGT_COMPOSE_DEFAULT,
     ComposeBounds = bindings::V4L2_SEL_TGT_COMPOSE_BOUNDS,
     ComposePadded = bindings::V4L2_SEL_TGT_COMPOSE_PADDED,
+}
+
+bitflags! {
+    pub struct SelectionFlags: u32 {
+        const GE = bindings::V4L2_SEL_FLAG_GE;
+        const LE = bindings::V4L2_SEL_FLAG_LE;
+        const KEEP_CONFIG = bindings::V4L2_SEL_FLAG_KEEP_CONFIG;
+    }
 }
 
 #[doc(hidden)]
@@ -59,5 +68,41 @@ pub fn g_selection<F: AsRawFd, R: From<v4l2_rect>>(
         Ok(_) => Ok(R::from(sel.r)),
         Err(Errno::EINVAL) => Err(GSelectionError::Invalid),
         Err(e) => Err(GSelectionError::IoctlError(e)),
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum SSelectionError {
+    #[error("invalid type or target requested")]
+    Invalid,
+    #[error("invalid range requested")]
+    InvalidRange,
+    #[error("cannot change selection rectangle currently")]
+    Busy,
+    #[error("ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
+
+pub fn s_selection<F: AsRawFd, RI: Into<v4l2_rect>, RO: From<v4l2_rect>>(
+    fd: &F,
+    selection: SelectionType,
+    target: SelectionTarget,
+    rect: RI,
+    flags: SelectionFlags,
+) -> Result<RO, SSelectionError> {
+    let mut sel = v4l2_selection {
+        type_: selection as u32,
+        target: target as u32,
+        flags: flags.bits(),
+        r: rect.into(),
+        ..unsafe { mem::zeroed() }
+    };
+
+    match unsafe { ioctl::vidioc_s_selection(fd.as_raw_fd(), &mut sel) } {
+        Ok(_) => Ok(RO::from(sel.r)),
+        Err(Errno::EINVAL) => Err(SSelectionError::Invalid),
+        Err(Errno::ERANGE) => Err(SSelectionError::InvalidRange),
+        Err(Errno::EBUSY) => Err(SSelectionError::Busy),
+        Err(e) => Err(SSelectionError::IoctlError(e)),
     }
 }
