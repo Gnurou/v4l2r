@@ -126,12 +126,8 @@ pub fn subscribe_event(
     Ok(())
 }
 
-pub fn unsubscribe_event(
-    fd: &impl AsRawFd,
-    event: EventType,
-    flags: SubscribeEventFlags,
-) -> Result<(), SubscribeEventError> {
-    let subscription = build_v4l2_event_subscription(event, flags);
+pub fn unsubscribe_event(fd: &impl AsRawFd, event: EventType) -> Result<(), SubscribeEventError> {
+    let subscription = build_v4l2_event_subscription(event, SubscribeEventFlags::empty());
 
     unsafe { ioctl::vidioc_unsubscribe_event(fd.as_raw_fd(), &subscription) }?;
     Ok(())
