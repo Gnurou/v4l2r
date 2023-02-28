@@ -29,6 +29,30 @@ pub enum EventType {
     MotionDet,
 }
 
+#[derive(Debug, Error)]
+pub enum EventConversionError {
+    #[error("unrecognized event {0}")]
+    UnrecognizedEvent(u32),
+    #[error("unrecognized source change {0}")]
+    UnrecognizedSourceChange(u32),
+}
+
+impl TryFrom<&bindings::v4l2_event_subscription> for EventType {
+    type Error = EventConversionError;
+
+    fn try_from(event: &bindings::v4l2_event_subscription) -> Result<Self, Self::Error> {
+        Ok(match event.type_ {
+            bindings::V4L2_EVENT_VSYNC => EventType::VSync,
+            bindings::V4L2_EVENT_EOS => EventType::Eos,
+            bindings::V4L2_EVENT_CTRL => EventType::Ctrl(event.id),
+            bindings::V4L2_EVENT_FRAME_SYNC => EventType::FrameSync,
+            bindings::V4L2_EVENT_SOURCE_CHANGE => EventType::SourceChange(event.id),
+            bindings::V4L2_EVENT_MOTION_DET => EventType::MotionDet,
+            e => return Err(EventConversionError::UnrecognizedEvent(e)),
+        })
+    }
+}
+
 bitflags! {
     pub struct SrcChanges: u32 {
         const RESOLUTION = bindings::V4L2_EVENT_SRC_CH_RESOLUTION;
@@ -40,18 +64,10 @@ pub enum Event {
     SrcChangeEvent(SrcChanges),
 }
 
-#[derive(Debug, Error)]
-pub enum EventConversionError {
-    #[error("unrecognized event {0}")]
-    UnrecognizedEvent(u32),
-    #[error("unrecognized source change {0}")]
-    UnrecognizedSourceChange(u32),
-}
-
-impl TryFrom<bindings::v4l2_event> for Event {
+impl TryFrom<&bindings::v4l2_event> for Event {
     type Error = EventConversionError;
 
-    fn try_from(value: bindings::v4l2_event) -> Result<Self, Self::Error> {
+    fn try_from(value: &bindings::v4l2_event) -> Result<Self, Self::Error> {
         Ok(match value.type_ {
             bindings::V4L2_EVENT_VSYNC => todo!(),
             bindings::V4L2_EVENT_EOS => todo!(),
@@ -178,5 +194,5 @@ pub fn dqevent(fd: &impl AsRawFd) -> Result<Event, DqEventError> {
     let mut event: bindings::v4l2_event = unsafe { mem::zeroed() };
     unsafe { ioctl::vidioc_dqevent(fd.as_raw_fd(), &mut event) }?;
 
-    Ok(event.try_into()?)
+    Ok((&event).try_into()?)
 }
