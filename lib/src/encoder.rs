@@ -305,18 +305,15 @@ where
 // Safe because all Rcs are internal and never leaked outside of the struct.
 unsafe impl<S: EncoderState> Send for Encoder<S> {}
 
-#[allow(type_alias_bounds)]
-type DequeueOutputBufferError<OP: BufferHandles> = DqBufError<DqBuffer<Output, OP>>;
-
 pub enum CompletedOutputBuffer<OP: BufferHandles> {
     Dequeued(DqBuffer<Output, OP>),
     Canceled(CanceledBuffer<OP>),
 }
 
 #[derive(Debug, Error)]
-pub enum GetBufferError<OP: BufferHandles> {
+pub enum GetBufferError {
     #[error("error while dequeueing buffer")]
-    DequeueError(#[from] DequeueOutputBufferError<OP>),
+    DequeueError(#[from] DqBufError),
     #[error("error during poll")]
     PollError(#[from] PollError),
     #[error("error while obtaining buffer")]
@@ -379,7 +376,7 @@ where
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError<OP>> {
+    fn dequeue_output_buffers(&self) -> Result<(), DqBufError> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -399,7 +396,7 @@ where
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
     // obtained through `try_get_buffer()`, dequeuing buffers if necessary.
-    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
+    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
         for event in self.state.output_poller.poll(None)? {
             match event {
                 PollEvent::Device(DeviceEvent::OutputReady) => {
@@ -427,7 +424,7 @@ where
 }
 
 /// Let the encoder provide the buffers from the OUTPUT queue.
-impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
+impl<'a, OP, P, InputDoneCb, OutputReadyCb> GetFreeOutputBuffer<'a, OP, GetBufferError>
     for Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
     Queue<Output, BuffersAllocated<OP>>: GetFreeOutputBuffer<'a, OP>,
@@ -441,7 +438,7 @@ where
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
-    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
@@ -451,7 +448,7 @@ where
 // method.
 impl<'a, OP, P, InputDoneCb, OutputReadyCb> Encoder<Encoding<OP, P, InputDoneCb, OutputReadyCb>>
 where
-    Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
+    Self: GetFreeOutputBuffer<'a, OP, GetBufferError>,
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: Fn(CompletedOutputBuffer<OP>),
@@ -464,7 +461,7 @@ where
     /// to be available if needed.
     pub fn get_buffer(
         &'a mut self,
-    ) -> Result<<Self as OutputQueueableProvider<'a, OP>>::Queueable, GetBufferError<OP>> {
+    ) -> Result<<Self as OutputQueueableProvider<'a, OP>>::Queueable, GetBufferError> {
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.

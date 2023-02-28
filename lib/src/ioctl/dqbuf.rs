@@ -210,18 +210,16 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum DqBufError<T: Debug> {
+pub enum DqBufError {
     #[error("end-of-stream reached")]
     Eos,
     #[error("no buffer ready for dequeue")]
     NotReady,
-    #[error("buffer with ERROR flag dequeued")]
-    CorruptedBuffer(T),
     #[error("ioctl error: {0}")]
     IoctlError(Error),
 }
 
-impl<T: Debug> From<Error> for DqBufError<T> {
+impl From<Error> for DqBufError {
     fn from(error: Error) -> Self {
         match error {
             Errno::EAGAIN => Self::NotReady,
@@ -231,7 +229,7 @@ impl<T: Debug> From<Error> for DqBufError<T> {
     }
 }
 
-pub type DqBufResult<T> = Result<T, DqBufError<T>>;
+pub type DqBufResult<T> = Result<T, DqBufError>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
 pub fn dqbuf<T: DqBuf + Debug, F: AsRawFd>(fd: &F, queue: QueueType) -> DqBufResult<T> {

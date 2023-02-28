@@ -5,7 +5,6 @@ use crate::{
         poller::{DeviceEvent, PollError, PollEvent, Poller, Waker},
         queue::{
             direction::{Capture, Output},
-            dqbuf::DqBuffer,
             handles_provider::HandlesProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
@@ -17,7 +16,9 @@ use crate::{
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{self, subscribe_event, BufferCapabilities, Fmt, FormatFlags, StreamOnError},
+    ioctl::{
+        self, subscribe_event, BufferCapabilities, DqBufError, Fmt, FormatFlags, StreamOnError,
+    },
     memory::{BufferHandles, PrimitiveBufferHandles},
     FormatConversionError,
 };
@@ -336,8 +337,6 @@ pub enum FlushError {
 }
 
 #[allow(type_alias_bounds)]
-type DequeueOutputBufferError<OP: BufferHandles> = ioctl::DqBufError<DqBuffer<Output, OP>>;
-#[allow(type_alias_bounds)]
 type CanceledBuffers<OP: BufferHandles> =
     Vec<<Queue<Output, BuffersAllocated<OP>> as Stream>::Canceled>;
 
@@ -491,7 +490,7 @@ where
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) -> Result<(), DequeueOutputBufferError<OP>> {
+    fn dequeue_output_buffers(&self) -> Result<(), DqBufError> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -511,7 +510,7 @@ where
 
     // Make this thread sleep until at least one OUTPUT buffer is ready to be
     // obtained through [`Decoder::try_get_buffer()`].
-    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError<OP>> {
+    fn wait_for_output_buffer(&mut self) -> Result<(), GetBufferError> {
         for event in self.state.output_poller.poll(None)? {
             match event {
                 PollEvent::Device(DeviceEvent::OutputReady) => {
@@ -540,9 +539,9 @@ where
 }
 
 #[derive(Debug, Error)]
-pub enum GetBufferError<OP: BufferHandles> {
+pub enum GetBufferError {
     #[error("error while dequeueing buffer")]
-    DequeueError(#[from] DequeueOutputBufferError<OP>),
+    DequeueError(#[from] DqBufError),
     #[error("error during poll")]
     PollError(#[from] PollError),
     #[error("error while obtaining buffer")]
@@ -551,7 +550,7 @@ pub enum GetBufferError<OP: BufferHandles> {
 
 /// Let the decoder provide the buffers from the OUTPUT queue.
 impl<'a, OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
-    GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>
+    GetFreeOutputBuffer<'a, OP, GetBufferError>
     for Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>
 where
     Queue<Output, BuffersAllocated<OP>>: GetFreeOutputBuffer<'a, OP>,
@@ -566,7 +565,7 @@ where
     ///
     /// This method will return None immediately if all the allocated buffers
     /// are currently queued.
-    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError<OP>> {
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetBufferError> {
         self.dequeue_output_buffers()?;
         Ok(self.state.output_queue.try_get_free_buffer()?)
     }
@@ -577,7 +576,7 @@ where
 impl<'a, OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>
     Decoder<Decoding<OP, P, InputDoneCb, DecoderEventCb, FormatChangedCb>>
 where
-    Self: GetFreeOutputBuffer<'a, OP, GetBufferError<OP>>,
+    Self: GetFreeOutputBuffer<'a, OP, GetBufferError>,
     OP: BufferHandles,
     P: HandlesProvider,
     InputDoneCb: InputDoneCallback<OP>,
@@ -596,7 +595,7 @@ where
     /// to be available if needed.
     pub fn get_buffer(
         &'a mut self,
-    ) -> Result<<Self as OutputQueueableProvider<'a, OP>>::Queueable, GetBufferError<OP>> {
+    ) -> Result<<Self as OutputQueueableProvider<'a, OP>>::Queueable, GetBufferError> {
         let output_queue = &self.state.output_queue;
 
         // If all our buffers are queued, wait until we can dequeue some.
@@ -627,7 +626,7 @@ where
     /// that owns the decoder every time a decoded frame is produced.
     /// That way the client can recycle its input buffers
     /// and the decoding process does not get stuck.
-    pub fn kick(&self) -> Result<(), DequeueOutputBufferError<OP>> {
+    pub fn kick(&self) -> Result<(), DqBufError> {
         info!("Kick!");
         self.dequeue_output_buffers()
     }

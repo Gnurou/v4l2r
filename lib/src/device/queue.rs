@@ -483,14 +483,8 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
     type Dequeued = DqBuffer<D, P>;
 
     fn try_dequeue(&self) -> DqBufResult<Self::Dequeued> {
-        let mut error_flag_set = false;
-
         let dqbuf: ioctl::DqBuffer = match ioctl::dqbuf(&self.inner, self.inner.type_) {
             Ok(dqbuf) => dqbuf,
-            Err(DqBufError::CorruptedBuffer(dqbuf)) => {
-                error_flag_set = true;
-                dqbuf
-            }
             Err(DqBufError::Eos) => return Err(DqBufError::Eos),
             Err(DqBufError::NotReady) => return Err(DqBufError::NotReady),
             Err(DqBufError::IoctlError(e)) => return Err(DqBufError::IoctlError(e)),
@@ -520,11 +514,7 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
 
         let dqbuffer = DqBuffer::new(self, buffer_info, plane_handles, dqbuf, fuse);
 
-        if error_flag_set {
-            Err(DqBufError::CorruptedBuffer(dqbuffer))
-        } else {
-            Ok(dqbuffer)
-        }
+        Ok(dqbuffer)
     }
 }
 
