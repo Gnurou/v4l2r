@@ -4,10 +4,8 @@ use crate::memory::{Memory, PlaneHandle};
 use crate::{bindings, QueueType};
 
 use bitflags::bitflags;
-use nix::{
-    sys::time::{TimeVal, TimeValLike},
-    Error,
-};
+use nix::errno::Errno;
+use nix::sys::time::{TimeVal, TimeValLike};
 use std::fmt::Debug;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -35,12 +33,22 @@ pub enum QBufError {
     #[error("data offset specified while using the single-planar API")]
     DataOffsetNotSupported,
     #[error("ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(Errno),
 }
 
-impl From<Error> for QBufError {
-    fn from(error: Error) -> Self {
-        Self::IoctlError(error)
+impl From<Errno> for QBufError {
+    fn from(errno: Errno) -> Self {
+        Self::IoctlError(errno)
+    }
+}
+
+impl From<QBufError> for Errno {
+    fn from(err: QBufError) -> Self {
+        match err {
+            QBufError::NumPlanesMismatch(_, _) => Errno::EINVAL,
+            QBufError::DataOffsetNotSupported => Errno::EINVAL,
+            QBufError::IoctlError(e) => e,
+        }
     }
 }
 

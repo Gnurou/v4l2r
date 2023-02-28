@@ -2,7 +2,7 @@ use super::{is_multi_planar, BufferFlags, PlaneData};
 use crate::bindings;
 use crate::QueueType;
 
-use nix::{self, errno::Errno, Error};
+use nix::{self, errno::Errno};
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use std::{fmt::Debug, pin::Pin};
@@ -216,15 +216,25 @@ pub enum DqBufError {
     #[error("no buffer ready for dequeue")]
     NotReady,
     #[error("ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(Errno),
 }
 
-impl From<Error> for DqBufError {
-    fn from(error: Error) -> Self {
+impl From<Errno> for DqBufError {
+    fn from(error: Errno) -> Self {
         match error {
             Errno::EAGAIN => Self::NotReady,
             Errno::EPIPE => Self::Eos,
             error => Self::IoctlError(error),
+        }
+    }
+}
+
+impl From<DqBufError> for Errno {
+    fn from(err: DqBufError) -> Self {
+        match err {
+            DqBufError::Eos => Errno::EPIPE,
+            DqBufError::NotReady => Errno::EAGAIN,
+            DqBufError::IoctlError(e) => e,
         }
     }
 }

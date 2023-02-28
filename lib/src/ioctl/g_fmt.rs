@@ -124,6 +124,16 @@ pub enum GFmtError {
     IoctlError(nix::Error),
 }
 
+impl From<GFmtError> for Errno {
+    fn from(err: GFmtError) -> Self {
+        match err {
+            GFmtError::FromV4L2FormatConversionError(_) => Errno::EINVAL,
+            GFmtError::InvalidBufferType => Errno::EINVAL,
+            GFmtError::IoctlError(e) => e,
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
 pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
     fd: &F,
@@ -155,6 +165,18 @@ pub enum SFmtError {
     IoctlError(nix::Error),
 }
 
+impl From<SFmtError> for Errno {
+    fn from(err: SFmtError) -> Self {
+        match err {
+            SFmtError::FromV4L2FormatConversionError(_) => Errno::EINVAL,
+            SFmtError::ToV4L2FormatConversionError(_) => Errno::EINVAL,
+            SFmtError::InvalidBufferType => Errno::EINVAL,
+            SFmtError::DeviceBusy => Errno::EBUSY,
+            SFmtError::IoctlError(e) => e,
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
 pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
     fd: &mut F,
@@ -183,6 +205,17 @@ pub enum TryFmtError {
     InvalidBufferType,
     #[error("ioctl error: {0}")]
     IoctlError(nix::Error),
+}
+
+impl From<TryFmtError> for Errno {
+    fn from(err: TryFmtError) -> Self {
+        match err {
+            TryFmtError::FromV4L2FormatConversionError(_) => Errno::EINVAL,
+            TryFmtError::ToV4L2FormatConversionError(_) => Errno::EINVAL,
+            TryFmtError::InvalidBufferType => Errno::EINVAL,
+            TryFmtError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.

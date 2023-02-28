@@ -80,6 +80,15 @@ pub enum ReqbufsError {
     IoctlError(nix::Error),
 }
 
+impl From<ReqbufsError> for Errno {
+    fn from(err: ReqbufsError) -> Self {
+        match err {
+            ReqbufsError::InvalidBufferType(_, _) => Errno::EINVAL,
+            ReqbufsError::IoctlError(e) => e,
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
 pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
     fd: &F,

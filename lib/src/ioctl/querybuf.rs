@@ -1,6 +1,7 @@
 use super::{is_multi_planar, BufferFlags, PlaneData};
 use crate::bindings;
 use crate::QueueType;
+use nix::errno::Errno;
 use thiserror::Error;
 
 use std::mem;
@@ -71,7 +72,15 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum QueryBufError {
     #[error("ioctl error: {0}")]
-    IoctlError(#[from] nix::Error),
+    IoctlError(#[from] Errno),
+}
+
+impl From<QueryBufError> for Errno {
+    fn from(err: QueryBufError) -> Self {
+        match err {
+            QueryBufError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.

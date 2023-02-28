@@ -1,7 +1,6 @@
 //! Safe wrapper for the `VIDIOC_STREAM(ON|OFF)` ioctls.
 use crate::QueueType;
 use nix::errno::Errno;
-use nix::Error;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -20,7 +19,18 @@ pub enum StreamOnError {
     #[error("invalid pipeline link configuration")]
     InvalidPipelineConfig,
     #[error("ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(Errno),
+}
+
+impl From<StreamOnError> for Errno {
+    fn from(err: StreamOnError) -> Self {
+        match err {
+            StreamOnError::InvalidQueue(_) => Errno::EINVAL,
+            StreamOnError::InvalidPadConfig => Errno::EPIPE,
+            StreamOnError::InvalidPipelineConfig => Errno::ENOLINK,
+            StreamOnError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_STREAMON` ioctl.
@@ -39,7 +49,16 @@ pub enum StreamOffError {
     #[error("queue type not supported")]
     InvalidQueue,
     #[error("ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(Errno),
+}
+
+impl From<StreamOffError> for Errno {
+    fn from(err: StreamOffError) -> Self {
+        match err {
+            StreamOffError::InvalidQueue => Errno::EINVAL,
+            StreamOffError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_STREAMOFF` ioctl.

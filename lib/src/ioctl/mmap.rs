@@ -7,6 +7,7 @@ use std::{ops::DerefMut, os::unix::io::AsRawFd};
 
 use log::error;
 use nix::{
+    errno::Errno,
     libc::{c_void, off_t, size_t},
     sys::mman,
 };
@@ -74,7 +75,15 @@ impl Drop for PlaneMapping {
 #[derive(Debug, Error)]
 pub enum MmapError {
     #[error("ioctl error: {0}")]
-    IoctlError(#[from] nix::Error),
+    IoctlError(#[from] Errno),
+}
+
+impl From<MmapError> for Errno {
+    fn from(err: MmapError) -> Self {
+        match err {
+            MmapError::IoctlError(e) => e,
+        }
+    }
 }
 
 // TODO should be unsafe because the mapping can be used after a buffer is queued?

@@ -1,6 +1,5 @@
 use crate::bindings;
 use nix::errno::Errno;
-use nix::Error;
 use std::{mem, os::unix::io::AsRawFd};
 use thiserror::Error;
 
@@ -26,10 +25,20 @@ pub enum EncoderCmdError {
     #[error("command not supported by device")]
     UnsupportedCommand(EncoderCommand),
     #[error("ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(Errno),
 }
 
-fn map_nix_error(error: nix::Error, command: EncoderCommand) -> EncoderCmdError {
+impl From<EncoderCmdError> for Errno {
+    fn from(err: EncoderCmdError) -> Self {
+        match err {
+            EncoderCmdError::DrainInProgress => Errno::EBUSY,
+            EncoderCmdError::UnsupportedCommand(_) => Errno::EINVAL,
+            EncoderCmdError::IoctlError(e) => e,
+        }
+    }
+}
+
+fn map_nix_error(error: Errno, command: EncoderCommand) -> EncoderCmdError {
     match error {
         Errno::EBUSY => EncoderCmdError::DrainInProgress,
         Errno::EINVAL => EncoderCmdError::UnsupportedCommand(command),

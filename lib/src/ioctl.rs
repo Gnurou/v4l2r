@@ -31,6 +31,7 @@ pub use expbuf::*;
 pub use g_fmt::*;
 pub use g_selection::*;
 pub use mmap::*;
+use nix::errno::Errno;
 pub use qbuf::*;
 pub use querybuf::*;
 pub use querycap::*;
@@ -112,4 +113,18 @@ fn is_multi_planar(queue: QueueType) -> bool {
         queue,
         QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane
     )
+}
+
+/// Extension trait for allowing easy conversion of ioctl errors into their originating error code.
+pub trait IntoErrno {
+    fn into_errno(self) -> i32;
+}
+
+impl<T> IntoErrno for T
+where
+    T: Into<Errno>,
+{
+    fn into_errno(self) -> i32 {
+        self.into() as i32
+    }
 }

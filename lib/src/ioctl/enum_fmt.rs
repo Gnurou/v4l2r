@@ -82,6 +82,14 @@ pub enum EnumFmtError {
     IoctlError(#[from] nix::Error),
 }
 
+impl From<EnumFmtError> for Errno {
+    fn from(err: EnumFmtError) -> Self {
+        match err {
+            EnumFmtError::IoctlError(e) => e,
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_ENUM_FMT` ioctl.
 pub fn enum_fmt<T: EnumFmt, F: AsRawFd>(
     fd: &F,

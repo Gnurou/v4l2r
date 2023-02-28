@@ -1,5 +1,6 @@
 //! Safe wrapper for the `VIDIOC_EXPBUF` ioctl.
 use bitflags::bitflags;
+use nix::errno::Errno;
 use nix::fcntl::OFlag;
 use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd};
@@ -26,7 +27,15 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum ExpbufError {
     #[error("ioctl error: {0}")]
-    IoctlError(#[from] nix::Error),
+    IoctlError(#[from] Errno),
+}
+
+impl From<ExpbufError> for Errno {
+    fn from(err: ExpbufError) -> Self {
+        match err {
+            ExpbufError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_EXPBUF` ioctl.

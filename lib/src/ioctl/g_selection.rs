@@ -50,7 +50,16 @@ pub enum GSelectionError {
     #[error("invalid type or target requested")]
     Invalid,
     #[error("ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Errno),
+}
+
+impl From<GSelectionError> for Errno {
+    fn from(err: GSelectionError) -> Self {
+        match err {
+            GSelectionError::Invalid => Errno::EINVAL,
+            GSelectionError::IoctlError(e) => e,
+        }
+    }
 }
 
 pub fn g_selection<F: AsRawFd, R: From<v4l2_rect>>(
@@ -81,6 +90,17 @@ pub enum SSelectionError {
     Busy,
     #[error("ioctl error: {0}")]
     IoctlError(nix::Error),
+}
+
+impl From<SSelectionError> for Errno {
+    fn from(err: SSelectionError) -> Self {
+        match err {
+            SSelectionError::Invalid => Errno::EINVAL,
+            SSelectionError::InvalidRange => Errno::ERANGE,
+            SSelectionError::Busy => Errno::EBUSY,
+            SSelectionError::IoctlError(e) => e,
+        }
+    }
 }
 
 pub fn s_selection<F: AsRawFd, RI: Into<v4l2_rect>, RO: From<v4l2_rect>>(

@@ -3,7 +3,7 @@ use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use bitflags::bitflags;
-use nix::Error;
+use nix::errno::Errno;
 use thiserror::Error;
 
 use crate::bindings;
@@ -57,7 +57,15 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum QueryCtrlError {
     #[error("ioctl error: {0}")]
-    IoctlError(Error),
+    IoctlError(Errno),
+}
+
+impl From<QueryCtrlError> for Errno {
+    fn from(err: QueryCtrlError) -> Self {
+        match err {
+            QueryCtrlError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYCTRL` ioctl.

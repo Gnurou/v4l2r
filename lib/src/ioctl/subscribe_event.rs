@@ -104,7 +104,15 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum SubscribeEventError {
     #[error("ioctl error: {0}")]
-    IoctlError(#[from] nix::Error),
+    IoctlError(#[from] Errno),
+}
+
+impl From<SubscribeEventError> for Errno {
+    fn from(err: SubscribeEventError) -> Self {
+        match err {
+            SubscribeEventError::IoctlError(e) => e,
+        }
+    }
 }
 
 pub fn subscribe_event(
@@ -146,14 +154,24 @@ pub enum DqEventError {
     #[error("error while converting event")]
     EventConversionError(#[from] EventConversionError),
     #[error("ioctl error: {0}")]
-    IoctlError(nix::Error),
+    IoctlError(Errno),
 }
 
-impl From<nix::Error> for DqEventError {
-    fn from(error: nix::Error) -> Self {
+impl From<Errno> for DqEventError {
+    fn from(error: Errno) -> Self {
         match error {
             Errno::ENOENT => Self::NotReady,
             error => Self::IoctlError(error),
+        }
+    }
+}
+
+impl From<DqEventError> for Errno {
+    fn from(err: DqEventError) -> Self {
+        match err {
+            DqEventError::NotReady => Errno::ENOENT,
+            DqEventError::EventConversionError(_) => Errno::EINVAL,
+            DqEventError::IoctlError(e) => e,
         }
     }
 }
