@@ -25,7 +25,7 @@ pub enum EventType {
     Eos,
     Ctrl(u32),
     FrameSync,
-    SourceChange,
+    SourceChange(u32),
     MotionDet,
 }
 
@@ -80,11 +80,12 @@ fn build_v4l2_event_subscription(
             EventType::Eos => bindings::V4L2_EVENT_EOS,
             EventType::Ctrl(_) => bindings::V4L2_EVENT_CTRL,
             EventType::FrameSync => bindings::V4L2_EVENT_FRAME_SYNC,
-            EventType::SourceChange => bindings::V4L2_EVENT_SOURCE_CHANGE,
+            EventType::SourceChange(_) => bindings::V4L2_EVENT_SOURCE_CHANGE,
             EventType::MotionDet => bindings::V4L2_EVENT_MOTION_DET,
         },
         id: match event {
             EventType::Ctrl(id) => id,
+            EventType::SourceChange(id) => id,
             _ => 0,
         },
         flags: flags.bits(),

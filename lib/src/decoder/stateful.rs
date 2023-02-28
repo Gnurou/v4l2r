@@ -197,10 +197,10 @@ impl<OP: BufferHandles> Decoder<ReadyToDecode<OP>> {
         for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
             GetFreeCaptureBuffer<'a, P::HandleType> + GetCaptureBufferByIndex<'a, P::HandleType>,
     {
-        // We are interested in all resolution change events.
+        // We are interested in all resolution change events for the current input (normally 0).
         subscribe_event(
             &*self.device,
-            ioctl::EventType::SourceChange,
+            ioctl::EventType::SourceChange(0),
             ioctl::SubscribeEventFlags::empty(),
         )?;
 
