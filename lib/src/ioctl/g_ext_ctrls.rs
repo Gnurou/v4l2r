@@ -243,8 +243,8 @@ impl From<DataConversionError> for ExtControlError {
 ///
 /// Given the above we provide an interface for querying a single control,
 /// as this greatly simplifies the code.
-pub fn g_ext_ctrl<F: AsRawFd, R: AsRawFd>(
-    fd: &F,
+pub fn g_ext_ctrl<R: AsRawFd>(
+    fd: &impl AsRawFd,
     request_fd: Option<&R>,
     ctrl_kind: ExtControlKind,
 ) -> Result<ExtControl, ExtControlError> {
@@ -288,8 +288,8 @@ pub fn g_ext_ctrl<F: AsRawFd, R: AsRawFd>(
 ///
 /// Given the above we provide an interface for setting a single control,
 /// as this greatly simplifies the code.
-pub fn s_ext_ctrl<F: AsRawFd, R: AsRawFd>(
-    fd: &F,
+pub fn s_ext_ctrl<R: AsRawFd>(
+    fd: &impl AsRawFd,
     request_fd: Option<&R>,
     ctrl: &ExtControl,
 ) -> Result<ExtControl, ExtControlError> {

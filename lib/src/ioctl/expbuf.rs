@@ -39,8 +39,8 @@ impl From<ExpbufError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_EXPBUF` ioctl.
-pub fn expbuf<F: AsRawFd, R: FromRawFd>(
-    fd: &F,
+pub fn expbuf<R: FromRawFd>(
+    fd: &impl AsRawFd,
     queue: QueueType,
     index: usize,
     plane: usize,

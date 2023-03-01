@@ -91,8 +91,8 @@ impl From<EnumFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_ENUM_FMT` ioctl.
-pub fn enum_fmt<T: EnumFmt, F: AsRawFd>(
-    fd: &F,
+pub fn enum_fmt<T: EnumFmt>(
+    fd: &impl AsRawFd,
     queue: QueueType,
     index: u32,
 ) -> Result<T, EnumFmtError> {

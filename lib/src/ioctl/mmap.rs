@@ -88,7 +88,7 @@ impl From<MmapError> for Errno {
 
 // TODO should be unsafe because the mapping can be used after a buffer is queued?
 // Or not, since this cannot cause a crash...
-pub fn mmap<F: AsRawFd>(fd: &F, mem_offset: u32, length: u32) -> Result<PlaneMapping, MmapError> {
+pub fn mmap(fd: &impl AsRawFd, mem_offset: u32, length: u32) -> Result<PlaneMapping, MmapError> {
     let data = unsafe {
         mman::mmap(
             std::ptr::null_mut::<c_void>(),

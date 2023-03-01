@@ -90,8 +90,8 @@ impl From<ReqbufsError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
-pub fn reqbufs<T: ReqBufs, F: AsRawFd>(
-    fd: &F,
+pub fn reqbufs<T: ReqBufs>(
+    fd: &impl AsRawFd,
     queue: QueueType,
     memory: MemoryType,
     count: u32,

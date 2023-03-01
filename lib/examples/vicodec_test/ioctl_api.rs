@@ -49,9 +49,9 @@ pub fn run<F: FnMut(&[u8])>(
     // requesting 0 MMAP buffers on the OUTPUT queue. The working queue will
     // return a success.
     let (output_queue_type, _capture_queue_type, use_multi_planar) =
-        if reqbufs::<(), _>(&fd, VideoOutput, MemoryType::Mmap, 0).is_ok() {
+        if reqbufs::<()>(&fd, VideoOutput, MemoryType::Mmap, 0).is_ok() {
             (VideoOutput, VideoCapture, false)
-        } else if reqbufs::<(), _>(&fd, VideoOutputMplane, MemoryType::Mmap, 0).is_ok() {
+        } else if reqbufs::<()>(&fd, VideoOutputMplane, MemoryType::Mmap, 0).is_ok() {
             (VideoOutputMplane, VideoCaptureMplane, true)
         } else {
             panic!("Both single-planar and multi-planar queues are unusable.");
@@ -246,7 +246,7 @@ pub fn run<F: FnMut(&[u8])>(
 
         // We can disregard the OUTPUT buffer since it does not contain any
         // useful data for us.
-        dqbuf::<(), _>(&fd, output_queue).expect("Failed to dequeue output buffer");
+        dqbuf::<()>(&fd, output_queue).expect("Failed to dequeue output buffer");
 
         // The CAPTURE buffer, on the other hand, we want to examine more closely.
         let cap_dqbuf: DqBuffer =
@@ -275,9 +275,9 @@ pub fn run<F: FnMut(&[u8])>(
     drop(capture_mappings);
 
     // Free the buffers.
-    reqbufs::<(), _>(&fd, capture_queue, MemoryType::Mmap, 0)
+    reqbufs::<()>(&fd, capture_queue, MemoryType::Mmap, 0)
         .expect("Failed to release capture buffers");
-    reqbufs::<(), _>(&fd, output_queue, MemoryType::UserPtr, 0)
+    reqbufs::<()>(&fd, output_queue, MemoryType::UserPtr, 0)
         .expect("Failed to release output buffers");
 
     // The fd will be closed as the File instance gets out of scope.

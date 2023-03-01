@@ -135,8 +135,8 @@ impl From<GFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
-pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
-    fd: &F,
+pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
+    fd: &impl AsRawFd,
     queue: QueueType,
 ) -> Result<T, GFmtError> {
     let mut fmt = bindings::v4l2_format {
@@ -178,8 +178,8 @@ impl From<SFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
-pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
-    fd: &mut F,
+pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
+    fd: &mut impl AsRawFd,
     queue: QueueType,
     fmt: Format,
 ) -> Result<T, SFmtError> {
@@ -219,8 +219,8 @@ impl From<TryFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
-pub fn try_fmt<E: Into<FormatConversionError>, T: Fmt<E>, F: AsRawFd>(
-    fd: &F,
+pub fn try_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
+    fd: &impl AsRawFd,
     queue: QueueType,
     fmt: Format,
 ) -> Result<T, TryFmtError> {

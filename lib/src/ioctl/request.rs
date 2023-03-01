@@ -29,7 +29,7 @@ pub struct Request {
 }
 
 impl Request {
-    pub fn alloc<F: AsRawFd>(media_fd: &F) -> Result<Self, RequestError> {
+    pub fn alloc(media_fd: &impl AsRawFd) -> Result<Self, RequestError> {
         let mut request_fd: RawFd = 0;
         // SAFETY: the 'data' argument is an address of a variable compatible with a C integer
         match unsafe {
@@ -62,9 +62,9 @@ impl Request {
         }
     }
 
-    pub fn poll<F: AsRawFd>(
+    pub fn poll(
         &self,
-        video_fd: &F,
+        video_fd: &impl AsRawFd,
         events: PollFlags,
         timeout: Option<u32>,
     ) -> Result<PollFlags, RequestError> {

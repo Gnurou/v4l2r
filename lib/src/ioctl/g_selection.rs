@@ -62,8 +62,8 @@ impl From<GSelectionError> for Errno {
     }
 }
 
-pub fn g_selection<F: AsRawFd, R: From<v4l2_rect>>(
-    fd: &F,
+pub fn g_selection<R: From<v4l2_rect>>(
+    fd: &impl AsRawFd,
     selection: SelectionType,
     target: SelectionTarget,
 ) -> Result<R, GSelectionError> {
@@ -103,8 +103,8 @@ impl From<SSelectionError> for Errno {
     }
 }
 
-pub fn s_selection<F: AsRawFd, RI: Into<v4l2_rect>, RO: From<v4l2_rect>>(
-    fd: &F,
+pub fn s_selection<RI: Into<v4l2_rect>, RO: From<v4l2_rect>>(
+    fd: &impl AsRawFd,
     selection: SelectionType,
     target: SelectionTarget,
     rect: RI,

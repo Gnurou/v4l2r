@@ -212,8 +212,8 @@ mod ioctl {
 /// accessed by anyone else, the caller also needs to guarantee that the backing
 /// memory won't be freed until the corresponding buffer is returned by either
 /// `dqbuf` or `streamoff`.
-pub fn qbuf<T: QBuf, F: AsRawFd>(
-    fd: &F,
+pub fn qbuf<T: QBuf>(
+    fd: &impl AsRawFd,
     queue: QueueType,
     index: usize,
     buf_data: T,

@@ -84,8 +84,8 @@ impl From<QueryBufError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.
-pub fn querybuf<T: QueryBuf, F: AsRawFd>(
-    fd: &F,
+pub fn querybuf<T: QueryBuf>(
+    fd: &impl AsRawFd,
     queue: QueueType,
     index: usize,
 ) -> Result<T, QueryBufError> {

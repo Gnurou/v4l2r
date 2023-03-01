@@ -242,7 +242,7 @@ impl From<DqBufError> for Errno {
 pub type DqBufResult<T> = Result<T, DqBufError>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: DqBuf + Debug, F: AsRawFd>(fd: &F, queue: QueueType) -> DqBufResult<T> {
+pub fn dqbuf<T: DqBuf + Debug>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }

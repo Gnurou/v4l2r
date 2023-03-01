@@ -41,8 +41,8 @@ impl From<SelectionError> for Errno {
     }
 }
 
-pub fn enuminput<F: AsRawFd, R: From<v4l2_input>>(
-    fd: &F,
+pub fn enuminput<R: From<v4l2_input>>(
+    fd: &impl AsRawFd,
     index: usize,
 ) -> Result<R, SelectionError> {
     let mut input = v4l2_input {
@@ -57,13 +57,13 @@ pub fn enuminput<F: AsRawFd, R: From<v4l2_input>>(
     }
 }
 
-pub fn g_input<F: AsRawFd>(fd: &F) -> Result<usize, Errno> {
+pub fn g_input(fd: &impl AsRawFd) -> Result<usize, Errno> {
     let mut input: c_int = 0;
 
     unsafe { ioctl::vidioc_g_input(fd.as_raw_fd(), &mut input) }.map(|r| r as usize)
 }
 
-pub fn s_input<F: AsRawFd>(fd: &F, index: usize) -> Result<(), SelectionError> {
+pub fn s_input(fd: &impl AsRawFd, index: usize) -> Result<(), SelectionError> {
     let mut input: c_int = index as c_int;
 
     match unsafe { ioctl::vidioc_s_input(fd.as_raw_fd(), &mut input) } {
@@ -73,8 +73,8 @@ pub fn s_input<F: AsRawFd>(fd: &F, index: usize) -> Result<(), SelectionError> {
     }
 }
 
-pub fn enumoutput<F: AsRawFd, R: From<v4l2_output>>(
-    fd: &F,
+pub fn enumoutput<R: From<v4l2_output>>(
+    fd: &impl AsRawFd,
     index: usize,
 ) -> Result<R, SelectionError> {
     let mut output = v4l2_output {
@@ -89,13 +89,13 @@ pub fn enumoutput<F: AsRawFd, R: From<v4l2_output>>(
     }
 }
 
-pub fn g_output<F: AsRawFd>(fd: &F) -> Result<usize, Errno> {
+pub fn g_output(fd: &impl AsRawFd) -> Result<usize, Errno> {
     let mut output: c_int = 0;
 
     unsafe { ioctl::vidioc_g_output(fd.as_raw_fd(), &mut output) }.map(|r| r as usize)
 }
 
-pub fn s_output<F: AsRawFd>(fd: &F, index: usize) -> Result<(), SelectionError> {
+pub fn s_output(fd: &impl AsRawFd, index: usize) -> Result<(), SelectionError> {
     let mut output: c_int = index as c_int;
 
     match unsafe { ioctl::vidioc_s_output(fd.as_raw_fd(), &mut output) } {
