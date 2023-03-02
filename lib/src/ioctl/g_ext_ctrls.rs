@@ -11,6 +11,7 @@ use crate::bindings;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ExtControlKind {
     FwhtParams = bindings::V4L2_CID_STATELESS_FWHT_PARAMS,
+    VP8Frame = bindings::V4L2_CID_STATELESS_VP8_FRAME,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Error)]
@@ -110,23 +111,244 @@ pub struct FwhtParams {
     pub quantization: Quantization,
 }
 
+bitflags! {
+    /// VP8 Segment Flags.
+    pub struct VP8SegmentFlags: u32 {
+        const ENABLED = bindings::V4L2_VP8_SEGMENT_FLAG_ENABLED;
+        const UPDATE_MAP = bindings::V4L2_VP8_SEGMENT_FLAG_UPDATE_MAP;
+        const UPDATE_FEATURE_DATA = bindings::V4L2_VP8_SEGMENT_FLAG_UPDATE_FEATURE_DATA;
+        const DELTA_VALUE_MODE = bindings::V4L2_VP8_SEGMENT_FLAG_DELTA_VALUE_MODE;
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct VP8Segment {
+    pub quant_update: [i8; 4],
+    pub lf_update: [i8; 4],
+    pub segment_probs: [u8; 3],
+    pub flags: u32,
+}
+
+impl From<bindings::v4l2_vp8_segment> for VP8Segment {
+    fn from(value: bindings::v4l2_vp8_segment) -> Self {
+        VP8Segment {
+            quant_update: value.quant_update,
+            lf_update: value.lf_update,
+            segment_probs: value.segment_probs,
+            flags: value.flags,
+        }
+    }
+}
+
+impl From<VP8Segment> for bindings::v4l2_vp8_segment {
+    fn from(value: VP8Segment) -> Self {
+        bindings::v4l2_vp8_segment {
+            quant_update: value.quant_update,
+            lf_update: value.lf_update,
+            segment_probs: value.segment_probs,
+            padding: 0,
+            flags: value.flags,
+        }
+    }
+}
+
+bitflags! {
+    /// VP8 Loop Filter Flags.
+    pub struct VP8LoopFilterFlags: u32 {
+        const ADJ_ENABLE = bindings::V4L2_VP8_LF_ADJ_ENABLE;
+        const DELTA_UPDATE = bindings::V4L2_VP8_LF_DELTA_UPDATE;
+        const FILTER_TYPE_SIMPLE = bindings::V4L2_VP8_LF_FILTER_TYPE_SIMPLE;
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct VP8LoopFilter {
+    pub ref_frm_delta: [i8; 4],
+    pub mb_mode_delta: [i8; 4],
+    pub sharpness_level: u8,
+    pub level: u8,
+    pub flags: u32,
+}
+
+impl From<bindings::v4l2_vp8_loop_filter> for VP8LoopFilter {
+    fn from(value: bindings::v4l2_vp8_loop_filter) -> Self {
+        VP8LoopFilter {
+            ref_frm_delta: value.ref_frm_delta,
+            mb_mode_delta: value.mb_mode_delta,
+            sharpness_level: value.sharpness_level,
+            level: value.level,
+            flags: value.flags,
+        }
+    }
+}
+
+impl From<VP8LoopFilter> for bindings::v4l2_vp8_loop_filter {
+    fn from(value: VP8LoopFilter) -> Self {
+        bindings::v4l2_vp8_loop_filter {
+            ref_frm_delta: value.ref_frm_delta,
+            mb_mode_delta: value.mb_mode_delta,
+            sharpness_level: value.sharpness_level,
+            level: value.level,
+            padding: 0,
+            flags: value.flags,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct VP8Quantization {
+    pub y_ac_qi: u8,
+    pub y_dc_delta: i8,
+    pub y2_dc_delta: i8,
+    pub y2_ac_delta: i8,
+    pub uv_dc_delta: i8,
+    pub uv_ac_delta: i8,
+}
+
+impl From<bindings::v4l2_vp8_quantization> for VP8Quantization {
+    fn from(value: bindings::v4l2_vp8_quantization) -> Self {
+        VP8Quantization {
+            y_ac_qi: value.y_ac_qi,
+            y_dc_delta: value.y_dc_delta,
+            y2_dc_delta: value.y2_dc_delta,
+            y2_ac_delta: value.y2_ac_delta,
+            uv_dc_delta: value.uv_dc_delta,
+            uv_ac_delta: value.uv_ac_delta,
+        }
+    }
+}
+
+impl From<VP8Quantization> for bindings::v4l2_vp8_quantization {
+    fn from(value: VP8Quantization) -> Self {
+        bindings::v4l2_vp8_quantization {
+            y_ac_qi: value.y_ac_qi,
+            y_dc_delta: value.y_dc_delta,
+            y2_dc_delta: value.y2_dc_delta,
+            y2_ac_delta: value.y2_ac_delta,
+            uv_dc_delta: value.uv_dc_delta,
+            uv_ac_delta: value.uv_ac_delta,
+            padding: 0,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct VP8Entropy {
+    pub coeff_probs: [[[[u8; 11]; 3]; 8]; 4],
+    pub y_mode_probs: [u8; 4],
+    pub uv_mode_probs: [u8; 3],
+    pub mv_probs: [[u8; 19]; 2],
+}
+
+impl From<bindings::v4l2_vp8_entropy> for VP8Entropy {
+    fn from(value: bindings::v4l2_vp8_entropy) -> Self {
+        VP8Entropy {
+            coeff_probs: value.coeff_probs,
+            y_mode_probs: value.y_mode_probs,
+            uv_mode_probs: value.uv_mode_probs,
+            mv_probs: value.mv_probs,
+        }
+    }
+}
+
+impl From<VP8Entropy> for bindings::v4l2_vp8_entropy {
+    fn from(value: VP8Entropy) -> Self {
+        bindings::v4l2_vp8_entropy {
+            coeff_probs: value.coeff_probs,
+            y_mode_probs: value.y_mode_probs,
+            uv_mode_probs: value.uv_mode_probs,
+            mv_probs: value.mv_probs,
+            padding: [0; 3],
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct VP8EntropyCoderState {
+    pub range: u8,
+    pub value: u8,
+    pub bit_count: u8,
+}
+
+impl From<bindings::v4l2_vp8_entropy_coder_state> for VP8EntropyCoderState {
+    fn from(value: bindings::v4l2_vp8_entropy_coder_state) -> Self {
+        VP8EntropyCoderState {
+            range: value.range,
+            value: value.value,
+            bit_count: value.bit_count,
+        }
+    }
+}
+
+impl From<VP8EntropyCoderState> for bindings::v4l2_vp8_entropy_coder_state {
+    fn from(value: VP8EntropyCoderState) -> Self {
+        bindings::v4l2_vp8_entropy_coder_state {
+            range: value.range,
+            value: value.value,
+            bit_count: value.bit_count,
+            padding: 0,
+        }
+    }
+}
+
+bitflags! {
+    /// VP8 Frame Flags.
+    pub struct VP8FrameFlags: u32 {
+        const KEY_FRAME = bindings::V4L2_VP8_FRAME_FLAG_KEY_FRAME;
+        const EXPERIMENTAL = bindings::V4L2_VP8_FRAME_FLAG_EXPERIMENTAL;
+        const SHOW_FRAME = bindings::V4L2_VP8_FRAME_FLAG_SHOW_FRAME;
+        const NO_SKIP_COEFF = bindings::V4L2_VP8_FRAME_FLAG_MB_NO_SKIP_COEFF;
+        const SIGN_BIAS_GOLDEN = bindings::V4L2_VP8_FRAME_FLAG_SIGN_BIAS_GOLDEN;
+        const SIGN_BIAS_ALT  = bindings::V4L2_VP8_FRAME_FLAG_SIGN_BIAS_ALT;
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct VP8Frame {
+    pub segment: VP8Segment,
+    pub lf: VP8LoopFilter,
+    pub quant: VP8Quantization,
+    pub entropy: VP8Entropy,
+    pub coder_state: VP8EntropyCoderState,
+    pub width: u16,
+    pub height: u16,
+    pub horizontal_scale: u8,
+    pub vertical_scale: u8,
+    pub version: u8,
+    pub prob_skip_false: u8,
+    pub prob_intra: u8,
+    pub prob_last: u8,
+    pub prob_gf: u8,
+    pub num_dct_parts: u8,
+    pub first_part_size: u32,
+    pub first_part_header_bits: u32,
+    pub dct_part_sizes: [u32; 8],
+    pub last_frame_ts: u64,
+    pub golden_frame_ts: u64,
+    pub alt_frame_ts: u64,
+    pub flags: u64,
+}
+
 // Private enum serving as storage for control-specific bindgen struct
 #[repr(C)]
 #[allow(clippy::large_enum_variant)]
 enum CompoundControl {
     FwhtParams(bindings::v4l2_ctrl_fwht_params),
+    VP8Frame(bindings::v4l2_ctrl_vp8_frame),
 }
 
 impl CompoundControl {
     fn size(&self) -> usize {
         match self {
             CompoundControl::FwhtParams(inner) => std::mem::size_of_val(inner),
+            CompoundControl::VP8Frame(inner) => std::mem::size_of_val(inner),
         }
     }
 
     fn as_mut_ptr(&mut self) -> *mut std::ffi::c_void {
         match self {
             CompoundControl::FwhtParams(inner) => inner as *mut _ as *mut std::ffi::c_void,
+            CompoundControl::VP8Frame(inner) => inner as *mut _ as *mut std::ffi::c_void,
         }
     }
 }
@@ -142,6 +364,12 @@ impl TryFrom<ExtControlKind> for CompoundControl {
                     ..unsafe { mem::zeroed() }
                 },
             )),
+            ExtControlKind::VP8Frame => {
+                Ok(CompoundControl::VP8Frame(bindings::v4l2_ctrl_vp8_frame {
+                    // SAFETY: ok to zero-fill a struct which does not contain pointers/references
+                    ..unsafe { mem::zeroed() }
+                }))
+            }
         }
     }
 }
@@ -169,19 +397,50 @@ impl TryFrom<&ExtControl> for CompoundControl {
                     quantization: fwht_params.quantization as u32,
                 },
             )),
+            ExtControl::VP8Frame(vp8_frame) => {
+                Ok(CompoundControl::VP8Frame(bindings::v4l2_ctrl_vp8_frame {
+                    segment: bindings::v4l2_vp8_segment::from(vp8_frame.segment),
+                    lf: bindings::v4l2_vp8_loop_filter::from(vp8_frame.lf),
+                    quant: bindings::v4l2_vp8_quantization::from(vp8_frame.quant),
+                    entropy: bindings::v4l2_vp8_entropy::from(vp8_frame.entropy),
+                    coder_state: bindings::v4l2_vp8_entropy_coder_state::from(
+                        vp8_frame.coder_state,
+                    ),
+                    width: vp8_frame.width,
+                    height: vp8_frame.height,
+                    horizontal_scale: vp8_frame.horizontal_scale,
+                    vertical_scale: vp8_frame.vertical_scale,
+                    version: vp8_frame.version,
+                    prob_skip_false: vp8_frame.prob_skip_false,
+                    prob_intra: vp8_frame.prob_intra,
+                    prob_last: vp8_frame.prob_last,
+                    prob_gf: vp8_frame.prob_gf,
+                    num_dct_parts: vp8_frame.num_dct_parts,
+                    first_part_size: vp8_frame.first_part_size,
+                    first_part_header_bits: vp8_frame.first_part_header_bits,
+                    dct_part_sizes: vp8_frame.dct_part_sizes,
+                    last_frame_ts: vp8_frame.last_frame_ts,
+                    golden_frame_ts: vp8_frame.golden_frame_ts,
+                    alt_frame_ts: vp8_frame.alt_frame_ts,
+                    flags: vp8_frame.flags,
+                }))
+            }
         }
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ExtControl {
     FwhtParams(FwhtParams),
+    VP8Frame(VP8Frame),
 }
 
 impl ExtControl {
     pub fn kind(&self) -> ExtControlKind {
         match &self {
             ExtControl::FwhtParams(_) => ExtControlKind::FwhtParams,
+            ExtControl::VP8Frame(_) => ExtControlKind::VP8Frame,
         }
     }
 }
@@ -207,6 +466,30 @@ impl TryFrom<CompoundControl> for ExtControl {
                     .ok_or(Self::Error::YCbCrEncodingErr)?,
                 quantization: Quantization::n(inner.quantization)
                     .ok_or(Self::Error::QuantizationErr)?,
+            })),
+            CompoundControl::VP8Frame(inner) => Ok(ExtControl::VP8Frame(VP8Frame {
+                segment: VP8Segment::from(inner.segment),
+                lf: VP8LoopFilter::from(inner.lf),
+                quant: VP8Quantization::from(inner.quant),
+                entropy: VP8Entropy::from(inner.entropy),
+                coder_state: VP8EntropyCoderState::from(inner.coder_state),
+                width: inner.width,
+                height: inner.height,
+                horizontal_scale: inner.horizontal_scale,
+                vertical_scale: inner.vertical_scale,
+                version: inner.version,
+                prob_skip_false: inner.prob_skip_false,
+                prob_intra: inner.prob_intra,
+                prob_last: inner.prob_last,
+                prob_gf: inner.prob_gf,
+                num_dct_parts: inner.num_dct_parts,
+                first_part_size: inner.first_part_size,
+                first_part_header_bits: inner.first_part_header_bits,
+                dct_part_sizes: inner.dct_part_sizes,
+                last_frame_ts: inner.last_frame_ts,
+                golden_frame_ts: inner.golden_frame_ts,
+                alt_frame_ts: inner.alt_frame_ts,
+                flags: inner.flags,
             })),
         }
     }
