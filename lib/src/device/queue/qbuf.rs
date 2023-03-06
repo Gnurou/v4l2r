@@ -124,7 +124,7 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
             self.index,
             qbuffer,
         ) {
-            Ok(_) => (),
+            Ok(()) => (),
             Err(error) => {
                 return Err(QueueError {
                     error,

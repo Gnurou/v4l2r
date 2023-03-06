@@ -483,7 +483,7 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
     type Dequeued = DqBuffer<D, P>;
 
     fn try_dequeue(&self) -> DqBufResult<Self::Dequeued> {
-        let dqbuf: ioctl::DqBuffer = match ioctl::dqbuf(&self.inner, self.inner.type_) {
+        let dqbuf: ioctl::V4l2Buffer = match ioctl::dqbuf(&self.inner, self.inner.type_) {
             Ok(dqbuf) => dqbuf,
             Err(DqBufError::Eos) => return Err(DqBufError::Eos),
             Err(DqBufError::NotReady) => return Err(DqBufError::NotReady),

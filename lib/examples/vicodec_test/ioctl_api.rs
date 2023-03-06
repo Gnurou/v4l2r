@@ -249,7 +249,7 @@ pub fn run<F: FnMut(&[u8])>(
         dqbuf::<()>(&fd, output_queue).expect("Failed to dequeue output buffer");
 
         // The CAPTURE buffer, on the other hand, we want to examine more closely.
-        let cap_dqbuf: DqBuffer =
+        let cap_dqbuf: V4l2Buffer =
             dqbuf(&fd, capture_queue).expect("Failed to dequeue capture buffer");
         let bytes_used = cap_dqbuf.get_first_plane().bytesused() as usize;
 

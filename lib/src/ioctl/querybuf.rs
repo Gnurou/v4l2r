@@ -1,5 +1,6 @@
-use super::{is_multi_planar, BufferFlags, PlaneData};
+use super::{is_multi_planar, BufferFlags, V4l2BufferPlanes};
 use crate::bindings;
+use crate::ioctl::V4l2Buffer;
 use crate::QueueType;
 use nix::errno::Errno;
 use thiserror::Error;
@@ -13,12 +14,44 @@ pub trait QueryBuf: Sized {
     /// then the buffer is single-planar. If it has data, the buffer is
     /// multi-planar and the array of `struct v4l2_plane` shall be used to
     /// retrieve the plane data.
-    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, v4l2_planes: Option<PlaneData>) -> Self;
+    fn from_v4l2_buffer(
+        v4l2_buf: bindings::v4l2_buffer,
+        v4l2_planes: Option<V4l2BufferPlanes>,
+    ) -> Self;
 }
 
-impl QueryBuf for bindings::v4l2_buffer {
-    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, _v4l2_planes: Option<PlaneData>) -> Self {
-        v4l2_buf
+/// For cases where we are not interested in the result of `qbuf`
+impl QueryBuf for () {
+    fn from_v4l2_buffer(
+        _v4l2_buf: bindings::v4l2_buffer,
+        _v4l2_planes: Option<V4l2BufferPlanes>,
+    ) -> Self {
+    }
+}
+
+impl QueryBuf for V4l2Buffer {
+    fn from_v4l2_buffer(
+        v4l2_buf: bindings::v4l2_buffer,
+        v4l2_planes: Option<V4l2BufferPlanes>,
+    ) -> Self {
+        Self {
+            buffer: v4l2_buf,
+            planes: v4l2_planes.unwrap_or_else(|| {
+                let mut pdata: V4l2BufferPlanes = Default::default();
+                // Duplicate information for the first plane so our methods can work.
+                pdata[0] = bindings::v4l2_plane {
+                    bytesused: v4l2_buf.bytesused,
+                    length: v4l2_buf.length,
+                    data_offset: 0,
+                    reserved: Default::default(),
+                    // Safe because both unions have the same members and
+                    // layout in single-plane mode.
+                    m: unsafe { std::mem::transmute(v4l2_buf.m) },
+                };
+
+                pdata
+            }),
+        }
     }
 }
 
@@ -39,7 +72,10 @@ pub struct QueryBuffer {
 }
 
 impl QueryBuf for QueryBuffer {
-    fn from_v4l2_buffer(v4l2_buf: bindings::v4l2_buffer, v4l2_planes: Option<PlaneData>) -> Self {
+    fn from_v4l2_buffer(
+        v4l2_buf: bindings::v4l2_buffer,
+        v4l2_planes: Option<V4l2BufferPlanes>,
+    ) -> Self {
         let planes = match v4l2_planes {
             None => vec![QueryBufPlane {
                 mem_offset: unsafe { v4l2_buf.m.offset },
@@ -96,7 +132,7 @@ pub fn querybuf<T: QueryBuf>(
     };
 
     if is_multi_planar(queue) {
-        let mut plane_data: PlaneData = Default::default();
+        let mut plane_data: V4l2BufferPlanes = Default::default();
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
         v4l2_buf.length = plane_data.len() as u32;
 

@@ -22,7 +22,7 @@ pub type DropCallback<D, P> = Box<dyn FnOnce(&mut DqBuffer<D, P>) + Send>;
 /// return their ownership to the user.
 pub struct DqBuffer<D: Direction, P: BufferHandles> {
     /// Dequeued buffer information as reported by V4L2.
-    pub data: ioctl::DqBuffer,
+    pub data: ioctl::V4l2Buffer,
     /// The backing memory that has been provided for this buffer.
     plane_handles: Option<P>,
 
@@ -47,7 +47,7 @@ impl<D: Direction, P: BufferHandles> DqBuffer<D, P> {
         queue: &Queue<D, BuffersAllocated<P>>,
         buffer: &Arc<BufferInfo<P>>,
         plane_handles: P,
-        data: ioctl::DqBuffer,
+        data: ioctl::V4l2Buffer,
         fuse: BufferStateFuse<P>,
     ) -> Self {
         DqBuffer {
