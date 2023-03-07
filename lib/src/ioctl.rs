@@ -49,6 +49,7 @@ pub use subscribe_event::*;
 use std::fmt::Debug;
 
 use crate::bindings;
+use crate::memory::MemoryType;
 use crate::QueueType;
 use std::{
     ffi::{CStr, FromBytesWithNulError},
@@ -139,6 +140,7 @@ impl Default for bindings::v4l2_plane {
 
 /// Information about a single plane of a V4L2 buffer.
 pub struct V4l2BufferPlane<'a> {
+    buffer: &'a bindings::v4l2_buffer,
     plane: &'a bindings::v4l2_plane,
 }
 
@@ -159,6 +161,19 @@ impl<'a> V4l2BufferPlane<'a> {
 
     pub fn bytesused(&self) -> u32 {
         self.plane.bytesused
+    }
+
+    /// Returns the memory offset of this plane if the buffer's type is MMAP.
+    pub fn mem_offset(&self) -> Option<u32> {
+        if MemoryType::n(self.buffer.memory) == Some(MemoryType::Mmap) {
+            // Safe because we are returning a u32 in any case. It may be garbage, but will just
+            // lead to a runtime error down the road.
+            // Additionally we checked that the memory type of the buffer was MMAP, so the value
+            // should be valid.
+            Some(unsafe { self.plane.m.mem_offset })
+        } else {
+            None
+        }
     }
 
     pub fn data_offset(&self) -> u32 {
@@ -201,6 +216,10 @@ impl V4l2Buffer {
         self.buffer.type_
     }
 
+    pub fn memory(&self) -> u32 {
+        self.buffer.memory
+    }
+
     pub fn flags(&self) -> BufferFlags {
         BufferFlags::from_bits_truncate(self.buffer.flags)
     }
@@ -237,6 +256,7 @@ impl V4l2Buffer {
     /// succeed because every buffer has at least one plane.
     pub fn get_first_plane(&self) -> V4l2BufferPlane {
         V4l2BufferPlane {
+            buffer: &self.buffer,
             plane: &self.planes[0],
         }
     }
@@ -246,6 +266,7 @@ impl V4l2Buffer {
     pub fn get_plane(&self, index: usize) -> Option<V4l2BufferPlane> {
         if index < self.num_planes() {
             Some(V4l2BufferPlane {
+                buffer: &self.buffer,
                 plane: &self.planes[index],
             })
         } else {
