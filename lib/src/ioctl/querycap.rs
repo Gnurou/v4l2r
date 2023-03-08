@@ -85,6 +85,19 @@ pub struct Capability {
     pub device_caps: Option<Capabilities>,
 }
 
+impl Capability {
+    /// Returns the set of capabilities of the hardware as a whole.
+    pub fn capabilities(&self) -> Capabilities {
+        self.capabilities
+    }
+
+    /// Returns the capabilities that apply to the currently opened V4L2 node.
+    pub fn device_caps(&self) -> Capabilities {
+        self.device_caps
+            .unwrap_or_else(|| self.capabilities.difference(Capabilities::DEVICE_CAPS))
+    }
+}
+
 impl QueryCap for Capability {
     fn from(qcap: bindings::v4l2_capability) -> Self {
         Capability {

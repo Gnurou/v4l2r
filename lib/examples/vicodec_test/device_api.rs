@@ -27,7 +27,7 @@ pub fn run<F: FnMut(&[u8])>(
     mut save_output: F,
 ) {
     let device = Device::open(device_path, DeviceConfig::new()).expect("Failed to open device");
-    let caps = &device.capability;
+    let caps = device.caps();
     println!(
         "Opened device: {}\n\tdriver: {}\n\tbus: {}\n\tcapabilities: {}",
         caps.card, caps.driver, caps.bus_info, caps.capabilities

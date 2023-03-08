@@ -52,7 +52,7 @@ impl DeviceConfig {
 
 /// An opened V4L2 device. `Queue` objects can be instantiated from it.
 pub struct Device {
-    pub capability: Capability,
+    capability: Capability,
     fd: File,
     used_queues: Mutex<BTreeSet<QueueType>>,
 }
@@ -90,6 +90,11 @@ impl Device {
 
         // Safe because we are constructing a file from Fd we just opened.
         Ok(Device::new(unsafe { File::from_raw_fd(fd) })?)
+    }
+
+    /// Returns the capabilities of the device, i.e. the result of QUERYCAPS.
+    pub fn caps(&self) -> &Capability {
+        &self.capability
     }
 }
 
