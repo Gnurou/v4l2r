@@ -212,7 +212,7 @@ pub fn run<F: FnMut(&[u8])>(
                     ..Default::default()
                 };
 
-                qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
+                qbuf::<_, ()>(&fd, output_queue, output_buffer_index, out_qbuf)
             }
             MemoryType::UserPtr => {
                 let output_buffer = &mut output_buffers[output_buffer_index];
@@ -229,7 +229,7 @@ pub fn run<F: FnMut(&[u8])>(
                     ..Default::default()
                 };
 
-                qbuf(&fd, output_queue, output_buffer_index, out_qbuf)
+                qbuf::<_, ()>(&fd, output_queue, output_buffer_index, out_qbuf)
             }
             _ => unreachable!(),
         }
@@ -239,7 +239,7 @@ pub fn run<F: FnMut(&[u8])>(
             planes: vec![QBufPlane::new(0)],
             ..Default::default()
         };
-        qbuf(&fd, capture_queue, capture_buffer_index, cap_qbuf)
+        qbuf::<_, ()>(&fd, capture_queue, capture_buffer_index, cap_qbuf)
             .expect("Error queueing capture buffer");
 
         // Now dequeue the work that we just scheduled.
