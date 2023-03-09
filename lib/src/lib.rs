@@ -42,8 +42,18 @@ use thiserror::Error;
 pub enum QueueType {
     VideoCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE as isize,
     VideoOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT as isize,
+    VideoOverlay = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OVERLAY as isize,
+    VbiCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VBI_CAPTURE as isize,
+    VbiOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VBI_OUTPUT as isize,
+    SlicedVbiCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SLICED_VBI_CAPTURE as isize,
+    SlicedVbiOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SLICED_VBI_OUTPUT as isize,
+    VideoOutputOverlay = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY as isize,
     VideoCaptureMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE as isize,
     VideoOutputMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE as isize,
+    SdrCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SDR_CAPTURE as isize,
+    SdrOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SDR_OUTPUT as isize,
+    MetaCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_CAPTURE as isize,
+    MetaOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_OUTPUT as isize,
 }
 
 impl Display for QueueType {

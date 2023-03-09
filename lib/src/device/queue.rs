@@ -122,6 +122,7 @@ where
         let selection = match self.get_type() {
             QueueType::VideoCapture | QueueType::VideoCaptureMplane => SelectionType::Capture,
             QueueType::VideoOutput | QueueType::VideoOutputMplane => SelectionType::Output,
+            _ => return Err(ioctl::GSelectionError::Invalid),
         };
 
         ioctl::g_selection(&self.inner, selection, target)
