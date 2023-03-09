@@ -8,10 +8,10 @@ use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-impl TryFrom<(QueueType, Format)> for bindings::v4l2_format {
+impl TryFrom<(QueueType, &Format)> for bindings::v4l2_format {
     type Error = FormatConversionError;
 
-    fn try_from((queue, format): (QueueType, Format)) -> Result<Self, Self::Error> {
+    fn try_from((queue, format): (QueueType, &Format)) -> Result<Self, Self::Error> {
         Ok(bindings::v4l2_format {
             type_: queue as u32,
             fmt: match queue {
@@ -31,10 +31,8 @@ impl TryFrom<(QueueType, Format)> for bindings::v4l2_format {
                                 ..unsafe { mem::zeroed() }
                             };
 
-                            for (plane, v4l2_plane) in format
-                                .plane_fmt
-                                .into_iter()
-                                .zip(pix_mp.plane_fmt.iter_mut())
+                            for (plane, v4l2_plane) in
+                                format.plane_fmt.iter().zip(pix_mp.plane_fmt.iter_mut())
                             {
                                 *v4l2_plane = plane.into();
                             }
@@ -82,8 +80,8 @@ impl Default for bindings::v4l2_plane_pix_format {
     }
 }
 
-impl From<PlaneLayout> for bindings::v4l2_plane_pix_format {
-    fn from(plane: PlaneLayout) -> Self {
+impl From<&PlaneLayout> for bindings::v4l2_plane_pix_format {
+    fn from(plane: &PlaneLayout) -> Self {
         bindings::v4l2_plane_pix_format {
             sizeimage: plane.sizeimage,
             bytesperline: plane.bytesperline,
@@ -254,9 +252,7 @@ mod test {
             ],
         };
         let v4l2_format = bindings::v4l2_format {
-            ..(QueueType::VideoCaptureMplane, mplane.clone())
-                .try_into()
-                .unwrap()
+            ..(QueueType::VideoCaptureMplane, &mplane).try_into().unwrap()
         };
         let mplane2: Format = v4l2_format.try_into().unwrap();
         assert_eq!(mplane, mplane2);
@@ -277,9 +273,7 @@ mod test {
         };
         // Conversion to/from single-planar format.
         let v4l2_format = bindings::v4l2_format {
-            ..(QueueType::VideoCapture, splane.clone())
-                .try_into()
-                .unwrap()
+            ..(QueueType::VideoCapture, &splane).try_into().unwrap()
         };
         let splane2: Format = v4l2_format.try_into().unwrap();
         assert_eq!(splane, splane2);
@@ -307,7 +301,7 @@ mod test {
             ],
         };
         assert_eq!(
-            TryInto::<bindings::v4l2_format>::try_into((QueueType::VideoCapture, mplane)).err(),
+            TryInto::<bindings::v4l2_format>::try_into((QueueType::VideoCapture, &mplane)).err(),
             Some(FormatConversionError::TooManyPlanes(3))
         );
     }

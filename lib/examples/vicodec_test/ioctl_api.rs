@@ -99,7 +99,7 @@ pub fn run<F: FnMut(&[u8])>(
     capture_format.pixelformat = b"FWHT".into();
     println!("Setting capture format: {:?}", capture_format);
     let _capture_format: Format =
-        s_fmt(&mut fd, (capture_queue, capture_format)).expect("Failed setting capture format");
+        s_fmt(&mut fd, (capture_queue, &capture_format)).expect("Failed setting capture format");
 
     // We will be happy with 640x480 resolution.
     let output_format = Format {
@@ -111,7 +111,7 @@ pub fn run<F: FnMut(&[u8])>(
 
     println!("Setting output format: {:?}", output_format);
     let output_format: Format =
-        s_fmt(&mut fd, (output_queue, output_format)).expect("Failed setting output format");
+        s_fmt(&mut fd, (output_queue, &output_format)).expect("Failed setting output format");
 
     let capture_format: Format = g_fmt(&fd, capture_queue).expect("Failed getting capture format");
     println!("Adjusted output format: {:?}", output_format);

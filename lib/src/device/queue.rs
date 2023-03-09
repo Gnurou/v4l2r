@@ -97,14 +97,14 @@ where
     /// the format on one queue can change the options available on another.
     pub fn set_format(&mut self, format: Format) -> Result<Format, SFmtError> {
         let type_ = self.inner.type_;
-        ioctl::s_fmt(&mut self.inner, (type_, format))
+        ioctl::s_fmt(&mut self.inner, (type_, &format))
     }
 
     /// Performs exactly as `set_format`, but does not actually apply `format`.
     /// Useful to check what modifications need to be done to a format before it
     /// can be used.
     pub fn try_format(&self, format: Format) -> Result<Format, TryFmtError> {
-        ioctl::try_fmt(&self.inner, (self.inner.type_, format))
+        ioctl::try_fmt(&self.inner, (self.inner.type_, &format))
     }
 
     /// Returns a `FormatBuilder` which is set to the currently active format
@@ -170,7 +170,7 @@ impl<'a> FormatBuilder<'a> {
     /// the driver's capabilities if needed, and the format actually applied will
     /// be returned.
     pub fn apply<O: TryFrom<bindings::v4l2_format>>(self) -> Result<O, SFmtError> {
-        ioctl::s_fmt(self.queue, (self.queue.type_, self.format))
+        ioctl::s_fmt(self.queue, (self.queue.type_, &self.format))
     }
 
     /// Try to apply the format built so far. The kernel will adjust the format
@@ -180,7 +180,7 @@ impl<'a> FormatBuilder<'a> {
     /// Calling `apply()` right after this method is guaranteed to successfully
     /// apply the format without further change.
     pub fn try_apply(&mut self) -> Result<(), TryFmtError> {
-        let new_format = ioctl::try_fmt(self.queue, (self.queue.type_, self.format.clone()))?;
+        let new_format = ioctl::try_fmt(self.queue, (self.queue.type_, &self.format))?;
 
         self.format = new_format;
         Ok(())
