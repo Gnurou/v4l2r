@@ -87,7 +87,11 @@ impl QBuf for V4l2Buffer {
         v4l2_planes: &mut V4l2BufferPlanes,
     ) -> Result<(), QBufError> {
         *v4l2_buf = self.buffer;
-        for (dest, src) in v4l2_planes.iter_mut().zip(self.planes.iter()) {
+        for (dest, src) in v4l2_planes
+            .iter_mut()
+            .zip(self.planes.iter())
+            .take(v4l2_buf.length as usize)
+        {
             *dest = *src;
         }
 
