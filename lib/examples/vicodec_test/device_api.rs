@@ -32,10 +32,10 @@ pub fn run<F: FnMut(&[u8])>(
         "Opened device: {}\n\tdriver: {}\n\tbus: {}\n\tcapabilities: {}",
         caps.card, caps.driver, caps.bus_info, caps.capabilities
     );
-    if caps.driver != "vicodec" {
+    if caps.card != "vicodec" {
         panic!(
             "This device is {}, but this test is designed to work with the vicodec driver.",
-            caps.driver
+            caps.card
         );
     }
 
