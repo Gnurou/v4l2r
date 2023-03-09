@@ -8,22 +8,10 @@ use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-/// Implementors can receive the result from the `g_fmt`, `s_fmt` and `try_fmt`
-/// ioctls.
-pub trait Fmt<E: Into<FormatConversionError>>: TryFrom<bindings::v4l2_format, Error = E> {}
-
-impl From<std::convert::Infallible> for FormatConversionError {
-    fn from(_: std::convert::Infallible) -> Self {
-        FormatConversionError::TooManyPlanes(0)
-    }
-}
-
-impl Fmt<std::convert::Infallible> for bindings::v4l2_format {}
-
-impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
+impl TryFrom<(QueueType, Format)> for bindings::v4l2_format {
     type Error = FormatConversionError;
 
-    fn try_from((format, queue): (Format, QueueType)) -> Result<Self, Self::Error> {
+    fn try_from((queue, format): (QueueType, Format)) -> Result<Self, Self::Error> {
         Ok(bindings::v4l2_format {
             type_: queue as u32,
             fmt: match queue {
@@ -85,8 +73,6 @@ impl TryFrom<(Format, QueueType)> for bindings::v4l2_format {
     }
 }
 
-impl Fmt<FormatConversionError> for Format {}
-
 // We cannot derive from the bindings since they are generated.
 #[allow(clippy::derivable_impls)]
 impl Default for bindings::v4l2_plane_pix_format {
@@ -117,7 +103,7 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum GFmtError {
     #[error("error while converting from V4L2 format")]
-    FromV4L2FormatConversionError(#[from] FormatConversionError),
+    FromV4L2FormatConversionError,
     #[error("invalid buffer type requested")]
     InvalidBufferType,
     #[error("unexpected ioctl error: {0}")]
@@ -127,7 +113,7 @@ pub enum GFmtError {
 impl From<GFmtError> for Errno {
     fn from(err: GFmtError) -> Self {
         match err {
-            GFmtError::FromV4L2FormatConversionError(_) => Errno::EINVAL,
+            GFmtError::FromV4L2FormatConversionError => Errno::EINVAL,
             GFmtError::InvalidBufferType => Errno::EINVAL,
             GFmtError::IoctlError(e) => e,
         }
@@ -135,17 +121,19 @@ impl From<GFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
-pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
+pub fn g_fmt<O: TryFrom<bindings::v4l2_format>>(
     fd: &impl AsRawFd,
     queue: QueueType,
-) -> Result<T, GFmtError> {
+) -> Result<O, GFmtError> {
     let mut fmt = bindings::v4l2_format {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };
 
     match unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) } {
-        Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
+        Ok(_) => Ok(fmt
+            .try_into()
+            .map_err(|_| GFmtError::FromV4L2FormatConversionError)?),
         Err(Errno::EINVAL) => Err(GFmtError::InvalidBufferType),
         Err(e) => Err(GFmtError::IoctlError(e)),
     }
@@ -154,9 +142,9 @@ pub fn g_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
 #[derive(Debug, Error)]
 pub enum SFmtError {
     #[error("error while converting from V4L2 format")]
-    FromV4L2FormatConversionError(#[from] FormatConversionError),
+    FromV4L2FormatConversionError,
     #[error("error while converting to V4L2 format")]
-    ToV4L2FormatConversionError(FormatConversionError),
+    ToV4L2FormatConversionError,
     #[error("invalid buffer type requested")]
     InvalidBufferType,
     #[error("device currently busy")]
@@ -168,8 +156,8 @@ pub enum SFmtError {
 impl From<SFmtError> for Errno {
     fn from(err: SFmtError) -> Self {
         match err {
-            SFmtError::FromV4L2FormatConversionError(_) => Errno::EINVAL,
-            SFmtError::ToV4L2FormatConversionError(_) => Errno::EINVAL,
+            SFmtError::FromV4L2FormatConversionError => Errno::EINVAL,
+            SFmtError::ToV4L2FormatConversionError => Errno::EINVAL,
             SFmtError::InvalidBufferType => Errno::EINVAL,
             SFmtError::DeviceBusy => Errno::EBUSY,
             SFmtError::IoctlError(e) => e,
@@ -178,17 +166,18 @@ impl From<SFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
-pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
+pub fn s_fmt<I: TryInto<bindings::v4l2_format>, O: TryFrom<bindings::v4l2_format>>(
     fd: &mut impl AsRawFd,
-    queue: QueueType,
-    fmt: Format,
-) -> Result<T, SFmtError> {
-    let mut fmt: bindings::v4l2_format = (fmt, queue)
+    format: I,
+) -> Result<O, SFmtError> {
+    let mut fmt: bindings::v4l2_format = format
         .try_into()
-        .map_err(SFmtError::ToV4L2FormatConversionError)?;
+        .map_err(|_| SFmtError::ToV4L2FormatConversionError)?;
 
     match unsafe { ioctl::vidioc_s_fmt(fd.as_raw_fd(), &mut fmt) } {
-        Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
+        Ok(_) => Ok(fmt
+            .try_into()
+            .map_err(|_| SFmtError::FromV4L2FormatConversionError)?),
         Err(Errno::EINVAL) => Err(SFmtError::InvalidBufferType),
         Err(Errno::EBUSY) => Err(SFmtError::DeviceBusy),
         Err(e) => Err(SFmtError::IoctlError(e)),
@@ -198,9 +187,9 @@ pub fn s_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
 #[derive(Debug, Error)]
 pub enum TryFmtError {
     #[error("error while converting from V4L2 format")]
-    FromV4L2FormatConversionError(#[from] FormatConversionError),
+    FromV4L2FormatConversionError,
     #[error("error while converting to V4L2 format")]
-    ToV4L2FormatConversionError(FormatConversionError),
+    ToV4L2FormatConversionError,
     #[error("invalid buffer type requested")]
     InvalidBufferType,
     #[error("ioctl error: {0}")]
@@ -210,8 +199,8 @@ pub enum TryFmtError {
 impl From<TryFmtError> for Errno {
     fn from(err: TryFmtError) -> Self {
         match err {
-            TryFmtError::FromV4L2FormatConversionError(_) => Errno::EINVAL,
-            TryFmtError::ToV4L2FormatConversionError(_) => Errno::EINVAL,
+            TryFmtError::FromV4L2FormatConversionError => Errno::EINVAL,
+            TryFmtError::ToV4L2FormatConversionError => Errno::EINVAL,
             TryFmtError::InvalidBufferType => Errno::EINVAL,
             TryFmtError::IoctlError(e) => e,
         }
@@ -219,17 +208,18 @@ impl From<TryFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
-pub fn try_fmt<E: Into<FormatConversionError>, T: Fmt<E>>(
+pub fn try_fmt<I: TryInto<bindings::v4l2_format>, O: TryFrom<bindings::v4l2_format>>(
     fd: &impl AsRawFd,
-    queue: QueueType,
-    fmt: Format,
-) -> Result<T, TryFmtError> {
-    let mut fmt: bindings::v4l2_format = (fmt, queue)
+    format: I,
+) -> Result<O, TryFmtError> {
+    let mut fmt: bindings::v4l2_format = format
         .try_into()
-        .map_err(TryFmtError::ToV4L2FormatConversionError)?;
+        .map_err(|_| TryFmtError::ToV4L2FormatConversionError)?;
 
     match unsafe { ioctl::vidioc_try_fmt(fd.as_raw_fd(), &mut fmt) } {
-        Ok(_) => Ok(fmt.try_into().map_err(|e: E| e.into())?),
+        Ok(_) => Ok(fmt
+            .try_into()
+            .map_err(|_| TryFmtError::FromV4L2FormatConversionError)?),
         Err(Errno::EINVAL) => Err(TryFmtError::InvalidBufferType),
         Err(e) => Err(TryFmtError::IoctlError(e)),
     }
@@ -264,7 +254,7 @@ mod test {
             ],
         };
         let v4l2_format = bindings::v4l2_format {
-            ..(mplane.clone(), QueueType::VideoCaptureMplane)
+            ..(QueueType::VideoCaptureMplane, mplane.clone())
                 .try_into()
                 .unwrap()
         };
@@ -287,7 +277,7 @@ mod test {
         };
         // Conversion to/from single-planar format.
         let v4l2_format = bindings::v4l2_format {
-            ..(splane.clone(), QueueType::VideoCapture)
+            ..(QueueType::VideoCapture, splane.clone())
                 .try_into()
                 .unwrap()
         };
@@ -317,7 +307,7 @@ mod test {
             ],
         };
         assert_eq!(
-            TryInto::<bindings::v4l2_format>::try_into((mplane, QueueType::VideoCapture)).err(),
+            TryInto::<bindings::v4l2_format>::try_into((QueueType::VideoCapture, mplane)).err(),
             Some(FormatConversionError::TooManyPlanes(3))
         );
     }

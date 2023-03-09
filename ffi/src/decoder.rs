@@ -279,7 +279,7 @@ fn v4l2r_decoder_new_safe(
                 sizeimage: input_buffer_size as u32,
                 ..Default::default()
             }])
-            .apply::<v4l2r::FormatConversionError, v4l2r::Format>()
+            .apply::<v4l2r::Format>()
         {
             Ok(format) if format.pixelformat == pixel_format => format,
             Ok(_) => {

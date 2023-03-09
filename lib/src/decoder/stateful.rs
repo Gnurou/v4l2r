@@ -1,6 +1,7 @@
 mod capture_thread;
 
 use crate::{
+    bindings,
     device::{
         poller::{DeviceEvent, PollError, PollEvent, Poller, Waker},
         queue::{
@@ -16,16 +17,14 @@ use crate::{
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{
-        self, subscribe_event, BufferCapabilities, DqBufError, Fmt, FormatFlags, StreamOnError,
-    },
+    ioctl::{self, subscribe_event, BufferCapabilities, DqBufError, FormatFlags, StreamOnError},
     memory::{BufferHandles, PrimitiveBufferHandles},
-    FormatConversionError,
 };
 
 use capture_thread::CaptureThread;
 use log::{debug, error, info, trace};
 use std::{
+    convert::TryFrom,
     io,
     path::Path,
     sync::{atomic::AtomicUsize, mpsc, Arc},
@@ -366,9 +365,9 @@ where
         Ok(())
     }
 
-    pub fn get_output_format<E: Into<FormatConversionError>, T: Fmt<E>>(
+    pub fn get_output_format<O: TryFrom<bindings::v4l2_format>>(
         &self,
-    ) -> Result<T, ioctl::GFmtError> {
+    ) -> Result<O, ioctl::GFmtError> {
         self.state.output_queue.get_format()
     }
 

@@ -8,14 +8,14 @@ pub mod qbuf;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
+use crate::{bindings, memory::*};
 use crate::{
     ioctl::{
-        self, DqBufError, DqBufResult, Fmt, GFmtError, QueryBuffer, ReqbufsError, SFmtError,
+        self, DqBufError, DqBufResult, GFmtError, QueryBuffer, ReqbufsError, SFmtError,
         SelectionTarget, SelectionType, StreamOffError, StreamOnError, TryFmtError,
     },
     PlaneLayout, Rect,
 };
-use crate::{memory::*, FormatConversionError};
 use crate::{Format, PixelFormat, QueueType};
 use buffer::*;
 use direction::*;
@@ -28,6 +28,7 @@ use qbuf::{
     *,
 };
 
+use std::convert::TryFrom;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::{Arc, Weak};
 use thiserror::Error;
@@ -87,7 +88,7 @@ where
         self.inner.type_
     }
 
-    pub fn get_format<E: Into<FormatConversionError>, T: Fmt<E>>(&self) -> Result<T, GFmtError> {
+    pub fn get_format<T: TryFrom<bindings::v4l2_format>>(&self) -> Result<T, GFmtError> {
         ioctl::g_fmt(&self.inner, self.inner.type_)
     }
 
@@ -96,14 +97,14 @@ where
     /// the format on one queue can change the options available on another.
     pub fn set_format(&mut self, format: Format) -> Result<Format, SFmtError> {
         let type_ = self.inner.type_;
-        ioctl::s_fmt(&mut self.inner, type_, format)
+        ioctl::s_fmt(&mut self.inner, (type_, format))
     }
 
     /// Performs exactly as `set_format`, but does not actually apply `format`.
     /// Useful to check what modifications need to be done to a format before it
     /// can be used.
     pub fn try_format(&self, format: Format) -> Result<Format, TryFmtError> {
-        ioctl::try_fmt(&self.inner, self.inner.type_, format)
+        ioctl::try_fmt(&self.inner, (self.inner.type_, format))
     }
 
     /// Returns a `FormatBuilder` which is set to the currently active format
@@ -168,8 +169,8 @@ impl<'a> FormatBuilder<'a> {
     /// Apply the format built so far. The kernel will adjust the format to fit
     /// the driver's capabilities if needed, and the format actually applied will
     /// be returned.
-    pub fn apply<E: Into<FormatConversionError>, T: ioctl::Fmt<E>>(self) -> Result<T, SFmtError> {
-        ioctl::s_fmt(self.queue, self.queue.type_, self.format)
+    pub fn apply<O: TryFrom<bindings::v4l2_format>>(self) -> Result<O, SFmtError> {
+        ioctl::s_fmt(self.queue, (self.queue.type_, self.format))
     }
 
     /// Try to apply the format built so far. The kernel will adjust the format
@@ -179,7 +180,7 @@ impl<'a> FormatBuilder<'a> {
     /// Calling `apply()` right after this method is guaranteed to successfully
     /// apply the format without further change.
     pub fn try_apply(&mut self) -> Result<(), TryFmtError> {
-        let new_format = ioctl::try_fmt(self.queue, self.queue.type_, self.format.clone())?;
+        let new_format = ioctl::try_fmt(self.queue, (self.queue.type_, self.format.clone()))?;
 
         self.format = new_format;
         Ok(())
