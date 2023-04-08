@@ -12,6 +12,7 @@ mod dqbuf;
 mod encoder_cmd;
 mod enum_fmt;
 mod expbuf;
+mod framesizes;
 mod g_ext_ctrls;
 mod g_fmt;
 mod g_input;
@@ -25,13 +26,13 @@ mod reqbufs;
 mod request;
 mod streamon;
 mod subscribe_event;
-mod framesizes;
 
 pub use decoder_cmd::*;
 pub use dqbuf::*;
 pub use encoder_cmd::*;
 pub use enum_fmt::*;
 pub use expbuf::*;
+pub use framesizes::*;
 pub use g_ext_ctrls::*;
 pub use g_fmt::*;
 pub use g_input::*;
@@ -46,7 +47,6 @@ pub use reqbufs::*;
 pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
-pub use framesizes::*;
 
 use std::fmt::Debug;
 

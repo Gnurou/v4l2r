@@ -9,7 +9,6 @@ pub fn export_dmabufs(format: &Format, nb_buffers: usize) -> Result<Vec<Vec<DmaB
     let heap = DmaBufHeap::new(DmaBufHeapType::System).unwrap();
 
     let fds: Vec<Vec<DmaBufHandle<File>>> = (0..nb_buffers)
-        .into_iter()
         .map(|_| {
             format
                 .plane_fmt

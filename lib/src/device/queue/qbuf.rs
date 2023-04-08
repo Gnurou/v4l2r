@@ -211,7 +211,6 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
         // that it matches with P.
 
         let mut planes: Vec<_> = (0..self.num_expected_planes())
-            .into_iter()
             .map(|_| ioctl::QBufPlane::new(0))
             .collect();
         for (index, plane) in planes.iter_mut().enumerate() {
@@ -275,7 +274,6 @@ where
 {
     pub fn queue(self) -> Result<(), ioctl::QBufError> {
         let planes: Vec<_> = (0..self.num_expected_planes())
-            .into_iter()
             .map(|_| ioctl::QBufPlane::new(0))
             .collect();
 

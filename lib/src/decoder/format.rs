@@ -27,7 +27,6 @@ impl<S: io::Read> PatternSplitter<S> {
 
         // The stream must begin by our header, or it is invalid.
         let stream_start = (0..pattern.len())
-            .into_iter()
             .map(|_| stream.next().unwrap_or(Ok(0)).unwrap_or(0))
             .collect::<Vec<_>>();
 

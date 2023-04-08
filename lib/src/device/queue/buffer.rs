@@ -115,7 +115,6 @@ mod tests {
         assert_eq!(buffer_stats.num_queued(), 0);
 
         let buffers = (0..NUM_BUFFERS)
-            .into_iter()
             .map(|i| {
                 let querybuf = ioctl::QueryBuffer {
                     index: i,
