@@ -20,6 +20,7 @@ bitflags! {
 
 }
 
+#[derive(Debug)]
 pub enum EventType {
     VSync,
     Eos,
