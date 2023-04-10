@@ -64,10 +64,10 @@ pub enum Event {
     SrcChangeEvent(SrcChanges),
 }
 
-impl TryFrom<&bindings::v4l2_event> for Event {
+impl TryFrom<bindings::v4l2_event> for Event {
     type Error = EventConversionError;
 
-    fn try_from(value: &bindings::v4l2_event) -> Result<Self, Self::Error> {
+    fn try_from(value: bindings::v4l2_event) -> Result<Self, Self::Error> {
         Ok(match value.type_ {
             bindings::V4L2_EVENT_VSYNC => todo!(),
             bindings::V4L2_EVENT_EOS => todo!(),
@@ -165,8 +165,8 @@ pub enum DqEventError {
     #[error("no event ready for dequeue")]
     NotReady,
     #[error("error while converting event")]
-    EventConversionError(#[from] EventConversionError),
-    #[error("ioctl error: {0}")]
+    EventConversionError,
+    #[error("unexpected ioctl error: {0}")]
     IoctlError(Errno),
 }
 
@@ -183,16 +183,21 @@ impl From<DqEventError> for Errno {
     fn from(err: DqEventError) -> Self {
         match err {
             DqEventError::NotReady => Errno::ENOENT,
-            DqEventError::EventConversionError(_) => Errno::EINVAL,
+            DqEventError::EventConversionError => Errno::EINVAL,
             DqEventError::IoctlError(e) => e,
         }
     }
 }
 
-pub fn dqevent(fd: &impl AsRawFd) -> Result<Event, DqEventError> {
+pub fn dqevent<O: TryFrom<bindings::v4l2_event>>(fd: &impl AsRawFd) -> Result<O, DqEventError> {
     // Safe because this struct is expected to be initialized to 0.
     let mut event: bindings::v4l2_event = unsafe { mem::zeroed() };
-    unsafe { ioctl::vidioc_dqevent(fd.as_raw_fd(), &mut event) }?;
 
-    Ok((&event).try_into()?)
+    match unsafe { ioctl::vidioc_dqevent(fd.as_raw_fd(), &mut event) } {
+        Ok(_) => Ok(event
+            .try_into()
+            .map_err(|_| DqEventError::EventConversionError)?),
+        Err(Errno::ENOENT) => Err(DqEventError::NotReady),
+        Err(e) => Err(DqEventError::IoctlError(e)),
+    }
 }
