@@ -54,6 +54,9 @@ fn is_drc_event_pending(device: &Device) -> Result<bool, ioctl::DqEventError> {
                     drc_pending = true;
                 }
             }
+            ioctl::Event::Eos => {
+                debug!("Received EOS event");
+            }
         }
     }
 }

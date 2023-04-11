@@ -63,6 +63,7 @@ bitflags! {
 #[derive(Debug)]
 pub enum Event {
     SrcChangeEvent(SrcChanges),
+    Eos,
 }
 
 impl TryFrom<bindings::v4l2_event> for Event {
@@ -71,7 +72,7 @@ impl TryFrom<bindings::v4l2_event> for Event {
     fn try_from(value: bindings::v4l2_event) -> Result<Self, Self::Error> {
         Ok(match value.type_ {
             bindings::V4L2_EVENT_VSYNC => todo!(),
-            bindings::V4L2_EVENT_EOS => todo!(),
+            bindings::V4L2_EVENT_EOS => Event::Eos,
             bindings::V4L2_EVENT_CTRL => todo!(),
             bindings::V4L2_EVENT_FRAME_SYNC => todo!(),
             bindings::V4L2_EVENT_SOURCE_CHANGE => {
