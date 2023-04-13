@@ -190,7 +190,7 @@ where
             } => {
                 // We can receive the LAST buffer, send the STOP command
                 // and exit the loop once the buffer with the LAST tag is received.
-                ioctl::decoder_cmd(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
+                ioctl::decoder_cmd::<_, ()>(&*self.device, ioctl::DecoderCommand::Stop).unwrap();
                 if blocking {
                     // If we are blocking, we will send the answer when the drain
                     // is completed.

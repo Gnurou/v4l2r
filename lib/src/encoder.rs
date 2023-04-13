@@ -341,7 +341,7 @@ where
 {
     /// Stop the encoder, and returns the encoder ready to be started again.
     pub fn stop(self) -> Result<Encoder<ReadyToEncode<OP, P>>, EncoderStopError> {
-        ioctl::encoder_cmd(&*self.device, &EncoderCommand::Stop(false))?;
+        ioctl::encoder_cmd::<_, ()>(&*self.device, &EncoderCommand::Stop(false))?;
 
         // The encoder thread should receive the LAST buffer and exit on its own.
         let encoding_thread = self
