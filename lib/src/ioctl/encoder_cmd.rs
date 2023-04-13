@@ -23,7 +23,7 @@ pub enum EncoderCmdError {
     #[error("drain already in progress")]
     DrainInProgress,
     #[error("command not supported by device")]
-    UnsupportedCommand(EncoderCommand),
+    UnsupportedCommand,
     #[error("ioctl error: {0}")]
     IoctlError(Errno),
 }
@@ -32,24 +32,24 @@ impl From<EncoderCmdError> for Errno {
     fn from(err: EncoderCmdError) -> Self {
         match err {
             EncoderCmdError::DrainInProgress => Errno::EBUSY,
-            EncoderCmdError::UnsupportedCommand(_) => Errno::EINVAL,
+            EncoderCmdError::UnsupportedCommand => Errno::EINVAL,
             EncoderCmdError::IoctlError(e) => e,
         }
     }
 }
 
-fn map_nix_error(error: Errno, command: EncoderCommand) -> EncoderCmdError {
+fn map_nix_error(error: Errno) -> EncoderCmdError {
     match error {
         Errno::EBUSY => EncoderCmdError::DrainInProgress,
-        Errno::EINVAL => EncoderCmdError::UnsupportedCommand(command),
+        Errno::EINVAL => EncoderCmdError::UnsupportedCommand,
         e => EncoderCmdError::IoctlError(e),
     }
 }
 
-impl From<EncoderCommand> for bindings::v4l2_encoder_cmd {
-    fn from(command: EncoderCommand) -> Self {
+impl From<&EncoderCommand> for bindings::v4l2_encoder_cmd {
+    fn from(command: &EncoderCommand) -> Self {
         bindings::v4l2_encoder_cmd {
-            cmd: match &command {
+            cmd: match command {
                 EncoderCommand::Start => bindings::V4L2_ENC_CMD_START,
                 EncoderCommand::Stop(_) => bindings::V4L2_ENC_CMD_STOP,
                 EncoderCommand::Pause => bindings::V4L2_ENC_CMD_PAUSE,
@@ -64,20 +64,26 @@ impl From<EncoderCommand> for bindings::v4l2_encoder_cmd {
     }
 }
 
-pub fn encoder_cmd(fd: &impl AsRawFd, command: EncoderCommand) -> Result<(), EncoderCmdError> {
-    let mut enc_cmd = bindings::v4l2_encoder_cmd::from(command);
+pub fn encoder_cmd<I: Into<bindings::v4l2_encoder_cmd>>(
+    fd: &impl AsRawFd,
+    command: I,
+) -> Result<(), EncoderCmdError> {
+    let mut enc_cmd = command.into();
 
     match unsafe { ioctl::vidioc_encoder_cmd(fd.as_raw_fd(), &mut enc_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e, command)),
+        Err(e) => Err(map_nix_error(e)),
     }
 }
 
-pub fn try_encoder_cmd(fd: &impl AsRawFd, command: EncoderCommand) -> Result<(), EncoderCmdError> {
-    let mut enc_cmd = bindings::v4l2_encoder_cmd::from(command);
+pub fn try_encoder_cmd<I: Into<bindings::v4l2_encoder_cmd>>(
+    fd: &impl AsRawFd,
+    command: I,
+) -> Result<(), EncoderCmdError> {
+    let mut enc_cmd = command.into();
 
     match unsafe { ioctl::vidioc_try_encoder_cmd(fd.as_raw_fd(), &mut enc_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e, command)),
+        Err(e) => Err(map_nix_error(e)),
     }
 }

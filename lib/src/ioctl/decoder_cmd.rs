@@ -25,7 +25,7 @@ pub enum DecoderCmdError {
     #[error("drain already in progress")]
     DrainInProgress,
     #[error("command not supported by device")]
-    UnsupportedCommand(DecoderCommand),
+    UnsupportedCommand,
     #[error("ioctl error: {0}")]
     IoctlError(Errno),
 }
@@ -34,16 +34,16 @@ impl From<DecoderCmdError> for Errno {
     fn from(err: DecoderCmdError) -> Self {
         match err {
             DecoderCmdError::DrainInProgress => Errno::EBUSY,
-            DecoderCmdError::UnsupportedCommand(_) => Errno::EINVAL,
+            DecoderCmdError::UnsupportedCommand => Errno::EINVAL,
             DecoderCmdError::IoctlError(e) => e,
         }
     }
 }
 
-fn map_nix_error(error: Errno, command: DecoderCommand) -> DecoderCmdError {
+fn map_nix_error(error: Errno) -> DecoderCmdError {
     match error {
         Errno::EBUSY => DecoderCmdError::DrainInProgress,
-        Errno::EINVAL => DecoderCmdError::UnsupportedCommand(command),
+        Errno::EINVAL => DecoderCmdError::UnsupportedCommand,
         e => DecoderCmdError::IoctlError(e),
     }
 }
@@ -62,20 +62,26 @@ impl From<DecoderCommand> for bindings::v4l2_decoder_cmd {
     }
 }
 
-pub fn decoder_cmd(fd: &impl AsRawFd, command: DecoderCommand) -> Result<(), DecoderCmdError> {
-    let mut dec_cmd = bindings::v4l2_decoder_cmd::from(command);
+pub fn decoder_cmd<I: Into<bindings::v4l2_decoder_cmd>>(
+    fd: &impl AsRawFd,
+    command: I,
+) -> Result<(), DecoderCmdError> {
+    let mut dec_cmd = command.into();
 
     match unsafe { ioctl::vidioc_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e, command)),
+        Err(e) => Err(map_nix_error(e)),
     }
 }
 
-pub fn try_decoder_cmd(fd: &impl AsRawFd, command: DecoderCommand) -> Result<(), DecoderCmdError> {
-    let mut dec_cmd = bindings::v4l2_decoder_cmd::from(command);
+pub fn try_decoder_cmd<I: Into<bindings::v4l2_decoder_cmd>>(
+    fd: &impl AsRawFd,
+    command: I,
+) -> Result<(), DecoderCmdError> {
+    let mut dec_cmd = command.into();
 
     match unsafe { ioctl::vidioc_try_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e, command)),
+        Err(e) => Err(map_nix_error(e)),
     }
 }
