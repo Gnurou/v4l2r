@@ -38,11 +38,13 @@ impl From<EncoderCmdError> for Errno {
     }
 }
 
-fn map_nix_error(error: Errno) -> EncoderCmdError {
-    match error {
-        Errno::EBUSY => EncoderCmdError::DrainInProgress,
-        Errno::EINVAL => EncoderCmdError::UnsupportedCommand,
-        e => EncoderCmdError::IoctlError(e),
+impl From<Errno> for EncoderCmdError {
+    fn from(error: Errno) -> Self {
+        match error {
+            Errno::EBUSY => EncoderCmdError::DrainInProgress,
+            Errno::EINVAL => EncoderCmdError::UnsupportedCommand,
+            e => EncoderCmdError::IoctlError(e),
+        }
     }
 }
 
@@ -72,7 +74,7 @@ pub fn encoder_cmd<I: Into<bindings::v4l2_encoder_cmd>>(
 
     match unsafe { ioctl::vidioc_encoder_cmd(fd.as_raw_fd(), &mut enc_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e)),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -84,6 +86,6 @@ pub fn try_encoder_cmd<I: Into<bindings::v4l2_encoder_cmd>>(
 
     match unsafe { ioctl::vidioc_try_encoder_cmd(fd.as_raw_fd(), &mut enc_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e)),
+        Err(e) => Err(e.into()),
     }
 }

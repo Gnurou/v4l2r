@@ -40,11 +40,13 @@ impl From<DecoderCmdError> for Errno {
     }
 }
 
-fn map_nix_error(error: Errno) -> DecoderCmdError {
-    match error {
-        Errno::EBUSY => DecoderCmdError::DrainInProgress,
-        Errno::EINVAL => DecoderCmdError::UnsupportedCommand,
-        e => DecoderCmdError::IoctlError(e),
+impl From<Errno> for DecoderCmdError {
+    fn from(error: Errno) -> Self {
+        match error {
+            Errno::EBUSY => DecoderCmdError::DrainInProgress,
+            Errno::EINVAL => DecoderCmdError::UnsupportedCommand,
+            e => DecoderCmdError::IoctlError(e),
+        }
     }
 }
 
@@ -70,7 +72,7 @@ pub fn decoder_cmd<I: Into<bindings::v4l2_decoder_cmd>>(
 
     match unsafe { ioctl::vidioc_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e)),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -82,6 +84,6 @@ pub fn try_decoder_cmd<I: Into<bindings::v4l2_decoder_cmd>>(
 
     match unsafe { ioctl::vidioc_try_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(map_nix_error(e)),
+        Err(e) => Err(e.into()),
     }
 }
