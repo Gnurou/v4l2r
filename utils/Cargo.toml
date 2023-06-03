@@ -11,4 +11,4 @@ v4l2r = { path = "../lib" }
 thiserror = "1.0"
 anyhow = "1.0"
 log = "0.4.14"
-dma-heap = { git = "https://github.com/mripard/dma-heap" }
+dma-heap = "0.2.1"
