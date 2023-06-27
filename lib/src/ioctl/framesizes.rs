@@ -7,6 +7,12 @@ pub trait FrameSize {
     fn from(input: bindings::v4l2_frmsizeenum) -> Self;
 }
 
+impl FrameSize for bindings::v4l2_frmsizeenum {
+    fn from(input: bindings::v4l2_frmsizeenum) -> Self {
+        input
+    }
+}
+
 #[doc(hidden)]
 mod ioctl {
     use crate::bindings::v4l2_frmsizeenum;
