@@ -112,7 +112,7 @@ impl Waker {
         })
     }
 
-    /// Users will want to use the `wake()` method on an Arc<Waker>.
+    /// Users will want to use the `wake()` method on an `Arc<Waker>`.
     fn wake_direct(&self) -> io::Result<()> {
         let buf = 1u64.to_ne_bytes();
         // Files support concurrent access at the OS level. The implementation
