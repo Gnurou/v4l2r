@@ -1,12 +1,45 @@
-//! Safer versions of the V4L2 ioctls through simple functions working on a
-//! `RawFd` and Rust variants of the V4L2 structures. This module can be used
-//! directly if that's the level of abstraction you are aiming for, but the
-//! `device` module is very likely to be a better fit.
+//! Provides safer versions of the V4L2 ioctls through simple functions working on a `RawFd`, and
+//! safer variants of the main V4L2 structures. This module can be used directly, but the `device`
+//! module is very likely to be a better fit for application code.
 //!
-//! ioctl functions of this module typically take the input parameters as
-//! argument, and only return the values written by the kernel. Therefore,
-//! although the return types look similar to the kernel structures, they are
-//! not strictly identical.
+//! V4L2 ioctls are usually called with a single structure as argument, which serves to store both
+//! the input and output of the ioctl. This tend to be error prone.
+//!
+//! Consequently, each ioctl proxy function is designed as follows:
+//!
+//! * The parameters of the function correspond to the input values of the ioctl.
+//! * The returned value of the function is a value that can be constructed from the ioctl's
+//! structure parameter (i.e. it can be the parameter itself)
+//!
+//! For instance, the `VIDIOC_G_FMT` ioctl takes a `struct v4l2_format` as argument, but only the
+//! its `type` field is set by user-space - the rest of the structure is to be filled by the
+//! driver.
+//!
+//! Therefore, our `[g_fmt]` ioctl proxy function takes the requested queue type as argument and
+//! takes care of managing the `struct v4l2_format` to be passed to the kernel. The filled
+//! structure is then converted into the type desired by the caller using `TryFrom<v4l2_format>`:
+//!
+//! ```text
+//! pub fn g_fmt<O: TryFrom<bindings::v4l2_format>>(
+//!     fd: &impl AsRawFd,
+//!     queue: QueueType,
+//! ) -> Result<O, GFmtError>;
+//! ```
+//!
+//! Since `struct v4l2_format` has C unions that are unsafe to use in Rust, the `[Format]` type can
+//! be used as the output type of this function, to validate the `struct v4l2_format` returned by
+//! the kernel and convert it to a safe type.
+//!
+//! Most ioctls also have their own error type: this helps discern scenarios where the ioctl
+//! returned non-zero, but the situation is not necessarily an error. For instance, `VIDIOC_DQBUF`
+//! can return -EAGAIN if no buffer is available to dequeue, which is not an error and thus is
+//! represented by its own variant. Actual errors are captured by the `IoctlError` variant, and all
+//! error types can be converted to their original error code using their `Into<Errno>`
+//! implementation.
+//!
+//! All the ioctls of this module are implemented following this model, which should be safer to
+//! use and less prone to user errors.
+
 mod decoder_cmd;
 mod dqbuf;
 mod encoder_cmd;
