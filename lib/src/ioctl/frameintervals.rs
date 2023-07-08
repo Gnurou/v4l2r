@@ -30,13 +30,13 @@ pub fn enum_frame_intervals<T: FrameIntervals>(
     index: u32,
     pixel_format: PixelFormat,
     width: u32,
-    heigth: u32,
+    height: u32,
 ) -> Result<T, FrameIntervalsError> {
     let mut frame_interval = bindings::v4l2_frmivalenum {
         index,
         pixel_format: pixel_format.into(),
-        width: width,
-        height: heigth,
+        width,
+        height,
         ..unsafe { std::mem::zeroed() }
     };
 
