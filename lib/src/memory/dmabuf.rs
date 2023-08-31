@@ -3,7 +3,7 @@ use log::warn;
 
 use super::*;
 use crate::{bindings, ioctl};
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{AsFd, AsRawFd};
 
 pub struct DmaBuf;
 
@@ -15,7 +15,7 @@ impl Memory for DmaBuf {
 
 impl Imported for DmaBuf {}
 
-pub trait DmaBufSource: AsRawFd + Debug + Send {
+pub trait DmaBufSource: AsRawFd + AsFd + Debug + Send {
     fn len(&self) -> u64;
 
     /// Make Clippy happy.

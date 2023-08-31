@@ -1,14 +1,15 @@
+use core::num::NonZeroUsize;
 use std::{
     cmp::{max, min},
     ops::Deref,
     slice,
 };
-use std::{ops::DerefMut, os::unix::io::AsRawFd};
+use std::{ops::DerefMut, os::unix::io::AsFd};
 
 use log::error;
 use nix::{
     errno::Errno,
-    libc::{c_void, off_t, size_t},
+    libc::{c_void, off_t},
     sys::mman,
 };
 use thiserror::Error;
@@ -88,14 +89,15 @@ impl From<MmapError> for Errno {
 
 // TODO should be unsafe because the mapping can be used after a buffer is queued?
 // Or not, since this cannot cause a crash...
-pub fn mmap(fd: &impl AsRawFd, mem_offset: u32, length: u32) -> Result<PlaneMapping, MmapError> {
+pub fn mmap(fd: &impl AsFd, mem_offset: u32, length: u32) -> Result<PlaneMapping, MmapError> {
+    let non_zero_length = NonZeroUsize::new(length as usize).unwrap();
     let data = unsafe {
         mman::mmap(
-            std::ptr::null_mut::<c_void>(),
-            length as size_t,
+            None,
+            non_zero_length,
             mman::ProtFlags::PROT_READ | mman::ProtFlags::PROT_WRITE,
             mman::MapFlags::MAP_SHARED,
-            fd.as_raw_fd(),
+            Some(fd),
             mem_offset as off_t,
         )
     }?;

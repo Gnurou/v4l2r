@@ -2,6 +2,7 @@
 use super::*;
 use crate::{bindings, ioctl};
 use std::fmt::Debug;
+use std::os::fd::AsFd;
 
 #[derive(Default)]
 pub struct Mmap;
@@ -26,7 +27,7 @@ impl PlaneHandle for MmapHandle {
 }
 
 impl Mappable for MmapHandle {
-    fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping> {
+    fn map<D: AsFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping> {
         ioctl::mmap(device, plane_info.mem_offset, plane_info.length).ok()
     }
 }

@@ -22,7 +22,7 @@ use super::ioctl::Capability;
 use super::QueueType;
 use std::collections::BTreeSet;
 use std::fs::File;
-use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, RawFd};
 use std::{path::Path, sync::Mutex};
 use thiserror::Error;
 
@@ -95,6 +95,12 @@ impl Device {
     /// Returns the capabilities of the device, i.e. the result of QUERYCAPS.
     pub fn caps(&self) -> &Capability {
         &self.capability
+    }
+}
+
+impl AsFd for Device {
+    fn as_fd(&self) -> BorrowedFd {
+        self.fd.as_fd()
     }
 }
 

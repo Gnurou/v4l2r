@@ -1,7 +1,7 @@
 use nix::libc::c_int;
 use nix::poll::{poll, PollFd};
 use std::fs::File;
-use std::os::unix::io::{AsRawFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, RawFd};
 use std::os::unix::prelude::FromRawFd;
 use thiserror::Error;
 
@@ -64,11 +64,11 @@ impl Request {
 
     pub fn poll(
         &self,
-        video_fd: &impl AsRawFd,
+        video_fd: &impl AsFd,
         events: PollFlags,
         timeout: Option<u32>,
     ) -> Result<PollFlags, RequestError> {
-        let mut poll_fd = [PollFd::new(video_fd.as_raw_fd(), events)];
+        let mut poll_fd = [PollFd::new(video_fd, events)];
         let timeout = timeout.map_or(-1, |v| v as i32);
 
         match poll(&mut poll_fd, timeout) {
