@@ -42,7 +42,7 @@ use crate::{
 };
 use enumn::N;
 use std::fmt::Debug;
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::AsFd;
 
 /// All the supported V4L2 memory types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, N)]
@@ -87,7 +87,7 @@ pub trait PlaneHandle: Debug + Send + 'static {
 // method (typically, MMAP buffers).
 pub trait Mappable: PlaneHandle {
     /// Return a `PlaneMapping` enabling access to the memory of this handle.
-    fn map<D: AsRawFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
+    fn map<D: AsFd>(device: &D, plane_info: &QueryBufPlane) -> Option<PlaneMapping>;
 }
 
 /// Trait for structures providing all the handles of a single buffer.

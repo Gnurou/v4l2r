@@ -10,7 +10,6 @@ use std::{
     fs::File,
     io::{self, Read, Write},
     mem,
-    os::unix::io::{AsRawFd, FromRawFd},
     sync::atomic::{AtomicUsize, Ordering},
     sync::Arc,
     task::Wake,
@@ -18,7 +17,7 @@ use std::{
 
 use log::{error, warn};
 use nix::sys::{
-    epoll::{self, EpollEvent, EpollFlags},
+    epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags},
     eventfd::{eventfd, EfdFlags},
 };
 use thiserror::Error;
@@ -107,9 +106,7 @@ impl Waker {
     fn new() -> io::Result<Self> {
         let fd = eventfd(0, EfdFlags::EFD_CLOEXEC | EfdFlags::EFD_NONBLOCK)?;
 
-        Ok(Waker {
-            fd: unsafe { File::from_raw_fd(fd) },
-        })
+        Ok(Waker { fd: File::from(fd) })
     }
 
     /// Users will want to use the `wake()` method on an `Arc<Waker>`.
@@ -147,7 +144,7 @@ impl Wake for Waker {
 pub struct Poller {
     device: Arc<Device>,
     wakers: BTreeMap<u32, Arc<Waker>>,
-    epoll: File,
+    epoll: Epoll,
 
     // Whether or not to listen to specific device events.
     capture_enabled: bool,
@@ -176,8 +173,7 @@ pub enum PollError {
 
 impl Poller {
     pub fn new(device: Arc<Device>) -> nix::Result<Self> {
-        let epoll = epoll::epoll_create1(epoll::EpollCreateFlags::EPOLL_CLOEXEC)
-            .map(|fd| unsafe { File::from_raw_fd(fd) })?;
+        let epoll = Epoll::new(EpollCreateFlags::EPOLL_CLOEXEC)?;
 
         // Register our device.
         // There is a bug in some Linux kernels (at least 5.9 and older) where EPOLLIN
@@ -188,23 +184,16 @@ impl Poller {
         // CAPTURE queue is not streaming, but it will set the right hooks in the kernel
         // and we can now reconfigure our events to only include EPOLLPRI and have poll
         // working as expected.
-        epoll::epoll_ctl(
-            epoll.as_raw_fd(),
-            epoll::EpollOp::EpollCtlAdd,
-            device.as_raw_fd(),
-            Some(&mut EpollEvent::new(EpollFlags::EPOLLIN, DEVICE_ID)),
-        )?;
+        epoll.add(&device, EpollEvent::new(EpollFlags::EPOLLIN, DEVICE_ID))?;
         // This call should return an EPOLLERR event immediately. But it will
         // also ensure that the CAPTURE and OUTPUT poll handlers are registered
         // in the kernel for our device.
-        epoll::epoll_wait(epoll.as_raw_fd(), &mut [EpollEvent::empty()], 10)?;
+        epoll.wait(&mut [EpollEvent::empty()], 10)?;
         // Now reset our device events. We must keep it registered for the
         // workaround's effect to persist.
-        epoll::epoll_ctl(
-            epoll.as_raw_fd(),
-            epoll::EpollOp::EpollCtlMod,
-            device.as_raw_fd(),
-            Some(&mut EpollEvent::new(EpollFlags::empty(), DEVICE_ID)),
+        epoll.modify(
+            &device,
+            &mut EpollEvent::new(EpollFlags::empty(), DEVICE_ID),
         )?;
 
         Ok(Poller {
@@ -226,14 +215,9 @@ impl Poller {
             std::collections::btree_map::Entry::Vacant(entry) => {
                 let waker = Waker::new()?;
 
-                epoll::epoll_ctl(
-                    self.epoll.as_raw_fd(),
-                    epoll::EpollOp::EpollCtlAdd,
-                    waker.fd.as_raw_fd(),
-                    Some(&mut EpollEvent::new(
-                        EpollFlags::EPOLLIN,
-                        FIRST_WAKER_ID + id as u64,
-                    )),
+                self.epoll.add(
+                    &waker.fd,
+                    EpollEvent::new(EpollFlags::EPOLLIN, FIRST_WAKER_ID + id as u64),
                 )?;
 
                 let waker = Arc::new(waker);
@@ -254,15 +238,7 @@ impl Poller {
                 format!("No waker with id {} in this poller", id),
             )),
             std::collections::btree_map::Entry::Occupied(entry) => {
-                epoll::epoll_ctl(
-                    self.epoll.as_raw_fd(),
-                    epoll::EpollOp::EpollCtlDel,
-                    entry.get().fd.as_raw_fd(),
-                    Some(&mut EpollEvent::new(
-                        EpollFlags::EPOLLIN,
-                        FIRST_WAKER_ID + id as u64,
-                    )),
-                )?;
+                self.epoll.delete(&entry.get().fd)?;
 
                 Ok(entry.remove())
             }
@@ -287,13 +263,9 @@ impl Poller {
 
         let mut epoll_event = EpollEvent::new(epoll_flags, DEVICE_ID);
 
-        epoll::epoll_ctl(
-            self.epoll.as_raw_fd(),
-            epoll::EpollOp::EpollCtlMod,
-            self.device.as_raw_fd(),
-            Some(&mut epoll_event),
-        )
-        .map(|_| ())
+        self.epoll
+            .modify(&self.device, &mut epoll_event)
+            .map(|_| ())
     }
 
     fn set_event(&mut self, event: DeviceEvent, enable: bool) -> nix::Result<()> {
@@ -338,7 +310,9 @@ impl Poller {
             Some(d) => d.as_millis() as isize,
         };
 
-        events.nb_events = epoll::epoll_wait(self.epoll.as_raw_fd(), &mut events.events, duration)
+        events.nb_events = self
+            .epoll
+            .wait(&mut events.events, duration)
             .map_err(PollError::EPollWait)?;
 
         // Update our wake up stats

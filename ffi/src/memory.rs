@@ -4,6 +4,7 @@ use log::{error, trace};
 use std::{
     collections::VecDeque,
     os::{
+        fd::{AsFd, BorrowedFd},
         raw::c_int,
         unix::io::{AsRawFd, RawFd},
     },
@@ -45,6 +46,12 @@ impl DmaBufFd {
     /// is dropped ; thus the caller is responsible for managing its lifetime.
     pub fn new(fd: RawFd, len: u64) -> DmaBufFd {
         DmaBufFd { fd, len }
+    }
+}
+
+impl AsFd for DmaBufFd {
+    fn as_fd(&self) -> BorrowedFd {
+        unsafe { BorrowedFd::borrow_raw(self.fd) }
     }
 }
 
