@@ -13,6 +13,7 @@ use crate::bindings;
 use bitflags::bitflags;
 
 bitflags! {
+    #[derive(Clone, Copy, Debug)]
     pub struct SubscribeEventFlags: u32 {
         const SEND_INITIAL = bindings::V4L2_EVENT_SUB_FL_SEND_INITIAL;
         const ALLOW_FEEDBACK = bindings::V4L2_EVENT_SUB_FL_ALLOW_FEEDBACK;
@@ -55,6 +56,7 @@ impl TryFrom<&bindings::v4l2_event_subscription> for EventType {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug)]
     pub struct SrcChanges: u32 {
         const RESOLUTION = bindings::V4L2_EVENT_SRC_CH_RESOLUTION;
     }

@@ -10,6 +10,7 @@ use crate::{bindings, QueueType};
 
 bitflags! {
     /// Flags that can be passed when exporting the buffer.
+    #[derive(Clone, Copy, Debug)]
     pub struct ExpbufFlags: u32 {
         const CLOEXEC = OFlag::O_CLOEXEC.bits() as u32;
         const RDONLY = OFlag::O_RDONLY.bits() as u32;

@@ -17,7 +17,7 @@ bitflags! {
     /// Flags corresponding to the `flags` field of `struct v4l2_buffer`.
     /// TODO split into two types, one for the user -> kernel and another for
     /// the kernel -> user direction to filter invalid flags?
-    #[derive(Default)]
+    #[derive(Clone, Copy, Debug, Default)]
     pub struct BufferFlags: u32 {
         const MAPPED = bindings::V4L2_BUF_FLAG_MAPPED;
         const QUEUED = bindings::V4L2_BUF_FLAG_QUEUED;
@@ -161,7 +161,7 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
 impl<H: PlaneHandle> QBuffer<H> {
     fn fill_common_v4l2_data(&self, v4l2_buf: &mut bindings::v4l2_buffer) {
         v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
-        v4l2_buf.flags = self.flags.bits;
+        v4l2_buf.flags = self.flags.bits();
         v4l2_buf.field = self.field;
         v4l2_buf.sequence = self.sequence;
         v4l2_buf.timestamp.tv_sec = self.timestamp.tv_sec();
