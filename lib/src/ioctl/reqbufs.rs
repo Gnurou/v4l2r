@@ -22,6 +22,7 @@ impl ReqBufs for bindings::v4l2_requestbuffers {
 bitflags! {
     /// Flags returned by the `VIDIOC_REQBUFS` ioctl into the `capabilities`
     /// field of `struct v4l2_requestbuffers`.
+    #[derive(Clone, Copy, Debug)]
     pub struct BufferCapabilities: u32 {
         const SUPPORTS_MMAP = bindings::V4L2_BUF_CAP_SUPPORTS_MMAP;
         const SUPPORTS_USERPTR = bindings::V4L2_BUF_CAP_SUPPORTS_USERPTR;

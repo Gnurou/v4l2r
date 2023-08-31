@@ -31,6 +31,7 @@ impl CtrlId {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug)]
     pub struct QueryCtrlFlags: u32 {
         const NEXT = bindings::V4L2_CTRL_FLAG_NEXT_CTRL;
         const COMPOUND = bindings::V4L2_CTRL_FLAG_NEXT_COMPOUND;

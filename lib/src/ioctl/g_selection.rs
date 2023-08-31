@@ -31,6 +31,7 @@ pub enum SelectionTarget {
 }
 
 bitflags! {
+    #[derive(Clone, Copy, Debug)]
     pub struct SelectionFlags: u32 {
         const GE = bindings::V4L2_SEL_FLAG_GE;
         const LE = bindings::V4L2_SEL_FLAG_LE;

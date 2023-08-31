@@ -22,6 +22,7 @@ impl QueryCap for bindings::v4l2_capability {
 bitflags! {
     /// Flags returned by the `VIDIOC_QUERYCAP` ioctl into the `capabilities`
     /// or `device_capabilities` field of `v4l2_capability`.
+    #[derive(Clone, Copy, Debug)]
     pub struct Capabilities: u32 {
         const VIDEO_CAPTURE = bindings::V4L2_CAP_VIDEO_CAPTURE;
         const VIDEO_OUTPUT = bindings::V4L2_CAP_VIDEO_OUTPUT;

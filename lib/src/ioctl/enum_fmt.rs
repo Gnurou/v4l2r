@@ -24,6 +24,7 @@ impl EnumFmt for bindings::v4l2_fmtdesc {
 bitflags! {
     /// Flags returned by the `VIDIOC_ENUM_FMT` ioctl into the `flags` field of
     /// `struct v4l2_fmtdesc`.
+    #[derive(Clone, Copy, Debug)]
     pub struct FormatFlags: u32 {
         const COMPRESSED = bindings::V4L2_FMT_FLAG_COMPRESSED;
         const EMULATED = bindings::V4L2_FMT_FLAG_EMULATED;

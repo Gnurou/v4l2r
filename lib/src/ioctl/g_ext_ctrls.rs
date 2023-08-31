@@ -81,6 +81,7 @@ pub enum Quantization {
 
 bitflags! {
     /// FWHT Flags.
+    #[derive(Clone, Copy, Debug)]
     pub struct FwhtFlags: u32 {
         const INTERLACED = bindings::V4L2_FWHT_FL_IS_INTERLACED as u32;
         const BOTTOM_FIRST = bindings::V4L2_FWHT_FL_IS_BOTTOM_FIRST as u32;
@@ -113,6 +114,7 @@ pub struct FwhtParams {
 
 bitflags! {
     /// VP8 Segment Flags.
+    #[derive(Clone, Copy, Debug)]
     pub struct VP8SegmentFlags: u32 {
         const ENABLED = bindings::V4L2_VP8_SEGMENT_FLAG_ENABLED;
         const UPDATE_MAP = bindings::V4L2_VP8_SEGMENT_FLAG_UPDATE_MAP;
@@ -154,6 +156,7 @@ impl From<VP8Segment> for bindings::v4l2_vp8_segment {
 
 bitflags! {
     /// VP8 Loop Filter Flags.
+    #[derive(Clone, Copy, Debug)]
     pub struct VP8LoopFilterFlags: u32 {
         const ADJ_ENABLE = bindings::V4L2_VP8_LF_ADJ_ENABLE;
         const DELTA_UPDATE = bindings::V4L2_VP8_LF_DELTA_UPDATE;
@@ -293,6 +296,7 @@ impl From<VP8EntropyCoderState> for bindings::v4l2_vp8_entropy_coder_state {
 
 bitflags! {
     /// VP8 Frame Flags.
+    #[derive(Clone, Copy, Debug)]
     pub struct VP8FrameFlags: u32 {
         const KEY_FRAME = bindings::V4L2_VP8_FRAME_FLAG_KEY_FRAME;
         const EXPERIMENTAL = bindings::V4L2_VP8_FRAME_FLAG_EXPERIMENTAL;
