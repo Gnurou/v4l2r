@@ -75,6 +75,8 @@ impl Drop for PlaneMapping {
 
 #[derive(Debug, Error)]
 pub enum MmapError {
+    #[error("provided length was 0")]
+    ZeroLength,
     #[error("ioctl error: {0}")]
     IoctlError(#[from] Errno),
 }
@@ -82,6 +84,7 @@ pub enum MmapError {
 impl From<MmapError> for Errno {
     fn from(err: MmapError) -> Self {
         match err {
+            MmapError::ZeroLength => Errno::EINVAL,
             MmapError::IoctlError(e) => e,
         }
     }
@@ -90,7 +93,7 @@ impl From<MmapError> for Errno {
 // TODO should be unsafe because the mapping can be used after a buffer is queued?
 // Or not, since this cannot cause a crash...
 pub fn mmap(fd: &impl AsFd, mem_offset: u32, length: u32) -> Result<PlaneMapping, MmapError> {
-    let non_zero_length = NonZeroUsize::new(length as usize).unwrap();
+    let non_zero_length = NonZeroUsize::new(length as usize).ok_or(MmapError::ZeroLength)?;
     let data = unsafe {
         mman::mmap(
             None,
