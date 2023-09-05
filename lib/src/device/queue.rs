@@ -11,8 +11,8 @@ use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::{bindings, memory::*};
 use crate::{
     ioctl::{
-        self, DqBufError, DqBufResult, GFmtError, QueryBuffer, ReqbufsError, SFmtError,
-        SelectionTarget, SelectionType, StreamOffError, StreamOnError, TryFmtError,
+        self, DqBufResult, GFmtError, QueryBuffer, ReqbufsError, SFmtError, SelectionTarget,
+        SelectionType, StreamOffError, StreamOnError, TryFmtError,
     },
     PlaneLayout, Rect,
 };
@@ -485,12 +485,7 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
     type Dequeued = DqBuffer<D, P>;
 
     fn try_dequeue(&self) -> DqBufResult<Self::Dequeued> {
-        let dqbuf: ioctl::V4l2Buffer = match ioctl::dqbuf(&self.inner, self.inner.type_) {
-            Ok(dqbuf) => dqbuf,
-            Err(DqBufError::Eos) => return Err(DqBufError::Eos),
-            Err(DqBufError::NotReady) => return Err(DqBufError::NotReady),
-            Err(DqBufError::IoctlError(e)) => return Err(DqBufError::IoctlError(e)),
-        };
+        let dqbuf: ioctl::V4l2Buffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
 
         let id = dqbuf.index() as usize;
 
