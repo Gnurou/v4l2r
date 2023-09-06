@@ -56,6 +56,16 @@ pub enum QueueType {
     MetaOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_OUTPUT as isize,
 }
 
+impl QueueType {
+    /// Returns whether the queue type is multiplanar.
+    pub fn is_multiplanar(&self) -> bool {
+        matches!(
+            self,
+            QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane
+        )
+    }
+}
+
 impl Display for QueueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(self, f)
