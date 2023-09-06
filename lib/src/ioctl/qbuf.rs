@@ -30,7 +30,9 @@ bitflags! {
 }
 
 #[derive(Debug, Error)]
-pub enum QBufError {
+pub enum QBufError<Q: QueryBuf> {
+    #[error("error while converting from v4l2_buffer: {0}")]
+    ConvertionError(Q::Error),
     #[error("invalid number of planes specified for the buffer: got {0}, expected {1}")]
     NumPlanesMismatch(usize, usize),
     #[error("data offset specified while using the single-planar API")]
@@ -39,15 +41,16 @@ pub enum QBufError {
     IoctlError(Errno),
 }
 
-impl From<Errno> for QBufError {
+impl<Q: QueryBuf> From<Errno> for QBufError<Q> {
     fn from(errno: Errno) -> Self {
         Self::IoctlError(errno)
     }
 }
 
-impl From<QBufError> for Errno {
-    fn from(err: QBufError) -> Self {
+impl<Q: QueryBuf> From<QBufError<Q>> for Errno {
+    fn from(err: QBufError<Q>) -> Self {
         match err {
+            QBufError::ConvertionError(_) => Errno::EINVAL,
             QBufError::NumPlanesMismatch(_, _) => Errno::EINVAL,
             QBufError::DataOffsetNotSupported => Errno::EINVAL,
             QBufError::IoctlError(e) => e,
@@ -56,11 +59,13 @@ impl From<QBufError> for Errno {
 }
 
 /// Implementors can pass buffer data to the `qbuf` ioctl.
-pub trait QBuf {
+pub trait QBuf<Q: QueryBuf> {
     /// Fill the buffer information into the single-planar `v4l2_buf`. Fail if
     /// the number of planes is different from 1.
-    fn fill_splane_v4l2_buffer(self, v4l2_buf: &mut bindings::v4l2_buffer)
-        -> Result<(), QBufError>;
+    fn fill_splane_v4l2_buffer(
+        self,
+        v4l2_buf: &mut bindings::v4l2_buffer,
+    ) -> Result<(), QBufError<Q>>;
     /// Fill the buffer information into the multi-planar `v4l2_buf`, using
     /// `v4l2_planes` to store the plane data. Fail if the number of planes is
     /// not between 1 and `VIDEO_MAX_PLANES` included.
@@ -68,14 +73,14 @@ pub trait QBuf {
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut V4l2BufferPlanes,
-    ) -> Result<(), QBufError>;
+    ) -> Result<(), QBufError<Q>>;
 }
 
-impl QBuf for V4l2Buffer {
+impl<Q: QueryBuf> QBuf<Q> for V4l2Buffer {
     fn fill_splane_v4l2_buffer(
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
-    ) -> Result<(), QBufError> {
+    ) -> Result<(), QBufError<Q>> {
         *v4l2_buf = self.buffer;
 
         Ok(())
@@ -85,7 +90,7 @@ impl QBuf for V4l2Buffer {
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut V4l2BufferPlanes,
-    ) -> Result<(), QBufError> {
+    ) -> Result<(), QBufError<Q>> {
         *v4l2_buf = self.buffer;
         for (dest, src) in v4l2_planes
             .iter_mut()
@@ -172,11 +177,11 @@ impl<H: PlaneHandle> QBuffer<H> {
     }
 }
 
-impl<H: PlaneHandle> QBuf for QBuffer<H> {
+impl<H: PlaneHandle, Q: QueryBuf> QBuf<Q> for QBuffer<H> {
     fn fill_splane_v4l2_buffer(
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
-    ) -> Result<(), QBufError> {
+    ) -> Result<(), QBufError<Q>> {
         if self.planes.len() != 1 {
             return Err(QBufError::NumPlanesMismatch(self.planes.len(), 1));
         }
@@ -197,7 +202,7 @@ impl<H: PlaneHandle> QBuf for QBuffer<H> {
         self,
         v4l2_buf: &mut bindings::v4l2_buffer,
         v4l2_planes: &mut V4l2BufferPlanes,
-    ) -> Result<(), QBufError> {
+    ) -> Result<(), QBufError<Q>> {
         if self.planes.is_empty() || self.planes.len() > v4l2_planes.len() {
             return Err(QBufError::NumPlanesMismatch(
                 self.planes.len(),
@@ -241,12 +246,12 @@ mod ioctl {
 /// accessed by anyone else, the caller also needs to guarantee that the backing
 /// memory won't be freed until the corresponding buffer is returned by either
 /// `dqbuf` or `streamoff`.
-pub fn qbuf<I: QBuf, O: QueryBuf>(
+pub fn qbuf<I: QBuf<O>, O: QueryBuf>(
     fd: &impl AsRawFd,
     queue: QueueType,
     index: usize,
     buf_data: I,
-) -> Result<O, QBufError> {
+) -> Result<O, QBufError<O>> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
@@ -259,10 +264,11 @@ pub fn qbuf<I: QBuf, O: QueryBuf>(
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
 
         unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(O::from_v4l2_buffer(v4l2_buf, Some(plane_data)))
+        Ok(O::try_from_v4l2_buffer(v4l2_buf, Some(plane_data))
+            .map_err(QBufError::ConvertionError)?)
     } else {
         buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
         unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(O::from_v4l2_buffer(v4l2_buf, None))
+        Ok(O::try_from_v4l2_buffer(v4l2_buf, None).map_err(QBufError::ConvertionError)?)
     }
 }

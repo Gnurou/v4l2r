@@ -17,7 +17,10 @@ use crate::{
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{self, subscribe_event, BufferCapabilities, DqBufError, FormatFlags, StreamOnError},
+    ioctl::{
+        self, subscribe_event, BufferCapabilities, DqBufError, FormatFlags, StreamOnError,
+        V4l2Buffer,
+    },
     memory::{BufferHandles, PrimitiveBufferHandles},
 };
 
@@ -489,7 +492,7 @@ where
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) -> Result<(), DqBufError> {
+    fn dequeue_output_buffers(&self) -> Result<(), DqBufError<V4l2Buffer>> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -540,7 +543,7 @@ where
 #[derive(Debug, Error)]
 pub enum GetBufferError {
     #[error("error while dequeueing buffer")]
-    DequeueError(#[from] DqBufError),
+    DequeueError(#[from] DqBufError<V4l2Buffer>),
     #[error("error during poll")]
     PollError(#[from] PollError),
     #[error("error while obtaining buffer")]
@@ -625,7 +628,7 @@ where
     /// that owns the decoder every time a decoded frame is produced.
     /// That way the client can recycle its input buffers
     /// and the decoding process does not get stuck.
-    pub fn kick(&self) -> Result<(), DqBufError> {
+    pub fn kick(&self) -> Result<(), DqBufError<V4l2Buffer>> {
         info!("Kick!");
         self.dequeue_output_buffers()
     }

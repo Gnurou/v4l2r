@@ -249,12 +249,12 @@ impl V4l2Buffer {
         self.buffer.index
     }
 
-    pub fn queue_type(&self) -> u32 {
-        self.buffer.type_
+    pub fn queue_type(&self) -> QueueType {
+        QueueType::n(self.buffer.type_).unwrap()
     }
 
-    pub fn memory(&self) -> u32 {
-        self.buffer.memory
+    pub fn memory(&self) -> MemoryType {
+        MemoryType::n(self.buffer.memory).unwrap()
     }
 
     pub fn flags(&self) -> BufferFlags {

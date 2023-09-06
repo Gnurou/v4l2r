@@ -18,7 +18,9 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum DqBufError {
+pub enum DqBufError<Q: QueryBuf> {
+    #[error("error while converting from v4l2_buffer: {0}")]
+    ConvertionError(Q::Error),
     #[error("end-of-stream reached")]
     Eos,
     #[error("no buffer ready for dequeue")]
@@ -27,7 +29,7 @@ pub enum DqBufError {
     IoctlError(Errno),
 }
 
-impl From<Errno> for DqBufError {
+impl<Q: QueryBuf> From<Errno> for DqBufError<Q> {
     fn from(error: Errno) -> Self {
         match error {
             Errno::EAGAIN => Self::NotReady,
@@ -37,9 +39,10 @@ impl From<Errno> for DqBufError {
     }
 }
 
-impl From<DqBufError> for Errno {
-    fn from(err: DqBufError) -> Self {
+impl<Q: QueryBuf> From<DqBufError<Q>> for Errno {
+    fn from(err: DqBufError<Q>) -> Self {
         match err {
+            DqBufError::ConvertionError(_) => Errno::EINVAL,
             DqBufError::Eos => Errno::EPIPE,
             DqBufError::NotReady => Errno::EAGAIN,
             DqBufError::IoctlError(e) => e,
@@ -47,10 +50,10 @@ impl From<DqBufError> for Errno {
     }
 }
 
-pub type DqBufResult<T> = Result<T, DqBufError>;
+pub type DqBufResult<T, Q> = Result<T, DqBufError<Q>>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T> {
+pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T, T> {
     let mut v4l2_buf = bindings::v4l2_buffer {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
@@ -62,10 +65,10 @@ pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T>
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::from_v4l2_buffer(v4l2_buf, Some(plane_data))
+        T::try_from_v4l2_buffer(v4l2_buf, Some(plane_data)).map_err(DqBufError::ConvertionError)?
     } else {
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::from_v4l2_buffer(v4l2_buf, None)
+        T::try_from_v4l2_buffer(v4l2_buf, None).map_err(DqBufError::ConvertionError)?
     };
 
     Ok(dequeued_buffer)

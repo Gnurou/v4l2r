@@ -19,7 +19,7 @@ pub mod get_indexed;
 #[derive(Error)]
 #[error("{}", self.error)]
 pub struct QueueError<P: BufferHandles> {
-    pub error: ioctl::QBufError,
+    pub error: ioctl::QBufError<()>,
     pub plane_handles: P,
 }
 
@@ -272,7 +272,7 @@ impl<P: PrimitiveBufferHandles + Default, Q: BufferHandles + From<P>> QBuffer<'_
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
 {
-    pub fn queue(self) -> Result<(), ioctl::QBufError> {
+    pub fn queue(self) -> Result<(), ioctl::QBufError<()>> {
         let planes: Vec<_> = (0..self.num_expected_planes())
             .map(|_| ioctl::QBufPlane::new(0))
             .collect();
@@ -290,7 +290,7 @@ impl<P: PrimitiveBufferHandles + Default, Q: BufferHandles + From<P>> QBuffer<'_
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
 {
-    pub fn queue(self, bytes_used: &[usize]) -> Result<(), ioctl::QBufError> {
+    pub fn queue(self, bytes_used: &[usize]) -> Result<(), ioctl::QBufError<()>> {
         // TODO make specific error for bytes_used?
         if bytes_used.len() != self.num_expected_planes() {
             return Err(ioctl::QBufError::NumPlanesMismatch(

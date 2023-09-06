@@ -8,6 +8,7 @@ pub mod qbuf;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
+use crate::ioctl::V4l2Buffer;
 use crate::{bindings, memory::*};
 use crate::{
     ioctl::{
@@ -206,7 +207,7 @@ pub enum RequestBuffersError {
     #[error("error while requesting buffers")]
     ReqbufsError(#[from] ioctl::ReqbufsError),
     #[error("error while querying buffer")]
-    QueryBufferError(#[from] ioctl::QueryBufError),
+    QueryBufferError(#[from] ioctl::QueryBufError<QueryBuffer>),
 }
 
 impl<D: Direction> Queue<D, QueueInit> {
@@ -484,7 +485,7 @@ impl<D: Direction, P: BufferHandles> Stream for Queue<D, BuffersAllocated<P>> {
 impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>> {
     type Dequeued = DqBuffer<D, P>;
 
-    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued> {
+    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued, V4l2Buffer> {
         let dqbuf: ioctl::V4l2Buffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
 
         let id = dqbuf.index() as usize;
