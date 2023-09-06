@@ -316,4 +316,16 @@ impl V4l2Buffer {
     pub fn as_raw_v4l2_buffer(&self) -> *const bindings::v4l2_buffer {
         &self.buffer
     }
+
+    /// Returns a reference to the internal `v4l2_buffer`. All pointers in this
+    /// structure are invalid.
+    pub fn v4l2_buffer(&self) -> &bindings::v4l2_buffer {
+        &self.buffer
+    }
+
+    /// Returns an iterator to the internal `v4l2_plane`s. All pointers in the
+    /// planes are invalid.
+    pub fn v4l2_plane_iter(&self) -> impl Iterator<Item = &bindings::v4l2_plane> {
+        self.planes.iter()
+    }
 }
