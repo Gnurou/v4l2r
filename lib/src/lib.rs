@@ -36,6 +36,13 @@ use thiserror::Error;
 // ioctl: direct, safe counterparts of the V4L2 ioctls.
 // device/queue/buffer: higher abstraction, still mapping to core V4L2 mechanics.
 
+/// Possible directions for the queue
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum QueueDirection {
+    Output,
+    Capture,
+}
+
 /// Types of queues currently supported by this library.
 #[allow(unused)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, N)]
@@ -63,6 +70,27 @@ impl QueueType {
             self,
             QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane
         )
+    }
+
+    /// Returns the direction of the queue type (Output or Capture).
+    pub fn direction(&self) -> QueueDirection {
+        match self {
+            QueueType::VideoOutput
+            | QueueType::VideoOutputMplane
+            | QueueType::VideoOverlay
+            | QueueType::VideoOutputOverlay
+            | QueueType::VbiOutput
+            | QueueType::SlicedVbiOutput
+            | QueueType::SdrOutput
+            | QueueType::MetaOutput => QueueDirection::Output,
+
+            QueueType::VideoCapture
+            | QueueType::VbiCapture
+            | QueueType::SlicedVbiCapture
+            | QueueType::VideoCaptureMplane
+            | QueueType::SdrCapture
+            | QueueType::MetaCapture => QueueDirection::Capture,
+        }
     }
 }
 
