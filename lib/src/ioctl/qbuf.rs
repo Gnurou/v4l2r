@@ -215,7 +215,7 @@ impl<H: PlaneHandle, Q: QueryBuf> QBuf<Q> for QBuffer<H> {
         v4l2_buf.length = self.planes.len() as u32;
         v4l2_planes
             .iter_mut()
-            .zip(self.planes.into_iter())
+            .zip(self.planes)
             .for_each(|(v4l2_plane, plane)| {
                 *v4l2_plane = plane.0;
             });
