@@ -237,7 +237,7 @@ fn frame_decoded_cb(
 struct SendablePtr<T>(*mut T);
 impl<T> Clone for SendablePtr<T> {
     fn clone(&self) -> Self {
-        SendablePtr(self.0)
+        *self
     }
 }
 impl<T> Copy for SendablePtr<T> {}
