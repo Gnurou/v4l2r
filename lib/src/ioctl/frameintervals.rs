@@ -13,6 +13,40 @@ impl FrameIntervals for bindings::v4l2_frmivalenum {
     }
 }
 
+/// A wrapper for the 'v4l2_frmivalenum' union member types
+#[derive(Debug)]
+pub enum FrmIvalTypes<'a> {
+    Discrete(&'a bindings::v4l2_fract),
+    StepWise(&'a bindings::v4l2_frmival_stepwise),
+}
+
+impl bindings::v4l2_frmivalenum {
+    /// Safely access the intervals member of the struct based on the
+    /// returned index.
+    pub fn intervals(&self) -> Option<FrmIvalTypes> {
+        match self.index {
+            // SAFETY: the member of the union that gets used by the driver
+            // is determined by the index
+            bindings::v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_DISCRETE => {
+                Some(FrmIvalTypes::Discrete(unsafe {
+                    &self.__bindgen_anon_1.discrete
+                }))
+            }
+
+            // SAFETY: the member of the union that gets used by the driver
+            // is determined by the index
+            bindings::v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS
+            | bindings::v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE => {
+                Some(FrmIvalTypes::StepWise(unsafe {
+                    &self.__bindgen_anon_1.stepwise
+                }))
+            }
+
+            _ => None,
+        }
+    }
+}
+
 #[doc(hidden)]
 mod ioctl {
     use crate::bindings::v4l2_frmivalenum;
