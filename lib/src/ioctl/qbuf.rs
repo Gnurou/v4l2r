@@ -164,6 +164,11 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
 }
 
 impl<H: PlaneHandle> QBuffer<H> {
+    pub fn set_timestamp(mut self, sec: i64, usec: i64) -> Self {
+        self.timestamp = TimeVal::new(sec, usec);
+        self
+    }
+
     fn fill_common_v4l2_data(&self, v4l2_buf: &mut bindings::v4l2_buffer) {
         v4l2_buf.memory = H::Memory::MEMORY_TYPE as u32;
         v4l2_buf.flags = self.flags.bits();
