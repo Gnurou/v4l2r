@@ -6,7 +6,8 @@ use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use thiserror::Error;
 
-use crate::{bindings, QueueType};
+use crate::bindings::v4l2_exportbuffer;
+use crate::QueueType;
 
 bitflags! {
     /// Flags that can be passed when exporting the buffer.
@@ -47,7 +48,7 @@ pub fn expbuf<R: FromRawFd>(
     plane: usize,
     flags: ExpbufFlags,
 ) -> Result<R, ExpbufError> {
-    let mut v4l2_expbuf = bindings::v4l2_exportbuffer {
+    let mut v4l2_expbuf = v4l2_exportbuffer {
         type_: queue as u32,
         index: index as u32,
         plane: plane as u32,

@@ -1,6 +1,4 @@
 //! Safe wrapper for the `VIDIOC_(G|S|TRY)_FMT` ioctls.
-use crate::{bindings, FormatConversionError};
-use crate::{Format, PlaneLayout, QueueType};
 use nix::errno::Errno;
 use std::convert::{From, Into, TryFrom, TryInto};
 use std::default::Default;
@@ -8,11 +6,18 @@ use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-impl TryFrom<(QueueType, &Format)> for bindings::v4l2_format {
+use crate::bindings;
+use crate::bindings::v4l2_format;
+use crate::Format;
+use crate::FormatConversionError;
+use crate::PlaneLayout;
+use crate::QueueType;
+
+impl TryFrom<(QueueType, &Format)> for v4l2_format {
     type Error = FormatConversionError;
 
     fn try_from((queue, format): (QueueType, &Format)) -> Result<Self, Self::Error> {
-        Ok(bindings::v4l2_format {
+        Ok(v4l2_format {
             type_: queue as u32,
             fmt: match queue {
                 QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane => {
@@ -119,11 +124,8 @@ impl From<GFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_G_FMT` ioctl.
-pub fn g_fmt<O: TryFrom<bindings::v4l2_format>>(
-    fd: &impl AsRawFd,
-    queue: QueueType,
-) -> Result<O, GFmtError> {
-    let mut fmt = bindings::v4l2_format {
+pub fn g_fmt<O: TryFrom<v4l2_format>>(fd: &impl AsRawFd, queue: QueueType) -> Result<O, GFmtError> {
+    let mut fmt = v4l2_format {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };
@@ -164,11 +166,11 @@ impl From<SFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_S_FMT` ioctl.
-pub fn s_fmt<I: TryInto<bindings::v4l2_format>, O: TryFrom<bindings::v4l2_format>>(
+pub fn s_fmt<I: TryInto<v4l2_format>, O: TryFrom<v4l2_format>>(
     fd: &mut impl AsRawFd,
     format: I,
 ) -> Result<O, SFmtError> {
-    let mut fmt: bindings::v4l2_format = format
+    let mut fmt: v4l2_format = format
         .try_into()
         .map_err(|_| SFmtError::ToV4L2FormatConversionError)?;
 
@@ -206,11 +208,11 @@ impl From<TryFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_FMT` ioctl.
-pub fn try_fmt<I: TryInto<bindings::v4l2_format>, O: TryFrom<bindings::v4l2_format>>(
+pub fn try_fmt<I: TryInto<v4l2_format>, O: TryFrom<v4l2_format>>(
     fd: &impl AsRawFd,
     format: I,
 ) -> Result<O, TryFmtError> {
-    let mut fmt: bindings::v4l2_format = format
+    let mut fmt: v4l2_format = format
         .try_into()
         .map_err(|_| TryFmtError::ToV4L2FormatConversionError)?;
 
@@ -251,7 +253,7 @@ mod test {
                 },
             ],
         };
-        let v4l2_format = bindings::v4l2_format {
+        let v4l2_format = v4l2_format {
             ..(QueueType::VideoCaptureMplane, &mplane).try_into().unwrap()
         };
         let mplane2: Format = v4l2_format.try_into().unwrap();
@@ -272,7 +274,7 @@ mod test {
             }],
         };
         // Conversion to/from single-planar format.
-        let v4l2_format = bindings::v4l2_format {
+        let v4l2_format = v4l2_format {
             ..(QueueType::VideoCapture, &splane).try_into().unwrap()
         };
         let splane2: Format = v4l2_format.try_into().unwrap();
@@ -301,7 +303,7 @@ mod test {
             ],
         };
         assert_eq!(
-            TryInto::<bindings::v4l2_format>::try_into((QueueType::VideoCapture, &mplane)).err(),
+            TryInto::<v4l2_format>::try_into((QueueType::VideoCapture, &mplane)).err(),
             Some(FormatConversionError::TooManyPlanes(3))
         );
     }

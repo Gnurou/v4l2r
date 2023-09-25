@@ -7,6 +7,8 @@ use nix::errno::Errno;
 use thiserror::Error;
 
 use crate::bindings;
+use crate::bindings::v4l2_query_ext_ctrl;
+use crate::bindings::v4l2_queryctrl;
 
 /// Index of a control that has been validated, i.e. which ID is within the range of
 /// `V4L2_CTRL_ID_MASK`.
@@ -70,13 +72,13 @@ impl From<QueryCtrlError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYCTRL` ioctl.
-pub fn queryctrl<T: From<bindings::v4l2_queryctrl>>(
+pub fn queryctrl<T: From<v4l2_queryctrl>>(
     fd: &impl AsRawFd,
     id: CtrlId,
     flags: QueryCtrlFlags,
 ) -> Result<T, QueryCtrlError> {
-    let mut qctrl: bindings::v4l2_queryctrl = unsafe {
-        bindings::v4l2_queryctrl {
+    let mut qctrl: v4l2_queryctrl = unsafe {
+        v4l2_queryctrl {
             id: id.0 | flags.bits(),
             ..mem::zeroed()
         }
@@ -89,13 +91,13 @@ pub fn queryctrl<T: From<bindings::v4l2_queryctrl>>(
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYCTRL` ioctl.
-pub fn query_ext_ctrl<T: From<bindings::v4l2_query_ext_ctrl>>(
+pub fn query_ext_ctrl<T: From<v4l2_query_ext_ctrl>>(
     fd: &impl AsRawFd,
     id: CtrlId,
     flags: QueryCtrlFlags,
 ) -> Result<T, QueryCtrlError> {
-    let mut qctrl: bindings::v4l2_query_ext_ctrl = unsafe {
-        bindings::v4l2_query_ext_ctrl {
+    let mut qctrl: v4l2_query_ext_ctrl = unsafe {
+        v4l2_query_ext_ctrl {
             id: id.0 | flags.bits(),
             ..mem::zeroed()
         }

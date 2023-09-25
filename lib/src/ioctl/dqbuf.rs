@@ -1,4 +1,4 @@
-use crate::bindings;
+use crate::bindings::v4l2_buffer;
 use crate::ioctl::is_multi_planar;
 use crate::ioctl::QueryBuf;
 use crate::ioctl::V4l2BufferPlanes;
@@ -54,7 +54,7 @@ pub type DqBufResult<T, Q> = Result<T, DqBufError<Q>>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
 pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T, T> {
-    let mut v4l2_buf = bindings::v4l2_buffer {
+    let mut v4l2_buf = v4l2_buffer {
         type_: queue as u32,
         ..unsafe { mem::zeroed() }
     };

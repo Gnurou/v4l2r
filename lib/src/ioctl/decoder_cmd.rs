@@ -1,4 +1,5 @@
 use crate::bindings;
+use crate::bindings::v4l2_decoder_cmd;
 use nix::errno::Errno;
 use std::{
     convert::{Infallible, TryFrom},
@@ -57,9 +58,9 @@ impl From<Errno> for DecoderCmdError {
     }
 }
 
-impl From<DecoderCommand> for bindings::v4l2_decoder_cmd {
+impl From<DecoderCommand> for v4l2_decoder_cmd {
     fn from(command: DecoderCommand) -> Self {
-        bindings::v4l2_decoder_cmd {
+        v4l2_decoder_cmd {
             cmd: match &command {
                 DecoderCommand::Start => bindings::V4L2_DEC_CMD_START,
                 DecoderCommand::Stop => bindings::V4L2_DEC_CMD_STOP,
@@ -71,15 +72,15 @@ impl From<DecoderCommand> for bindings::v4l2_decoder_cmd {
     }
 }
 
-impl TryFrom<bindings::v4l2_decoder_cmd> for () {
+impl TryFrom<v4l2_decoder_cmd> for () {
     type Error = Infallible;
 
-    fn try_from(_: bindings::v4l2_decoder_cmd) -> Result<Self, Self::Error> {
+    fn try_from(_: v4l2_decoder_cmd) -> Result<Self, Self::Error> {
         Ok(())
     }
 }
 
-pub fn decoder_cmd<I: Into<bindings::v4l2_decoder_cmd>, O: TryFrom<bindings::v4l2_decoder_cmd>>(
+pub fn decoder_cmd<I: Into<v4l2_decoder_cmd>, O: TryFrom<v4l2_decoder_cmd>>(
     fd: &impl AsRawFd,
     command: I,
 ) -> Result<O, DecoderCmdError> {
@@ -93,10 +94,7 @@ pub fn decoder_cmd<I: Into<bindings::v4l2_decoder_cmd>, O: TryFrom<bindings::v4l
     }
 }
 
-pub fn try_decoder_cmd<
-    I: Into<bindings::v4l2_decoder_cmd>,
-    O: TryFrom<bindings::v4l2_decoder_cmd>,
->(
+pub fn try_decoder_cmd<I: Into<v4l2_decoder_cmd>, O: TryFrom<v4l2_decoder_cmd>>(
     fd: &impl AsRawFd,
     command: I,
 ) -> Result<O, DecoderCmdError> {

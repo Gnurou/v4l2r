@@ -1,4 +1,5 @@
 use crate::bindings;
+use crate::bindings::v4l2_encoder_cmd;
 use nix::errno::Errno;
 use std::{
     convert::{Infallible, TryFrom},
@@ -55,9 +56,9 @@ impl From<Errno> for EncoderCmdError {
     }
 }
 
-impl From<&EncoderCommand> for bindings::v4l2_encoder_cmd {
+impl From<&EncoderCommand> for v4l2_encoder_cmd {
     fn from(command: &EncoderCommand) -> Self {
-        bindings::v4l2_encoder_cmd {
+        v4l2_encoder_cmd {
             cmd: match command {
                 EncoderCommand::Start => bindings::V4L2_ENC_CMD_START,
                 EncoderCommand::Stop(_) => bindings::V4L2_ENC_CMD_STOP,
@@ -73,15 +74,15 @@ impl From<&EncoderCommand> for bindings::v4l2_encoder_cmd {
     }
 }
 
-impl TryFrom<bindings::v4l2_encoder_cmd> for () {
+impl TryFrom<v4l2_encoder_cmd> for () {
     type Error = Infallible;
 
-    fn try_from(_: bindings::v4l2_encoder_cmd) -> Result<Self, Self::Error> {
+    fn try_from(_: v4l2_encoder_cmd) -> Result<Self, Self::Error> {
         Ok(())
     }
 }
 
-pub fn encoder_cmd<I: Into<bindings::v4l2_encoder_cmd>, O: TryFrom<bindings::v4l2_encoder_cmd>>(
+pub fn encoder_cmd<I: Into<v4l2_encoder_cmd>, O: TryFrom<v4l2_encoder_cmd>>(
     fd: &impl AsRawFd,
     command: I,
 ) -> Result<O, EncoderCmdError> {
@@ -95,10 +96,7 @@ pub fn encoder_cmd<I: Into<bindings::v4l2_encoder_cmd>, O: TryFrom<bindings::v4l
     }
 }
 
-pub fn try_encoder_cmd<
-    I: Into<bindings::v4l2_encoder_cmd>,
-    O: TryFrom<bindings::v4l2_encoder_cmd>,
->(
+pub fn try_encoder_cmd<I: Into<v4l2_encoder_cmd>, O: TryFrom<v4l2_encoder_cmd>>(
     fd: &impl AsRawFd,
     command: I,
 ) -> Result<O, EncoderCmdError> {

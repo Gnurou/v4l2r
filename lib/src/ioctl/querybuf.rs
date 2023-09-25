@@ -1,14 +1,18 @@
-use super::{is_multi_planar, BufferFlags, V4l2BufferPlanes};
-use crate::bindings;
-use crate::ioctl::V4l2Buffer;
-use crate::memory::MemoryType;
-use crate::QueueType;
-use nix::errno::Errno;
-use thiserror::Error;
-
 use std::convert::Infallible;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+
+use nix::errno::Errno;
+use thiserror::Error;
+
+use crate::bindings;
+use crate::bindings::v4l2_buffer;
+use crate::ioctl::is_multi_planar;
+use crate::ioctl::BufferFlags;
+use crate::ioctl::V4l2Buffer;
+use crate::ioctl::V4l2BufferPlanes;
+use crate::memory::MemoryType;
+use crate::QueueType;
 
 /// Implementors can receive the result from the `querybuf` ioctl.
 pub trait QueryBuf: Sized {
@@ -19,7 +23,7 @@ pub trait QueryBuf: Sized {
     /// multi-planar and the array of `struct v4l2_plane` shall be used to
     /// retrieve the plane data.
     fn try_from_v4l2_buffer(
-        v4l2_buf: bindings::v4l2_buffer,
+        v4l2_buf: v4l2_buffer,
         v4l2_planes: Option<V4l2BufferPlanes>,
     ) -> Result<Self, Self::Error>;
 }
@@ -29,7 +33,7 @@ impl QueryBuf for () {
     type Error = Infallible;
 
     fn try_from_v4l2_buffer(
-        _v4l2_buf: bindings::v4l2_buffer,
+        _v4l2_buf: v4l2_buffer,
         _v4l2_planes: Option<V4l2BufferPlanes>,
     ) -> Result<Self, Self::Error> {
         Ok(())
@@ -50,7 +54,7 @@ impl QueryBuf for V4l2Buffer {
     /// Do some consistency checks to ensure methods of `V4l2Buffer` that do an `unwrap` can never
     /// fail.
     fn try_from_v4l2_buffer(
-        v4l2_buf: bindings::v4l2_buffer,
+        v4l2_buf: v4l2_buffer,
         v4l2_planes: Option<V4l2BufferPlanes>,
     ) -> Result<Self, Self::Error> {
         if QueueType::n(v4l2_buf.type_).is_none() {
@@ -101,7 +105,7 @@ impl QueryBuf for QueryBuffer {
     type Error = Infallible;
 
     fn try_from_v4l2_buffer(
-        v4l2_buf: bindings::v4l2_buffer,
+        v4l2_buf: v4l2_buffer,
         v4l2_planes: Option<V4l2BufferPlanes>,
     ) -> Result<Self, Self::Error> {
         let planes = match v4l2_planes {
@@ -156,7 +160,7 @@ pub fn querybuf<T: QueryBuf>(
     queue: QueueType,
     index: usize,
 ) -> Result<T, QueryBufError<T>> {
-    let mut v4l2_buf = bindings::v4l2_buffer {
+    let mut v4l2_buf = v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
         ..unsafe { mem::zeroed() }

@@ -6,6 +6,8 @@ use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
 use crate::bindings;
+use crate::bindings::v4l2_ext_control;
+use crate::bindings::v4l2_ext_controls;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -535,11 +537,11 @@ pub fn g_ext_ctrl<R: AsRawFd>(
     request_fd: Option<&R>,
     ctrl_kind: ExtControlKind,
 ) -> Result<ExtControl, ExtControlError> {
-    let mut control = bindings::v4l2_ext_control {
+    let mut control = v4l2_ext_control {
         // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };
-    let mut controls = bindings::v4l2_ext_controls {
+    let mut controls = v4l2_ext_controls {
         // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };
@@ -580,11 +582,11 @@ pub fn s_ext_ctrl<R: AsRawFd>(
     request_fd: Option<&R>,
     ctrl: &ExtControl,
 ) -> Result<ExtControl, ExtControlError> {
-    let mut control = bindings::v4l2_ext_control {
+    let mut control = v4l2_ext_control {
         // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };
-    let mut controls = bindings::v4l2_ext_controls {
+    let mut controls = v4l2_ext_controls {
         // SAFETY: ok to fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };

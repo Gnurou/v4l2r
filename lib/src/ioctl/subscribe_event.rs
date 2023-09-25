@@ -1,16 +1,19 @@
 //! Safe wrapper for the `VIDIOC_SUBSCRIBE_EVENT` and `VIDIOC_UNSUBSCRIBE_EVENT
 //! ioctls.
 
-use nix::errno::Errno;
 use std::os::unix::io::AsRawFd;
 use std::{
     convert::{TryFrom, TryInto},
     mem,
 };
+
+use bitflags::bitflags;
+use nix::errno::Errno;
 use thiserror::Error;
 
 use crate::bindings;
-use bitflags::bitflags;
+use crate::bindings::v4l2_event;
+use crate::bindings::v4l2_event_subscription;
 
 bitflags! {
     #[derive(Clone, Copy, Debug)]
@@ -39,10 +42,10 @@ pub enum EventConversionError {
     UnrecognizedSourceChange(u32),
 }
 
-impl TryFrom<&bindings::v4l2_event_subscription> for EventType {
+impl TryFrom<&v4l2_event_subscription> for EventType {
     type Error = EventConversionError;
 
-    fn try_from(event: &bindings::v4l2_event_subscription) -> Result<Self, Self::Error> {
+    fn try_from(event: &v4l2_event_subscription) -> Result<Self, Self::Error> {
         Ok(match event.type_ {
             bindings::V4L2_EVENT_VSYNC => EventType::VSync,
             bindings::V4L2_EVENT_EOS => EventType::Eos,
@@ -68,10 +71,10 @@ pub enum Event {
     Eos,
 }
 
-impl TryFrom<bindings::v4l2_event> for Event {
+impl TryFrom<v4l2_event> for Event {
     type Error = EventConversionError;
 
-    fn try_from(value: bindings::v4l2_event) -> Result<Self, Self::Error> {
+    fn try_from(value: v4l2_event) -> Result<Self, Self::Error> {
         Ok(match value.type_ {
             bindings::V4L2_EVENT_VSYNC => todo!(),
             bindings::V4L2_EVENT_EOS => Event::Eos,
@@ -93,8 +96,8 @@ impl TryFrom<bindings::v4l2_event> for Event {
 fn build_v4l2_event_subscription(
     event: EventType,
     flags: SubscribeEventFlags,
-) -> bindings::v4l2_event_subscription {
-    bindings::v4l2_event_subscription {
+) -> v4l2_event_subscription {
+    v4l2_event_subscription {
         type_: match event {
             EventType::VSync => bindings::V4L2_EVENT_VSYNC,
             EventType::Eos => bindings::V4L2_EVENT_EOS,
@@ -155,7 +158,7 @@ pub fn unsubscribe_event(fd: &impl AsRawFd, event: EventType) -> Result<(), Subs
 }
 
 pub fn unsubscribe_all_events(fd: &impl AsRawFd) -> Result<(), SubscribeEventError> {
-    let subscription = bindings::v4l2_event_subscription {
+    let subscription = v4l2_event_subscription {
         type_: bindings::V4L2_EVENT_ALL,
         ..unsafe { mem::zeroed() }
     };
@@ -193,9 +196,9 @@ impl From<DqEventError> for Errno {
     }
 }
 
-pub fn dqevent<O: TryFrom<bindings::v4l2_event>>(fd: &impl AsRawFd) -> Result<O, DqEventError> {
+pub fn dqevent<O: TryFrom<v4l2_event>>(fd: &impl AsRawFd) -> Result<O, DqEventError> {
     // Safe because this struct is expected to be initialized to 0.
-    let mut event: bindings::v4l2_event = unsafe { mem::zeroed() };
+    let mut event: v4l2_event = unsafe { mem::zeroed() };
 
     match unsafe { ioctl::vidioc_dqevent(fd.as_raw_fd(), &mut event) } {
         Ok(_) => Ok(event
