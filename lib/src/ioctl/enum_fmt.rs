@@ -1,6 +1,7 @@
 //! Safe wrapper for the `VIDIOC_ENUM_FMT` ioctl.
 use super::string_from_cstr;
 use crate::bindings;
+use crate::bindings::v4l2_fmtdesc;
 use crate::{PixelFormat, QueueType};
 use bitflags::bitflags;
 use log::error;
@@ -9,17 +10,6 @@ use std::fmt;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
-
-/// Implementors can receive the result from the `enum_fmt` ioctl.
-pub trait EnumFmt {
-    fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self;
-}
-
-impl EnumFmt for bindings::v4l2_fmtdesc {
-    fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self {
-        fmtdesc
-    }
-}
 
 bitflags! {
     /// Flags returned by the `VIDIOC_ENUM_FMT` ioctl into the `flags` field of
@@ -31,8 +21,8 @@ bitflags! {
     }
 }
 /// Quickly get the Fourcc code of a format.
-impl EnumFmt for PixelFormat {
-    fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self {
+impl From<v4l2_fmtdesc> for PixelFormat {
+    fn from(fmtdesc: v4l2_fmtdesc) -> Self {
         fmtdesc.pixelformat.into()
     }
 }
@@ -61,8 +51,8 @@ impl fmt::Display for FmtDesc {
     }
 }
 
-impl EnumFmt for FmtDesc {
-    fn from(fmtdesc: bindings::v4l2_fmtdesc) -> Self {
+impl From<v4l2_fmtdesc> for FmtDesc {
+    fn from(fmtdesc: v4l2_fmtdesc) -> Self {
         FmtDesc {
             flags: FormatFlags::from_bits_truncate(fmtdesc.flags),
             description: string_from_cstr(&fmtdesc.description).unwrap_or_else(|_| "".into()),
@@ -92,12 +82,12 @@ impl From<EnumFmtError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_ENUM_FMT` ioctl.
-pub fn enum_fmt<T: EnumFmt>(
+pub fn enum_fmt<T: From<v4l2_fmtdesc>>(
     fd: &impl AsRawFd,
     queue: QueueType,
     index: u32,
 ) -> Result<T, EnumFmtError> {
-    let mut fmtdesc = bindings::v4l2_fmtdesc {
+    let mut fmtdesc = v4l2_fmtdesc {
         type_: queue as u32,
         index,
         ..unsafe { mem::zeroed() }

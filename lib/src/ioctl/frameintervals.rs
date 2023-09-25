@@ -1,17 +1,9 @@
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-use crate::{bindings, PixelFormat};
-
-pub trait FrameIntervals {
-    fn from(input: bindings::v4l2_frmivalenum) -> Self;
-}
-
-impl FrameIntervals for bindings::v4l2_frmivalenum {
-    fn from(input: bindings::v4l2_frmivalenum) -> Self {
-        input
-    }
-}
+use crate::bindings;
+use crate::bindings::v4l2_frmivalenum;
+use crate::PixelFormat;
 
 /// A wrapper for the 'v4l2_frmivalenum' union member types
 #[derive(Debug)]
@@ -20,7 +12,7 @@ pub enum FrmIvalTypes<'a> {
     StepWise(&'a bindings::v4l2_frmival_stepwise),
 }
 
-impl bindings::v4l2_frmivalenum {
+impl v4l2_frmivalenum {
     /// Safely access the intervals member of the struct based on the
     /// returned index.
     pub fn intervals(&self) -> Option<FrmIvalTypes> {
@@ -59,14 +51,14 @@ pub enum FrameIntervalsError {
     IoctlError(nix::Error),
 }
 
-pub fn enum_frame_intervals<T: FrameIntervals>(
+pub fn enum_frame_intervals<T: From<v4l2_frmivalenum>>(
     fd: &impl AsRawFd,
     index: u32,
     pixel_format: PixelFormat,
     width: u32,
     height: u32,
 ) -> Result<T, FrameIntervalsError> {
-    let mut frame_interval = bindings::v4l2_frmivalenum {
+    let mut frame_interval = v4l2_frmivalenum {
         index,
         pixel_format: pixel_format.into(),
         width,

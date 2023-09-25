@@ -1,23 +1,13 @@
 //! Safe wrapper for the `VIDIOC_QUERYCAP` ioctl.
 use super::string_from_cstr;
 use crate::bindings;
+use crate::bindings::v4l2_capability;
 use bitflags::bitflags;
 use nix::errno::Errno;
 use std::fmt;
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
-
-/// Implementors can receive the result from the `querycap` ioctl.
-pub trait QueryCap {
-    fn from(capability: bindings::v4l2_capability) -> Self;
-}
-
-impl QueryCap for bindings::v4l2_capability {
-    fn from(capability: bindings::v4l2_capability) -> Self {
-        capability
-    }
-}
 
 bitflags! {
     /// Flags returned by the `VIDIOC_QUERYCAP` ioctl into the `capabilities`
@@ -69,8 +59,8 @@ impl fmt::Display for Capabilities {
 }
 
 /// Used to get the capability flags from a `VIDIOC_QUERYCAP` ioctl.
-impl QueryCap for Capabilities {
-    fn from(qcap: bindings::v4l2_capability) -> Self {
+impl From<v4l2_capability> for Capabilities {
+    fn from(qcap: v4l2_capability) -> Self {
         Capabilities::from_bits_truncate(qcap.capabilities)
     }
 }
@@ -99,8 +89,8 @@ impl Capability {
     }
 }
 
-impl QueryCap for Capability {
-    fn from(qcap: bindings::v4l2_capability) -> Self {
+impl From<v4l2_capability> for Capability {
+    fn from(qcap: v4l2_capability) -> Self {
         Capability {
             driver: string_from_cstr(&qcap.driver).unwrap_or_else(|_| "".into()),
             card: string_from_cstr(&qcap.card).unwrap_or_else(|_| "".into()),
@@ -137,8 +127,8 @@ impl From<QueryCapError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYCAP` ioctl.
-pub fn querycap<T: QueryCap>(fd: &impl AsRawFd) -> Result<T, QueryCapError> {
-    let mut qcap: bindings::v4l2_capability = unsafe { mem::zeroed() };
+pub fn querycap<T: From<v4l2_capability>>(fd: &impl AsRawFd) -> Result<T, QueryCapError> {
+    let mut qcap: v4l2_capability = unsafe { mem::zeroed() };
 
     match unsafe { ioctl::vidioc_querycap(fd.as_raw_fd(), &mut qcap) } {
         Ok(_) => Ok(T::from(qcap)),

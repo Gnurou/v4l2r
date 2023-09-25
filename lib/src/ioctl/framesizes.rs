@@ -1,17 +1,9 @@
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-use crate::{bindings, PixelFormat};
-
-pub trait FrameSize {
-    fn from(input: bindings::v4l2_frmsizeenum) -> Self;
-}
-
-impl FrameSize for bindings::v4l2_frmsizeenum {
-    fn from(input: bindings::v4l2_frmsizeenum) -> Self {
-        input
-    }
-}
+use crate::bindings;
+use crate::bindings::v4l2_frmsizeenum;
+use crate::PixelFormat;
 
 /// A wrapper for the 'v4l2_frmsizeenum' union member types
 #[derive(Debug)]
@@ -20,7 +12,7 @@ pub enum FrmSizeTypes<'a> {
     StepWise(&'a bindings::v4l2_frmsize_stepwise),
 }
 
-impl bindings::v4l2_frmsizeenum {
+impl v4l2_frmsizeenum {
     /// Safely access the size member of the struct based on the
     /// returned index.
     pub fn size(&self) -> Option<FrmSizeTypes> {
@@ -59,12 +51,12 @@ pub enum FrameSizeError {
     IoctlError(nix::Error),
 }
 
-pub fn enum_frame_sizes<T: FrameSize>(
+pub fn enum_frame_sizes<T: From<v4l2_frmsizeenum>>(
     fd: &impl AsRawFd,
     index: u32,
     pixel_format: PixelFormat,
 ) -> Result<T, FrameSizeError> {
-    let mut frame_size = bindings::v4l2_frmsizeenum {
+    let mut frame_size = v4l2_frmsizeenum {
         index,
         pixel_format: pixel_format.into(),
         ..unsafe { std::mem::zeroed() }

@@ -1,5 +1,6 @@
 //! Safe wrapper for the `VIDIOC_REQBUFS` ioctl.
 use crate::bindings;
+use crate::bindings::v4l2_requestbuffers;
 use crate::memory::MemoryType;
 use crate::QueueType;
 use bitflags::bitflags;
@@ -7,17 +8,6 @@ use nix::{self, errno::Errno};
 use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
-
-/// Implementors can receive the result from the `reqbufs` ioctl.
-pub trait ReqBufs {
-    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self;
-}
-
-impl ReqBufs for bindings::v4l2_requestbuffers {
-    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
-        reqbufs
-    }
-}
 
 bitflags! {
     /// Flags returned by the `VIDIOC_REQBUFS` ioctl into the `capabilities`
@@ -33,21 +23,21 @@ bitflags! {
     }
 }
 
-impl ReqBufs for () {
-    fn from(_reqbufs: bindings::v4l2_requestbuffers) -> Self {}
+impl From<v4l2_requestbuffers> for () {
+    fn from(_reqbufs: v4l2_requestbuffers) -> Self {}
 }
 
 /// In case we are just interested in the number of buffers that `reqbufs`
 /// created.
-impl ReqBufs for usize {
-    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
+impl From<v4l2_requestbuffers> for usize {
+    fn from(reqbufs: v4l2_requestbuffers) -> Self {
         reqbufs.count as usize
     }
 }
 
 /// If we just want to query the buffer capabilities.
-impl ReqBufs for BufferCapabilities {
-    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
+impl From<v4l2_requestbuffers> for BufferCapabilities {
+    fn from(reqbufs: v4l2_requestbuffers) -> Self {
         BufferCapabilities::from_bits_truncate(reqbufs.capabilities)
     }
 }
@@ -58,8 +48,8 @@ pub struct RequestBuffers {
     pub capabilities: BufferCapabilities,
 }
 
-impl ReqBufs for RequestBuffers {
-    fn from(reqbufs: bindings::v4l2_requestbuffers) -> Self {
+impl From<v4l2_requestbuffers> for RequestBuffers {
+    fn from(reqbufs: v4l2_requestbuffers) -> Self {
         RequestBuffers {
             count: reqbufs.count,
             capabilities: BufferCapabilities::from_bits_truncate(reqbufs.capabilities),
@@ -91,13 +81,13 @@ impl From<ReqbufsError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
-pub fn reqbufs<T: ReqBufs>(
+pub fn reqbufs<T: From<v4l2_requestbuffers>>(
     fd: &impl AsRawFd,
     queue: QueueType,
     memory: MemoryType,
     count: u32,
 ) -> Result<T, ReqbufsError> {
-    let mut reqbufs = bindings::v4l2_requestbuffers {
+    let mut reqbufs = v4l2_requestbuffers {
         count,
         type_: queue as u32,
         memory: memory as u32,
