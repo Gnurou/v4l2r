@@ -63,6 +63,7 @@ impl From<GSelectionError> for Errno {
     }
 }
 
+/// Safe wrapper around the `VIDIOC_G_SELECTION` ioctl.
 pub fn g_selection<R: From<v4l2_rect>>(
     fd: &impl AsRawFd,
     selection: SelectionType,
@@ -104,6 +105,7 @@ impl From<SSelectionError> for Errno {
     }
 }
 
+/// Safe wrapper around the `VIDIOC_S_SELECTION` ioctl.
 pub fn s_selection<RI: Into<v4l2_rect>, RO: From<v4l2_rect>>(
     fd: &impl AsRawFd,
     selection: SelectionType,

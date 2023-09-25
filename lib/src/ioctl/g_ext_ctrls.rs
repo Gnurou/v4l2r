@@ -524,7 +524,7 @@ impl From<DataConversionError> for ExtControlError {
     }
 }
 
-/// Get a single extended control
+/// Safe wrapper around the `VIDIOC_G_EXT_CTRLS` to get a single extended control.
 ///
 /// While vidioc_g_ext_ctrls() accepts an array of controls,
 /// the kernel internally seems not to commit all the values atomically,
@@ -569,7 +569,7 @@ pub fn g_ext_ctrl<R: AsRawFd>(
     }
 }
 
-/// Set a single extended control
+/// Safe wrapper around the `VIDIOC_S_EXT_CTRLS` to set a single extended control.
 ///
 /// While vidioc_s_ext_ctrls() accepts an array of controls,
 /// the kernel internally seems not to commit all the values atomically,

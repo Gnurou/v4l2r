@@ -51,6 +51,7 @@ pub enum FrameIntervalsError {
     IoctlError(nix::Error),
 }
 
+/// Safe wrapper around the `VIDIOC_ENUM_FRAMEINTERVALS` ioctl.
 pub fn enum_frame_intervals<T: From<v4l2_frmivalenum>>(
     fd: &impl AsRawFd,
     index: u32,

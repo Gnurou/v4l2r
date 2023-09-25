@@ -234,6 +234,7 @@ mod ioctl {
 }
 
 /// Safe wrapper around the `VIDIOC_QBUF` ioctl.
+///
 /// TODO: `qbuf` should be unsafe! The following invariants need to be guaranteed
 /// by the caller:
 ///

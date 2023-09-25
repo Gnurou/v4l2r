@@ -41,6 +41,7 @@ impl From<SelectionError> for Errno {
     }
 }
 
+/// Safe wrapper around the `VIDIOC_ENUMINPUT` ioctl.
 pub fn enuminput<R: From<v4l2_input>>(
     fd: &impl AsRawFd,
     index: usize,
@@ -57,12 +58,14 @@ pub fn enuminput<R: From<v4l2_input>>(
     }
 }
 
+/// Safe wrapper around the `VIDIOC_G_INPUT` ioctl.
 pub fn g_input(fd: &impl AsRawFd) -> Result<usize, Errno> {
     let mut input: c_int = 0;
 
     unsafe { ioctl::vidioc_g_input(fd.as_raw_fd(), &mut input) }.map(|r| r as usize)
 }
 
+/// Safe wrapper around the `VIDIOC_S_INPUT` ioctl.
 pub fn s_input(fd: &impl AsRawFd, index: usize) -> Result<(), SelectionError> {
     let mut input: c_int = index as c_int;
 
@@ -73,6 +76,7 @@ pub fn s_input(fd: &impl AsRawFd, index: usize) -> Result<(), SelectionError> {
     }
 }
 
+/// Safe wrapper around the `VIDIOC_ENUMOUTPUT` ioctl.
 pub fn enumoutput<R: From<v4l2_output>>(
     fd: &impl AsRawFd,
     index: usize,
@@ -89,12 +93,14 @@ pub fn enumoutput<R: From<v4l2_output>>(
     }
 }
 
+/// Safe wrapper around the `VIDIOC_G_OUTPUT` ioctl.
 pub fn g_output(fd: &impl AsRawFd) -> Result<usize, Errno> {
     let mut output: c_int = 0;
 
     unsafe { ioctl::vidioc_g_output(fd.as_raw_fd(), &mut output) }.map(|r| r as usize)
 }
 
+/// Safe wrapper around the `VIDIOC_S_OUTPUT` ioctl.
 pub fn s_output(fd: &impl AsRawFd, index: usize) -> Result<(), SelectionError> {
     let mut output: c_int = index as c_int;
 

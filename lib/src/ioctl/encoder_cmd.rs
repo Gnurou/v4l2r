@@ -82,6 +82,7 @@ impl TryFrom<v4l2_encoder_cmd> for () {
     }
 }
 
+/// Safe wrapper around the `VIDIOC_ENCODER_CMD` ioctl.
 pub fn encoder_cmd<I: Into<v4l2_encoder_cmd>, O: TryFrom<v4l2_encoder_cmd>>(
     fd: &impl AsRawFd,
     command: I,
@@ -96,6 +97,7 @@ pub fn encoder_cmd<I: Into<v4l2_encoder_cmd>, O: TryFrom<v4l2_encoder_cmd>>(
     }
 }
 
+/// Safe wrapper around the `VIDIOC_TRY_ENCODER_CMD` ioctl.
 pub fn try_encoder_cmd<I: Into<v4l2_encoder_cmd>, O: TryFrom<v4l2_encoder_cmd>>(
     fd: &impl AsRawFd,
     command: I,

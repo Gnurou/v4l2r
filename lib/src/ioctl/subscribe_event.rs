@@ -139,6 +139,7 @@ impl From<SubscribeEventError> for Errno {
     }
 }
 
+/// Safe wrapper around the `VIDIOC_SUBSCRIBE_EVENT` ioctl.
 pub fn subscribe_event(
     fd: &impl AsRawFd,
     event: EventType,
@@ -150,6 +151,7 @@ pub fn subscribe_event(
     Ok(())
 }
 
+/// Safe wrapper around the `VIDIOC_UNSUBSCRIBE_EVENT` ioctl.
 pub fn unsubscribe_event(fd: &impl AsRawFd, event: EventType) -> Result<(), SubscribeEventError> {
     let subscription = build_v4l2_event_subscription(event, SubscribeEventFlags::empty());
 
@@ -157,6 +159,7 @@ pub fn unsubscribe_event(fd: &impl AsRawFd, event: EventType) -> Result<(), Subs
     Ok(())
 }
 
+/// Safe wrapper around the `VIDIOC_UNSUBSCRIBE_EVENT` ioctl to unsubscribe from all events.
 pub fn unsubscribe_all_events(fd: &impl AsRawFd) -> Result<(), SubscribeEventError> {
     let subscription = v4l2_event_subscription {
         type_: bindings::V4L2_EVENT_ALL,

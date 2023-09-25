@@ -51,6 +51,7 @@ pub enum FrameSizeError {
     IoctlError(nix::Error),
 }
 
+/// Safe wrapper around the `VIDIOC_ENUM_FRAMESIZES` ioctl.
 pub fn enum_frame_sizes<T: From<v4l2_frmsizeenum>>(
     fd: &impl AsRawFd,
     index: u32,
