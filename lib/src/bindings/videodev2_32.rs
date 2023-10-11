@@ -1125,7 +1125,7 @@ pub type __off_t = ::std::os::raw::c_long;
 pub type __off64_t = __int64_t;
 pub type __pid_t = ::std::os::raw::c_int;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __fsid_t {
     pub __val: [::std::os::raw::c_int; 2usize],
 }
@@ -1185,7 +1185,7 @@ pub type __sig_atomic_t = ::std::os::raw::c_int;
 pub type __time64_t = __int64_t;
 pub type time_t = __time_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct timeval {
     pub tv_sec: __time_t,
     pub tv_usec: __suseconds_t,
@@ -1227,7 +1227,7 @@ fn bindgen_test_layout_timeval() {
 }
 pub type suseconds_t = __suseconds_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __sigset_t {
     pub __val: [::std::os::raw::c_ulong; 32usize],
 }
@@ -1258,7 +1258,7 @@ fn bindgen_test_layout___sigset_t() {
 }
 pub type sigset_t = __sigset_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
@@ -1300,7 +1300,7 @@ fn bindgen_test_layout_timespec() {
 }
 pub type __fd_mask = ::std::os::raw::c_long;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct fd_set {
     pub __fds_bits: [__fd_mask; 32usize],
 }
@@ -1350,7 +1350,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct timezone {
     pub tz_minuteswest: ::std::os::raw::c_int,
     pub tz_dsttime: ::std::os::raw::c_int,
@@ -1407,7 +1407,7 @@ pub const __itimer_which_ITIMER_VIRTUAL: __itimer_which = 1;
 pub const __itimer_which_ITIMER_PROF: __itimer_which = 2;
 pub type __itimer_which = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct itimerval {
     pub it_interval: timeval,
     pub it_value: timeval,
@@ -1482,7 +1482,7 @@ pub type __u32 = ::std::os::raw::c_uint;
 pub type __s64 = ::std::os::raw::c_longlong;
 pub type __u64 = ::std::os::raw::c_ulonglong;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fd_set {
     pub fds_bits: [::std::os::raw::c_ulong; 32usize],
 }
@@ -1534,7 +1534,7 @@ pub type __kernel_size_t = ::std::os::raw::c_uint;
 pub type __kernel_ssize_t = ::std::os::raw::c_int;
 pub type __kernel_ptrdiff_t = ::std::os::raw::c_int;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fsid_t {
     pub val: [::std::os::raw::c_int; 2usize],
 }
@@ -1584,7 +1584,7 @@ pub type __sum16 = __u16;
 pub type __wsum = __u32;
 pub type __poll_t = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_edid {
     pub pad: __u32,
     pub start_block: __u32,
@@ -2337,7 +2337,7 @@ pub const v4l2_stateless_h264_start_code_V4L2_STATELESS_H264_START_CODE_ANNEX_B:
 pub type v4l2_stateless_h264_start_code = ::std::os::raw::c_uint;
 #[doc = " struct v4l2_ctrl_h264_sps - H264 sequence parameter set\n\n All the members on this sequence parameter set structure match the\n sequence parameter set syntax as specified by the H264 specification.\n\n @profile_idc: see H264 specification.\n @constraint_set_flags: see H264 specification.\n @level_idc: see H264 specification.\n @seq_parameter_set_id: see H264 specification.\n @chroma_format_idc: see H264 specification.\n @bit_depth_luma_minus8: see H264 specification.\n @bit_depth_chroma_minus8: see H264 specification.\n @log2_max_frame_num_minus4: see H264 specification.\n @pic_order_cnt_type: see H264 specification.\n @log2_max_pic_order_cnt_lsb_minus4: see H264 specification.\n @max_num_ref_frames: see H264 specification.\n @num_ref_frames_in_pic_order_cnt_cycle: see H264 specification.\n @offset_for_ref_frame: see H264 specification.\n @offset_for_non_ref_pic: see H264 specification.\n @offset_for_top_to_bottom_field: see H264 specification.\n @pic_width_in_mbs_minus1: see H264 specification.\n @pic_height_in_map_units_minus1: see H264 specification.\n @flags: see V4L2_H264_SPS_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_sps {
     pub profile_idc: __u8,
     pub constraint_set_flags: __u8,
@@ -2564,7 +2564,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_sps() {
 }
 #[doc = " struct v4l2_ctrl_h264_pps - H264 picture parameter set\n\n Except where noted, all the members on this picture parameter set\n structure match the picture parameter set syntax as specified\n by the H264 specification.\n\n In particular, V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT flag\n has a specific meaning. This flag should be set if a non-flat\n scaling matrix applies to the picture. In this case, applications\n are expected to use V4L2_CID_STATELESS_H264_SCALING_MATRIX,\n to pass the values of the non-flat matrices.\n\n @pic_parameter_set_id: see H264 specification.\n @seq_parameter_set_id: see H264 specification.\n @num_slice_groups_minus1: see H264 specification.\n @num_ref_idx_l0_default_active_minus1: see H264 specification.\n @num_ref_idx_l1_default_active_minus1: see H264 specification.\n @weighted_bipred_idc: see H264 specification.\n @pic_init_qp_minus26: see H264 specification.\n @pic_init_qs_minus26: see H264 specification.\n @chroma_qp_index_offset: see H264 specification.\n @second_chroma_qp_index_offset: see H264 specification.\n @flags: see V4L2_H264_PPS_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pps {
     pub pic_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -2713,7 +2713,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_pps() {
 }
 #[doc = " struct v4l2_ctrl_h264_scaling_matrix - H264 scaling matrices\n\n @scaling_list_4x4: scaling matrix after applying the inverse\n scanning process. Expected list order is Intra Y, Intra Cb,\n Intra Cr, Inter Y, Inter Cb, Inter Cr. The values on each\n scaling list are expected in raster scan order.\n @scaling_list_8x8: scaling matrix after applying the inverse\n scanning process. Expected list order is Intra Y, Inter Y,\n Intra Cb, Inter Cb, Intra Cr, Inter Cr. The values on each\n scaling list are expected in raster scan order.\n\n Note that the list order is different for the 4x4 and 8x8\n matrices as per the H264 specification, see table 7-2 \"Assignment\n of mnemonic names to scaling list indices and specification of\n fall-back rule\"."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_scaling_matrix {
     pub scaling_list_4x4: [[__u8; 16usize]; 6usize],
     pub scaling_list_8x8: [[__u8; 64usize]; 6usize],
@@ -2755,7 +2755,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_scaling_matrix() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_weight_factors {
     pub luma_weight: [__s16; 32usize],
     pub luma_offset: [__s16; 32usize],
@@ -2820,7 +2820,7 @@ fn bindgen_test_layout_v4l2_h264_weight_factors() {
 }
 #[doc = " struct v4l2_ctrl_h264_pred_weights - Prediction weight table\n\n Prediction weight table, which matches the syntax specified\n by the H264 specification.\n\n @luma_log2_weight_denom: see H264 specification.\n @chroma_log2_weight_denom: see H264 specification.\n @weight_factors: luma and chroma weight factors."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pred_weights {
     pub luma_log2_weight_denom: __u16,
     pub chroma_log2_weight_denom: __u16,
@@ -2874,7 +2874,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_pred_weights() {
 }
 #[doc = " struct v4l2_h264_reference - H264 picture reference\n\n @fields: indicates how the picture is referenced.\n Valid values are V4L2_H264_{}_REF.\n @index: index into v4l2_ctrl_h264_decode_params.dpb[]."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_reference {
     pub fields: __u8,
     pub index: __u8,
@@ -2916,7 +2916,7 @@ fn bindgen_test_layout_v4l2_h264_reference() {
 }
 #[doc = " struct v4l2_ctrl_h264_slice_params - H264 slice parameters\n\n This structure holds the H264 syntax elements that are specified\n as non-invariant for the slices in a given frame.\n\n Slice invariant syntax elements are contained in struct\n v4l2_ctrl_h264_decode_params. This is done to reduce the API surface\n on frame-based decoders, where slice header parsing is done by the\n hardware.\n\n Slice invariant syntax elements are specified in specification section\n \"7.4.3 Slice header semantics\".\n\n Except where noted, the members on this struct match the slice header syntax.\n\n @header_bit_size: offset in bits to slice_data() from the beginning of this slice.\n @first_mb_in_slice: see H264 specification.\n @slice_type: see H264 specification.\n @colour_plane_id: see H264 specification.\n @redundant_pic_cnt: see H264 specification.\n @cabac_init_idc: see H264 specification.\n @slice_qp_delta: see H264 specification.\n @slice_qs_delta: see H264 specification.\n @disable_deblocking_filter_idc: see H264 specification.\n @slice_alpha_c0_offset_div2: see H264 specification.\n @slice_beta_offset_div2: see H264 specification.\n @num_ref_idx_l0_active_minus1: see H264 specification.\n @num_ref_idx_l1_active_minus1: see H264 specification.\n @reserved: padding field. Should be zeroed by applications.\n @ref_pic_list0: reference picture list 0 after applying the per-slice modifications.\n @ref_pic_list1: reference picture list 1 after applying the per-slice modifications.\n @flags: see V4L2_H264_SLICE_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_slice_params {
     pub header_bit_size: __u32,
     pub first_mb_in_slice: __u32,
@@ -3130,7 +3130,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_slice_params() {
 }
 #[doc = " struct v4l2_h264_dpb_entry - H264 decoded picture buffer entry\n\n @reference_ts: timestamp of the V4L2 capture buffer to use as reference.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @pic_num: matches PicNum variable assigned during the reference\n picture lists construction process.\n @frame_num: frame identifier which matches frame_num syntax element.\n @fields: indicates how the DPB entry is referenced. Valid values are\n V4L2_H264_{}_REF.\n @reserved: padding field. Should be zeroed by applications.\n @top_field_order_cnt: matches TopFieldOrderCnt picture value.\n @bottom_field_order_cnt: matches BottomFieldOrderCnt picture value.\n Note that picture field is indicated by v4l2_buffer.field.\n @flags: see V4L2_H264_DPB_ENTRY_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_dpb_entry {
     pub reference_ts: __u64,
     pub pic_num: __u32,
@@ -3238,7 +3238,7 @@ fn bindgen_test_layout_v4l2_h264_dpb_entry() {
 }
 #[doc = " struct v4l2_ctrl_h264_decode_params - H264 decoding parameters\n\n @dpb: decoded picture buffer.\n @nal_ref_idc: slice header syntax element.\n @frame_num: slice header syntax element.\n @top_field_order_cnt: matches TopFieldOrderCnt picture value.\n @bottom_field_order_cnt: matches BottomFieldOrderCnt picture value.\n Note that picture field is indicated by v4l2_buffer.field.\n @idr_pic_id: slice header syntax element.\n @pic_order_cnt_lsb: slice header syntax element.\n @delta_pic_order_cnt_bottom: slice header syntax element.\n @delta_pic_order_cnt0: slice header syntax element.\n @delta_pic_order_cnt1: slice header syntax element.\n @dec_ref_pic_marking_bit_size: size in bits of dec_ref_pic_marking()\n syntax element.\n @pic_order_cnt_bit_size: size in bits of pic order count syntax.\n @slice_group_change_cycle: slice header syntax element.\n @reserved: padding field. Should be zeroed by applications.\n @flags: see V4L2_H264_DECODE_PARAM_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_decode_params {
     pub dpb: [v4l2_h264_dpb_entry; 16usize],
     pub nal_ref_idc: __u16,
@@ -3426,7 +3426,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_decode_params() {
 }
 #[doc = " struct v4l2_ctrl_fwht_params - FWHT parameters\n\n @backward_ref_ts: timestamp of the V4L2 capture buffer to use as reference.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @version: must be V4L2_FWHT_VERSION.\n @width: width of frame.\n @height: height of frame.\n @flags: FWHT flags (see V4L2_FWHT_FL_*).\n @colorspace: the colorspace (enum v4l2_colorspace).\n @xfer_func: the transfer function (enum v4l2_xfer_func).\n @ycbcr_enc: the Y'CbCr encoding (enum v4l2_ycbcr_encoding).\n @quantization: the quantization (enum v4l2_quantization)."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_fwht_params {
     pub backward_ref_ts: __u64,
     pub version: __u32,
@@ -3546,7 +3546,7 @@ fn bindgen_test_layout_v4l2_ctrl_fwht_params() {
 }
 #[doc = " struct v4l2_vp8_segment - VP8 segment-based adjustments parameters\n\n @quant_update: update values for the segment quantizer.\n @lf_update: update values for the loop filter level.\n @segment_probs: branch probabilities of the segment_id decoding tree.\n @padding: padding field. Should be zeroed by applications.\n @flags: see V4L2_VP8_SEGMENT_FLAG_{}.\n\n This structure contains segment-based adjustments related parameters.\n See the 'update_segmentation()' part of the frame header syntax,\n and section '9.3. Segment-Based Adjustments' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_segment {
     pub quant_update: [__s8; 4usize],
     pub lf_update: [__s8; 4usize],
@@ -3621,7 +3621,7 @@ fn bindgen_test_layout_v4l2_vp8_segment() {
 }
 #[doc = " struct v4l2_vp8_loop_filter - VP8 loop filter parameters\n\n @ref_frm_delta: Reference frame signed delta values.\n @mb_mode_delta: MB prediction mode signed delta values.\n @sharpness_level: matches sharpness_level syntax element.\n @level: matches loop_filter_level syntax element.\n @padding: padding field. Should be zeroed by applications.\n @flags: see V4L2_VP8_LF_{}.\n\n This structure contains loop filter related parameters.\n See the 'mb_lf_adjustments()' part of the frame header syntax,\n and section '9.4. Loop Filter Type and Levels' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_loop_filter {
     pub ref_frm_delta: [__s8; 4usize],
     pub mb_mode_delta: [__s8; 4usize],
@@ -3707,7 +3707,7 @@ fn bindgen_test_layout_v4l2_vp8_loop_filter() {
 }
 #[doc = " struct v4l2_vp8_quantization - VP8 quantizattion indices\n\n @y_ac_qi: luma AC coefficient table index.\n @y_dc_delta: luma DC delta vaue.\n @y2_dc_delta: y2 block DC delta value.\n @y2_ac_delta: y2 block AC delta value.\n @uv_dc_delta: chroma DC delta value.\n @uv_ac_delta: chroma AC delta value.\n @padding: padding field. Should be zeroed by applications.\n\n This structure contains the quantization indices present\n in 'quant_indices()' part of the frame header syntax.\n See section '9.6. Dequantization Indices' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_quantization {
     pub y_ac_qi: __u8,
     pub y_dc_delta: __s8,
@@ -3805,7 +3805,7 @@ fn bindgen_test_layout_v4l2_vp8_quantization() {
 }
 #[doc = " struct v4l2_vp8_entropy - VP8 update probabilities\n\n @coeff_probs: coefficient probability update values.\n @y_mode_probs: luma intra-prediction probabilities.\n @uv_mode_probs: chroma intra-prediction probabilities.\n @mv_probs: mv decoding probability.\n @padding: padding field. Should be zeroed by applications.\n\n This structure contains the update probabilities present in\n 'token_prob_update()' and 'mv_prob_update()' part of the frame header.\n See section '17.2. Probability Updates' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy {
     pub coeff_probs: [[[[__u8; 11usize]; 3usize]; 8usize]; 4usize],
     pub y_mode_probs: [__u8; 4usize],
@@ -3880,7 +3880,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy() {
 }
 #[doc = " struct v4l2_vp8_entropy_coder_state - VP8 boolean coder state\n\n @range: coder state value for \"Range\"\n @value: coder state value for \"Value\"\n @bit_count: number of bits left in range \"Value\".\n @padding: padding field. Should be zeroed by applications.\n\n This structure contains the state for the boolean coder, as\n explained in section '7. Boolean Entropy Decoder' of the VP8 specification."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy_coder_state {
     pub range: __u8,
     pub value: __u8,
@@ -3945,7 +3945,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy_coder_state() {
 }
 #[doc = " struct v4l2_ctrl_vp8_frame - VP8 frame parameters\n\n @segment: segmentation parameters. See &v4l2_vp8_segment for more details\n @lf: loop filter parameters. See &v4l2_vp8_loop_filter for more details\n @quant: quantization parameters. See &v4l2_vp8_quantization for more details\n @entropy: update probabilities. See &v4l2_vp8_entropy for more details\n @coder_state: boolean coder state. See &v4l2_vp8_entropy_coder_state for more details\n @width: frame width.\n @height: frame height.\n @horizontal_scale: horizontal scaling factor.\n @vertical_scale: vertical scaling factor.\n @version: bitstream version.\n @prob_skip_false: frame header syntax element.\n @prob_intra: frame header syntax element.\n @prob_last: frame header syntax element.\n @prob_gf: frame header syntax element.\n @num_dct_parts: number of DCT coefficients partitions.\n @first_part_size: size of the first partition, i.e. the control partition.\n @first_part_header_bits: size in bits of the first partition header portion.\n @dct_part_sizes: DCT coefficients sizes.\n @last_frame_ts: \"last\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @golden_frame_ts: \"golden\" reference buffer timestamp.\n @alt_frame_ts: \"alt\" reference buffer timestamp.\n @flags: see V4L2_VP8_FRAME_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp8_frame {
     pub segment: v4l2_vp8_segment,
     pub lf: v4l2_vp8_loop_filter,
@@ -4207,7 +4207,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp8_frame() {
 }
 #[doc = " struct v4l2_ctrl_mpeg2_sequence - MPEG-2 sequence header\n\n All the members on this structure match the sequence header and sequence\n extension syntaxes as specified by the MPEG-2 specification.\n\n Fields horizontal_size, vertical_size and vbv_buffer_size are a\n combination of respective _value and extension syntax elements,\n as described in section 6.3.3 \"Sequence header\".\n\n @horizontal_size: combination of elements horizontal_size_value and\n horizontal_size_extension.\n @vertical_size: combination of elements vertical_size_value and\n vertical_size_extension.\n @vbv_buffer_size: combination of elements vbv_buffer_size_value and\n vbv_buffer_size_extension.\n @profile_and_level_indication: see MPEG-2 specification.\n @chroma_format: see MPEG-2 specification.\n @flags: see V4L2_MPEG2_SEQ_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_sequence {
     pub horizontal_size: __u16,
     pub vertical_size: __u16,
@@ -4296,7 +4296,7 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_sequence() {
 }
 #[doc = " struct v4l2_ctrl_mpeg2_picture - MPEG-2 picture header\n\n All the members on this structure match the picture header and picture\n coding extension syntaxes as specified by the MPEG-2 specification.\n\n @backward_ref_ts: timestamp of the V4L2 capture buffer to use as\n reference for backward prediction.\n @forward_ref_ts: timestamp of the V4L2 capture buffer to use as\n reference for forward prediction. These timestamp refers to the\n timestamp field in struct v4l2_buffer. Use v4l2_timeval_to_ns()\n to convert the struct timeval to a __u64.\n @flags: see V4L2_MPEG2_PIC_FLAG_{}.\n @f_code: see MPEG-2 specification.\n @picture_coding_type: see MPEG-2 specification.\n @picture_structure: see V4L2_MPEG2_PIC_{}_FIELD.\n @intra_dc_precision: see MPEG-2 specification.\n @reserved: padding field. Should be zeroed by applications."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_picture {
     pub backward_ref_ts: __u64,
     pub forward_ref_ts: __u64,
@@ -4405,7 +4405,7 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_picture() {
 }
 #[doc = " struct v4l2_ctrl_mpeg2_quantisation - MPEG-2 quantisation\n\n Quantisation matrices as specified by section 6.3.7\n \"Quant matrix extension\".\n\n @intra_quantiser_matrix: The quantisation matrix coefficients\n for intra-coded frames, in zigzag scanning order. It is relevant\n for both luma and chroma components, although it can be superseded\n by the chroma-specific matrix for non-4:2:0 YUV formats.\n @non_intra_quantiser_matrix: The quantisation matrix coefficients\n for non-intra-coded frames, in zigzag scanning order. It is relevant\n for both luma and chroma components, although it can be superseded\n by the chroma-specific matrix for non-4:2:0 YUV formats.\n @chroma_intra_quantiser_matrix: The quantisation matrix coefficients\n for the chominance component of intra-coded frames, in zigzag scanning\n order. Only relevant for 4:2:2 and 4:4:4 YUV formats.\n @chroma_non_intra_quantiser_matrix: The quantisation matrix coefficients\n for the chrominance component of non-intra-coded frames, in zigzag scanning\n order. Only relevant for 4:2:2 and 4:4:4 YUV formats."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_quantisation {
     pub intra_quantiser_matrix: [__u8; 64usize],
     pub non_intra_quantiser_matrix: [__u8; 64usize],
@@ -4484,7 +4484,7 @@ pub const v4l2_stateless_hevc_start_code_V4L2_STATELESS_HEVC_START_CODE_ANNEX_B:
 pub type v4l2_stateless_hevc_start_code = ::std::os::raw::c_uint;
 #[doc = " struct v4l2_ctrl_hevc_sps - ITU-T Rec. H.265: Sequence parameter set\n\n @video_parameter_set_id: specifies the value of the\n\t\t\tvps_video_parameter_set_id of the active VPS\n @seq_parameter_set_id: provides an identifier for the SPS for\n\t\t\t  reference by other syntax elements\n @pic_width_in_luma_samples:\tspecifies the width of each decoded picture\n\t\t\t\tin units of luma samples\n @pic_height_in_luma_samples: specifies the height of each decoded picture\n\t\t\t\tin units of luma samples\n @bit_depth_luma_minus8: this value plus 8specifies the bit depth of the\n                         samples of the luma array\n @bit_depth_chroma_minus8: this value plus 8 specifies the bit depth of the\n                           samples of the chroma arrays\n @log2_max_pic_order_cnt_lsb_minus4: this value plus 4 specifies the value of\n                                     the variable MaxPicOrderCntLsb\n @sps_max_dec_pic_buffering_minus1: this value plus 1 specifies the maximum\n                                    required size of the decoded picture\n                                    buffer for the codec video sequence\n @sps_max_num_reorder_pics: indicates the maximum allowed number of pictures\n @sps_max_latency_increase_plus1: not equal to 0 is used to compute the\n\t\t\t\t    value of SpsMaxLatencyPictures array\n @log2_min_luma_coding_block_size_minus3: plus 3 specifies the minimum\n\t\t\t\t\t    luma coding block size\n @log2_diff_max_min_luma_coding_block_size: specifies the difference between\n\t\t\t\t\t      the maximum and minimum luma\n\t\t\t\t\t      coding block size\n @log2_min_luma_transform_block_size_minus2: plus 2 specifies the minimum luma\n\t\t\t\t\t       transform block size\n @log2_diff_max_min_luma_transform_block_size: specifies the difference between\n\t\t\t\t\t\t the maximum and minimum luma\n\t\t\t\t\t\t transform block size\n @max_transform_hierarchy_depth_inter: specifies the maximum hierarchy\n\t\t\t\t\t depth for transform units of\n\t\t\t\t\t coding units coded in inter\n\t\t\t\t\t prediction mode\n @max_transform_hierarchy_depth_intra: specifies the maximum hierarchy\n\t\t\t\t\t depth for transform units of\n\t\t\t\t\t coding units coded in intra\n\t\t\t\t\t prediction mode\n @pcm_sample_bit_depth_luma_minus1: this value plus 1 specifies the number of\n                                    bits used to represent each of PCM sample\n                                    values of the luma component\n @pcm_sample_bit_depth_chroma_minus1: this value plus 1 specifies the number\n                                      of bits used to represent each of PCM\n                                      sample values of the chroma components\n @log2_min_pcm_luma_coding_block_size_minus3: this value plus 3 specifies the\n                                              minimum size of coding blocks\n @log2_diff_max_min_pcm_luma_coding_block_size: specifies the difference between\n\t\t\t\t\t\t  the maximum and minimum size of\n\t\t\t\t\t\t  coding blocks\n @num_short_term_ref_pic_sets: specifies the number of st_ref_pic_set()\n\t\t\t\t syntax structures included in the SPS\n @num_long_term_ref_pics_sps: specifies the number of candidate long-term\n\t\t\t\treference pictures that are specified in the SPS\n @chroma_format_idc: specifies the chroma sampling\n @sps_max_sub_layers_minus1: this value plus 1 specifies the maximum number\n                             of temporal sub-layers\n @reserved: padding field. Should be zeroed by applications.\n @flags: see V4L2_HEVC_SPS_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_sps {
     pub video_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -4822,7 +4822,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_sps() {
 }
 #[doc = " struct v4l2_ctrl_hevc_pps - ITU-T Rec. H.265: Picture parameter set\n\n @pic_parameter_set_id: identifies the PPS for reference by other\n\t\t\t  syntax elements\n @num_extra_slice_header_bits: specifies the number of extra slice header\n\t\t\t\t bits that are present in the slice header RBSP\n\t\t\t\t for coded pictures referring to the PPS.\n @num_ref_idx_l0_default_active_minus1: this value plus 1 specifies the\n                                        inferred value of num_ref_idx_l0_active_minus1\n @num_ref_idx_l1_default_active_minus1: this value plus 1 specifies the\n                                        inferred value of num_ref_idx_l1_active_minus1\n @init_qp_minus26: this value plus 26 specifies the initial value of SliceQp Y for\n\t\t     each slice referring to the PPS\n @diff_cu_qp_delta_depth: specifies the difference between the luma coding\n\t\t\t    tree block size and the minimum luma coding block\n\t\t\t    size of coding units that convey cu_qp_delta_abs\n\t\t\t    and cu_qp_delta_sign_flag\n @pps_cb_qp_offset: specify the offsets to the luma quantization parameter Cb\n @pps_cr_qp_offset: specify the offsets to the luma quantization parameter Cr\n @num_tile_columns_minus1: this value plus 1 specifies the number of tile columns\n\t\t\t     partitioning the picture\n @num_tile_rows_minus1: this value plus 1 specifies the number of tile rows partitioning\n\t\t\t  the picture\n @column_width_minus1: this value plus 1 specifies the width of the each tile column in\n\t\t\t units of coding tree blocks\n @row_height_minus1: this value plus 1 specifies the height of the each tile row in\n\t\t       units of coding tree blocks\n @pps_beta_offset_div2: specify the default deblocking parameter offsets for\n\t\t\t  beta divided by 2\n @pps_tc_offset_div2: specify the default deblocking parameter offsets for tC\n\t\t\tdivided by 2\n @log2_parallel_merge_level_minus2: this value plus 2 specifies the value of\n                                    the variable Log2ParMrgLevel\n @reserved: padding field. Should be zeroed by applications.\n @flags: see V4L2_HEVC_PPS_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_pps {
     pub pic_parameter_set_id: __u8,
     pub num_extra_slice_header_bits: __u8,
@@ -5037,7 +5037,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_pps() {
 }
 #[doc = " struct v4l2_hevc_dpb_entry - HEVC decoded picture buffer entry\n\n @timestamp: timestamp of the V4L2 capture buffer to use as reference.\n @flags: long term flag for the reference frame\n @field_pic: whether the reference is a field picture or a frame.\n @reserved: padding field. Should be zeroed by applications.\n @pic_order_cnt_val: the picture order count of the current picture."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_dpb_entry {
     pub timestamp: __u64,
     pub flags: __u8,
@@ -5112,7 +5112,7 @@ fn bindgen_test_layout_v4l2_hevc_dpb_entry() {
 }
 #[doc = " struct v4l2_hevc_pred_weight_table - HEVC weighted prediction parameters\n\n @delta_luma_weight_l0: the difference of the weighting factor applied\n\t\t\t  to the luma prediction value for list 0\n @luma_offset_l0: the additive offset applied to the luma prediction value\n\t\t    for list 0\n @delta_chroma_weight_l0: the difference of the weighting factor applied\n\t\t\t    to the chroma prediction values for list 0\n @chroma_offset_l0: the difference of the additive offset applied to\n\t\t      the chroma prediction values for list 0\n @delta_luma_weight_l1: the difference of the weighting factor applied\n\t\t\t  to the luma prediction value for list 1\n @luma_offset_l1: the additive offset applied to the luma prediction value\n\t\t    for list 1\n @delta_chroma_weight_l1: the difference of the weighting factor applied\n\t\t\t    to the chroma prediction values for list 1\n @chroma_offset_l1: the difference of the additive offset applied to\n\t\t      the chroma prediction values for list 1\n @luma_log2_weight_denom: the base 2 logarithm of the denominator for\n\t\t\t    all luma weighting factors\n @delta_chroma_log2_weight_denom: the difference of the base 2 logarithm\n\t\t\t\t    of the denominator for all chroma\n\t\t\t\t    weighting factors"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_pred_weight_table {
     pub delta_luma_weight_l0: [__s8; 16usize],
     pub luma_offset_l0: [__s8; 16usize],
@@ -5245,7 +5245,7 @@ fn bindgen_test_layout_v4l2_hevc_pred_weight_table() {
 }
 #[doc = " struct v4l2_ctrl_hevc_slice_params - HEVC slice parameters\n\n This control is a dynamically sized 1-dimensional array,\n V4L2_CTRL_FLAG_DYNAMIC_ARRAY flag must be set when using it.\n\n @bit_size: size (in bits) of the current slice data\n @data_byte_offset: offset (in bytes) to the video data in the current slice data\n @num_entry_point_offsets: specifies the number of entry point offset syntax\n\t\t\t     elements in the slice header.\n @nal_unit_type: specifies the coding type of the slice (B, P or I)\n @nuh_temporal_id_plus1: minus 1 specifies a temporal identifier for the NAL unit\n @slice_type: see V4L2_HEVC_SLICE_TYPE_{}\n @colour_plane_id: specifies the colour plane associated with the current slice\n @slice_pic_order_cnt: specifies the picture order count\n @num_ref_idx_l0_active_minus1: this value plus 1 specifies the maximum\n                                reference index for reference picture list 0\n                                that may be used to decode the slice\n @num_ref_idx_l1_active_minus1: this value plus 1 specifies the maximum\n                                reference index for reference picture list 1\n                                that may be used to decode the slice\n @collocated_ref_idx: specifies the reference index of the collocated picture used\n\t\t\tfor temporal motion vector prediction\n @five_minus_max_num_merge_cand: specifies the maximum number of merging\n\t\t\t\t   motion vector prediction candidates supported in\n\t\t\t\t   the slice subtracted from 5\n @slice_qp_delta: specifies the initial value of QpY to be used for the coding\n\t\t    blocks in the slice\n @slice_cb_qp_offset: specifies a difference to be added to the value of pps_cb_qp_offset\n @slice_cr_qp_offset: specifies a difference to be added to the value of pps_cr_qp_offset\n @slice_act_y_qp_offset: screen content extension parameters\n @slice_act_cb_qp_offset: screen content extension parameters\n @slice_act_cr_qp_offset: screen content extension parameters\n @slice_beta_offset_div2: specify the deblocking parameter offsets for beta divided by 2\n @slice_tc_offset_div2: specify the deblocking parameter offsets for tC divided by 2\n @pic_struct: indicates whether a picture should be displayed as a frame or as one or\n\t\tmore fields\n @reserved0: padding field. Should be zeroed by applications.\n @slice_segment_addr: specifies the address of the first coding tree block in\n\t\t\tthe slice segment\n @ref_idx_l0: the list of L0 reference elements as indices in the DPB\n @ref_idx_l1: the list of L1 reference elements as indices in the DPB\n @short_term_ref_pic_set_size: specifies the size of short-term reference\n\t\t\t\t pictures set included in the SPS\n @long_term_ref_pic_set_size: specifies the size of long-term reference\n\t\t\t\tpictures set include in the SPS\n @pred_weight_table: the prediction weight coefficients for inter-picture\n\t\t       prediction\n @reserved1: padding field. Should be zeroed by applications.\n @flags: see V4L2_HEVC_SLICE_PARAMS_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_slice_params {
     pub bit_size: __u32,
     pub data_byte_offset: __u32,
@@ -5602,7 +5602,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_slice_params() {
 }
 #[doc = " struct v4l2_ctrl_hevc_decode_params - HEVC decode parameters\n\n @pic_order_cnt_val: picture order count\n @short_term_ref_pic_set_size: specifies the size of short-term reference\n\t\t\t\t pictures set included in the SPS of the first slice\n @long_term_ref_pic_set_size: specifies the size of long-term reference\n\t\t\t\tpictures set include in the SPS of the first slice\n @num_active_dpb_entries: the number of entries in dpb\n @num_poc_st_curr_before: the number of reference pictures in the short-term\n\t\t\t    set that come before the current frame\n @num_poc_st_curr_after: the number of reference pictures in the short-term\n\t\t\t   set that come after the current frame\n @num_poc_lt_curr: the number of reference pictures in the long-term set\n @poc_st_curr_before: provides the index of the short term before references\n\t\t\tin DPB array\n @poc_st_curr_after: provides the index of the short term after references\n\t\t       in DPB array\n @poc_lt_curr: provides the index of the long term references in DPB array\n @reserved: padding field. Should be zeroed by applications.\n @dpb: the decoded picture buffer, for meta-data about reference frames\n @flags: see V4L2_HEVC_DECODE_PARAM_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_decode_params {
     pub pic_order_cnt_val: __s32,
     pub short_term_ref_pic_set_size: __u16,
@@ -5766,7 +5766,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_decode_params() {
 }
 #[doc = " struct v4l2_ctrl_hevc_scaling_matrix - HEVC scaling lists parameters\n\n @scaling_list_4x4: scaling list is used for the scaling process for\n\t\t      transform coefficients. The values on each scaling\n\t\t      list are expected in raster scan order\n @scaling_list_8x8: scaling list is used for the scaling process for\n\t\t      transform coefficients. The values on each scaling\n\t\t      list are expected in raster scan order\n @scaling_list_16x16:\tscaling list is used for the scaling process for\n\t\t\ttransform coefficients. The values on each scaling\n\t\t\tlist are expected in raster scan order\n @scaling_list_32x32:\tscaling list is used for the scaling process for\n\t\t\ttransform coefficients. The values on each scaling\n\t\t\tlist are expected in raster scan order\n @scaling_list_dc_coef_16x16:\tscaling list is used for the scaling process\n\t\t\t\tfor transform coefficients. The values on each\n\t\t\t\tscaling list are expected in raster scan order.\n @scaling_list_dc_coef_32x32:\tscaling list is used for the scaling process\n\t\t\t\tfor transform coefficients. The values on each\n\t\t\t\tscaling list are expected in raster scan order."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_scaling_matrix {
     pub scaling_list_4x4: [[__u8; 16usize]; 6usize],
     pub scaling_list_8x8: [[__u8; 64usize]; 6usize],
@@ -5852,7 +5852,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_scaling_matrix() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_cll_info {
     pub max_content_light_level: __u16,
     pub max_pic_average_light_level: __u16,
@@ -5894,7 +5894,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_cll_info() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_mastering_display {
     pub display_primaries_x: [__u16; 3usize],
     pub display_primaries_y: [__u16; 3usize],
@@ -5988,7 +5988,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_mastering_display() {
 }
 #[doc = " struct v4l2_vp9_loop_filter - VP9 loop filter parameters\n\n @ref_deltas: contains the adjustment needed for the filter level based on the\n chosen reference frame. If this syntax element is not present in the bitstream,\n users should pass its last value.\n @mode_deltas: contains the adjustment needed for the filter level based on the\n chosen mode.\tIf this syntax element is not present in the bitstream, users should\n pass its last value.\n @level: indicates the loop filter strength.\n @sharpness: indicates the sharpness level.\n @flags: combination of V4L2_VP9_LOOP_FILTER_FLAG_{} flags.\n @reserved: padding field. Should be zeroed by applications.\n\n This structure contains all loop filter related parameters. See sections\n '7.2.8 Loop filter semantics' of the VP9 specification for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_loop_filter {
     pub ref_deltas: [__s8; 4usize],
     pub mode_deltas: [__s8; 2usize],
@@ -6074,7 +6074,7 @@ fn bindgen_test_layout_v4l2_vp9_loop_filter() {
 }
 #[doc = " struct v4l2_vp9_quantization - VP9 quantization parameters\n\n @base_q_idx: indicates the base frame qindex.\n @delta_q_y_dc: indicates the Y DC quantizer relative to base_q_idx.\n @delta_q_uv_dc: indicates the UV DC quantizer relative to base_q_idx.\n @delta_q_uv_ac: indicates the UV AC quantizer relative to base_q_idx.\n @reserved: padding field. Should be zeroed by applications.\n\n Encodes the quantization parameters. See section '7.2.9 Quantization params\n syntax' of the VP9 specification for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_quantization {
     pub base_q_idx: __u8,
     pub delta_q_y_dc: __s8,
@@ -6150,7 +6150,7 @@ fn bindgen_test_layout_v4l2_vp9_quantization() {
 }
 #[doc = " struct v4l2_vp9_segmentation - VP9 segmentation parameters\n\n @feature_data: data attached to each feature. Data entry is only valid if\n the feature is enabled. The array shall be indexed with segment number as\n the first dimension (0..7) and one of V4L2_VP9_SEG_{} as the second dimension.\n @feature_enabled: bitmask defining which features are enabled in each segment.\n The value for each segment is a combination of V4L2_VP9_SEGMENT_FEATURE_ENABLED(id)\n values where id is one of V4L2_VP9_SEG_LVL_{}.\n @tree_probs: specifies the probability values to be used when decoding a\n Segment-ID. See '5.15. Segmentation map' section of the VP9 specification\n for more details.\n @pred_probs: specifies the probability values to be used when decoding a\n Predicted-Segment-ID. See '6.4.14. Get segment id syntax' section of :ref:`vp9`\n for more details.\n @flags: combination of V4L2_VP9_SEGMENTATION_FLAG_{} flags.\n @reserved: padding field. Should be zeroed by applications.\n\n Encodes the quantization parameters. See section '7.2.10 Segmentation params syntax' of\n the VP9 specification for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_segmentation {
     pub feature_data: [[__s16; 4usize]; 8usize],
     pub feature_enabled: [__u8; 8usize],
@@ -6237,7 +6237,7 @@ fn bindgen_test_layout_v4l2_vp9_segmentation() {
 }
 #[doc = " struct v4l2_ctrl_vp9_frame - VP9 frame decoding control\n\n @lf: loop filter parameters. See &v4l2_vp9_loop_filter for more details.\n @quant: quantization parameters. See &v4l2_vp9_quantization for more details.\n @seg: segmentation parameters. See &v4l2_vp9_segmentation for more details.\n @flags: combination of V4L2_VP9_FRAME_FLAG_{} flags.\n @compressed_header_size: compressed header size in bytes.\n @uncompressed_header_size: uncompressed header size in bytes.\n @frame_width_minus_1: add 1 to it and you'll get the frame width expressed in pixels.\n @frame_height_minus_1: add 1 to it and you'll get the frame height expressed in pixels.\n @render_width_minus_1: add 1 to it and you'll get the expected render width expressed in\n pixels. This is not used during the decoding process but might be used by HW scalers\n to prepare a frame that's ready for scanout.\n @render_height_minus_1: add 1 to it and you'll get the expected render height expressed in\n pixels. This is not used during the decoding process but might be used by HW scalers\n to prepare a frame that's ready for scanout.\n @last_frame_ts: \"last\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @golden_frame_ts: \"golden\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @alt_frame_ts: \"alt\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @ref_frame_sign_bias: a bitfield specifying whether the sign bias is set for a given\n reference frame. Either of V4L2_VP9_SIGN_BIAS_{}.\n @reset_frame_context: specifies whether the frame context should be reset to default values.\n Either of V4L2_VP9_RESET_FRAME_CTX_{}.\n @frame_context_idx: frame context that should be used/updated.\n @profile: VP9 profile. Can be 0, 1, 2 or 3.\n @bit_depth: bits per components. Can be 8, 10 or 12. Note that not all profiles support\n 10 and/or 12 bits depths.\n @interpolation_filter: specifies the filter selection used for performing inter prediction.\n Set to one of V4L2_VP9_INTERP_FILTER_{}.\n @tile_cols_log2: specifies the base 2 logarithm of the width of each tile (where the width\n is measured in units of 8x8 blocks). Shall be less than or equal to 6.\n @tile_rows_log2: specifies the base 2 logarithm of the height of each tile (where the height\n is measured in units of 8x8 blocks).\n @reference_mode: specifies the type of inter prediction to be used.\n Set to one of V4L2_VP9_REFERENCE_MODE_{}.\n @reserved: padding field. Should be zeroed by applications."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_frame {
     pub lf: v4l2_vp9_loop_filter,
     pub quant: v4l2_vp9_quantization,
@@ -6510,7 +6510,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_frame() {
 }
 #[doc = " struct v4l2_vp9_mv_probs - VP9 Motion vector probability updates\n @joint: motion vector joint probability updates.\n @sign: motion vector sign probability updates.\n @classes: motion vector class probability updates.\n @class0_bit: motion vector class0 bit probability updates.\n @bits: motion vector bits probability updates.\n @class0_fr: motion vector class0 fractional bit probability updates.\n @fr: motion vector fractional bit probability updates.\n @class0_hp: motion vector class0 high precision fractional bit probability updates.\n @hp: motion vector high precision fractional bit probability updates.\n\n This structure contains new values of motion vector probabilities.\n A value of zero in an array element means there is no update of the relevant probability.\n See `struct v4l2_vp9_prob_updates` for details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_mv_probs {
     pub joint: [__u8; 3usize],
     pub sign: [__u8; 2usize],
@@ -6629,7 +6629,7 @@ fn bindgen_test_layout_v4l2_vp9_mv_probs() {
 }
 #[doc = " struct v4l2_ctrl_vp9_compressed_hdr - VP9 probability updates control\n @tx_mode: specifies the TX mode. Set to one of V4L2_VP9_TX_MODE_{}.\n @tx8: TX 8x8 probability updates.\n @tx16: TX 16x16 probability updates.\n @tx32: TX 32x32 probability updates.\n @coef: coefficient probability updates.\n @skip: skip probability updates.\n @inter_mode: inter mode probability updates.\n @interp_filter: interpolation filter probability updates.\n @is_inter: is inter-block probability updates.\n @comp_mode: compound prediction mode probability updates.\n @single_ref: single ref probability updates.\n @comp_ref: compound ref probability updates.\n @y_mode: Y prediction mode probability updates.\n @uv_mode: UV prediction mode probability updates.\n @partition: partition probability updates.\n @mv: motion vector probability updates.\n\n This structure holds the probabilities update as parsed in the compressed\n header (Spec 6.3). These values represent the value of probability update after\n being translated with inv_map_table[] (see 6.3.5). A value of zero in an array element\n means that there is no update of the relevant probability.\n\n This control is optional and needs to be used when dealing with the hardware which is\n not capable of parsing the compressed header itself. Only drivers which need it will\n implement it."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_compressed_hdr {
     pub tx_mode: __u8,
     pub tx8: [[__u8; 1usize]; 2usize],
@@ -6909,7 +6909,7 @@ pub const v4l2_priority_V4L2_PRIORITY_RECORD: v4l2_priority = 3;
 pub const v4l2_priority_V4L2_PRIORITY_DEFAULT: v4l2_priority = 2;
 pub type v4l2_priority = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rect {
     pub left: __s32,
     pub top: __s32,
@@ -6972,7 +6972,7 @@ fn bindgen_test_layout_v4l2_rect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fract {
     pub numerator: __u32,
     pub denominator: __u32,
@@ -7013,7 +7013,7 @@ fn bindgen_test_layout_v4l2_fract() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_area {
     pub width: __u32,
     pub height: __u32,
@@ -7055,7 +7055,7 @@ fn bindgen_test_layout_v4l2_area() {
 }
 #[doc = " struct v4l2_capability - Describes V4L2 device caps returned by VIDIOC_QUERYCAP\n\n @driver:\t   name of the driver module (e.g. \"bttv\")\n @card:\t   name of the card (e.g. \"Hauppauge WinTV\")\n @bus_info:\t   name of the bus (e.g. \"PCI:\" + pci_name(pci_dev) )\n @version:\t   KERNEL_VERSION\n @capabilities: capabilities of the physical device as a whole\n @device_caps:  capabilities accessed via this particular device (node)\n @reserved:\t   reserved fields for future extensions"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_capability {
     pub driver: [__u8; 16usize],
     pub card: [__u8; 32usize],
@@ -7334,7 +7334,7 @@ fn bindgen_test_layout_v4l2_pix_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fmtdesc {
     pub index: __u32,
     pub type_: __u32,
@@ -7434,7 +7434,7 @@ pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS: v4l2_frmsizetypes = 2;
 pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE: v4l2_frmsizetypes = 3;
 pub type v4l2_frmsizetypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_discrete {
     pub width: __u32,
     pub height: __u32,
@@ -7476,7 +7476,7 @@ fn bindgen_test_layout_v4l2_frmsize_discrete() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_stepwise {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -7672,7 +7672,7 @@ pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS: v4l2_frmivaltypes = 2;
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE: v4l2_frmivaltypes = 3;
 pub type v4l2_frmivaltypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmival_stepwise {
     pub min: v4l2_fract,
     pub max: v4l2_fract,
@@ -7853,7 +7853,7 @@ fn bindgen_test_layout_v4l2_frmivalenum() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_timecode {
     pub type_: __u32,
     pub flags: __u32,
@@ -7949,7 +7949,7 @@ fn bindgen_test_layout_v4l2_timecode() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_jpegcompression {
     pub quality: ::std::os::raw::c_int,
     pub APPn: ::std::os::raw::c_int,
@@ -8045,7 +8045,7 @@ fn bindgen_test_layout_v4l2_jpegcompression() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_requestbuffers {
     pub count: __u32,
     pub type_: __u32,
@@ -8518,7 +8518,7 @@ fn bindgen_test_layout_v4l2_buffer() {
 }
 #[doc = " struct v4l2_exportbuffer - export of video buffer as DMABUF file descriptor\n\n @index:\tid number of the buffer\n @type:\tenum v4l2_buf_type; buffer type (type == *_MPLANE for\n\t\tmultiplanar buffers);\n @plane:\tindex of the plane to be exported, 0 for single plane queues\n @flags:\tflags for newly created file, currently only O_CLOEXEC is\n\t\tsupported, refer to manual of open syscall for more details\n @fd:\t\tfile descriptor associated with DMABUF (set by driver)\n @reserved:\tdrivers and applications must zero this array\n\n Contains data used for exporting a video buffer as DMABUF file descriptor.\n The buffer is identified by a 'cookie' returned by VIDIOC_QUERYBUF\n (identical to the cookie used to mmap() the buffer to userspace). All\n reserved fields must be set to zero. The field reserved0 is expected to\n become a structure 'type' allowing an alternative layout of the structure\n content. Therefore this field should not be used for any other extensions."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_exportbuffer {
     pub type_: __u32,
     pub index: __u32,
@@ -8603,7 +8603,7 @@ fn bindgen_test_layout_v4l2_exportbuffer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_framebuffer {
     pub capability: __u32,
     pub flags: __u32,
@@ -8611,7 +8611,7 @@ pub struct v4l2_framebuffer {
     pub fmt: v4l2_framebuffer__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_framebuffer__bindgen_ty_1 {
     pub width: __u32,
     pub height: __u32,
@@ -8774,7 +8774,7 @@ fn bindgen_test_layout_v4l2_framebuffer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_clip {
     pub c: v4l2_rect,
     pub next: *mut v4l2_clip,
@@ -8815,7 +8815,7 @@ fn bindgen_test_layout_v4l2_clip() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_window {
     pub w: v4l2_rect,
     pub field: __u32,
@@ -8911,7 +8911,7 @@ fn bindgen_test_layout_v4l2_window() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_captureparm {
     pub capability: __u32,
     pub capturemode: __u32,
@@ -8996,7 +8996,7 @@ fn bindgen_test_layout_v4l2_captureparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_outputparm {
     pub capability: __u32,
     pub outputmode: __u32,
@@ -9081,7 +9081,7 @@ fn bindgen_test_layout_v4l2_outputparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_cropcap {
     pub type_: __u32,
     pub bounds: v4l2_rect,
@@ -9144,7 +9144,7 @@ fn bindgen_test_layout_v4l2_cropcap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_crop {
     pub type_: __u32,
     pub c: v4l2_rect,
@@ -9186,7 +9186,7 @@ fn bindgen_test_layout_v4l2_crop() {
 }
 #[doc = " struct v4l2_selection - selection info\n @type:\tbuffer type (do not use *_MPLANE types)\n @target:\tSelection target, used to choose one of possible rectangles;\n\t\tdefined in v4l2-common.h; V4L2_SEL_TGT_* .\n @flags:\tconstraints flags, defined in v4l2-common.h; V4L2_SEL_FLAG_*.\n @r:\t\tcoordinates of selection window\n @reserved:\tfor future use, rounds structure size to 64 bytes, set to zero\n\n Hardware may use multiple helper windows to process a video stream.\n The structure is used to exchange this selection areas between\n an application and a driver."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_selection {
     pub type_: __u32,
     pub target: __u32,
@@ -9261,7 +9261,7 @@ fn bindgen_test_layout_v4l2_selection() {
 }
 pub type v4l2_std_id = __u64;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_standard {
     pub index: __u32,
     pub id: v4l2_std_id,
@@ -9347,7 +9347,7 @@ fn bindgen_test_layout_v4l2_standard() {
 }
 #[doc = " struct v4l2_bt_timings - BT.656/BT.1120 timing data\n @width:\ttotal width of the active video in pixels\n @height:\ttotal height of the active video in lines\n @interlaced:\tInterlaced or progressive\n @polarities:\tPositive or negative polarities\n @pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @hfrontporch:Horizontal front porch in pixels\n @hsync:\tHorizontal Sync length in pixels\n @hbackporch:\tHorizontal back porch in pixels\n @vfrontporch:Vertical front porch in lines\n @vsync:\tVertical Sync length in lines\n @vbackporch:\tVertical back porch in lines\n @il_vfrontporch:Vertical front porch for the even field\n\t\t(aka field 2) of interlaced field formats\n @il_vsync:\tVertical Sync length for the even field\n\t\t(aka field 2) of interlaced field formats\n @il_vbackporch:Vertical back porch for the even field\n\t\t(aka field 2) of interlaced field formats\n @standards:\tStandards the timing belongs to\n @flags:\tFlags\n @picture_aspect: The picture aspect ratio (hor/vert).\n @cea861_vic:\tVIC code as per the CEA-861 standard.\n @hdmi_vic:\tVIC code as per the HDMI standard.\n @reserved:\tReserved fields, must be zeroed.\n\n A note regarding vertical interlaced timings: height refers to the total\n height of the active video frame (= two fields). The blanking timings refer\n to the blanking of each field. So the height of the total frame is\n calculated as follows:\n\n tot_height = height + vfrontporch + vsync + vbackporch +\n                       il_vfrontporch + il_vsync + il_vbackporch\n\n The active height of each field is height / 2."]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_bt_timings {
     pub width: __u32,
     pub height: __u32,
@@ -9725,7 +9725,7 @@ fn bindgen_test_layout_v4l2_enum_dv_timings() {
 }
 #[doc = " struct v4l2_bt_timings_cap - BT.656/BT.1120 timing capabilities\n @min_width:\t\twidth in pixels\n @max_width:\t\twidth in pixels\n @min_height:\t\theight in lines\n @max_height:\t\theight in lines\n @min_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @max_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @standards:\t\tSupported standards\n @capabilities:\tSupported capabilities\n @reserved:\t\tMust be zeroed"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_bt_timings_cap {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -9942,7 +9942,7 @@ fn bindgen_test_layout_v4l2_dv_timings_cap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_input {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -10060,7 +10060,7 @@ fn bindgen_test_layout_v4l2_input() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_output {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -10167,7 +10167,7 @@ fn bindgen_test_layout_v4l2_output() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_control {
     pub id: __u32,
     pub value: __s32,
@@ -10741,7 +10741,7 @@ pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_HEVC_SCALING_MATRIX: v4l2_ctrl_type = 62
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_HEVC_DECODE_PARAMS: v4l2_ctrl_type = 628;
 pub type v4l2_ctrl_type = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_queryctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -10859,7 +10859,7 @@ fn bindgen_test_layout_v4l2_queryctrl() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_query_ext_ctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -11116,7 +11116,7 @@ fn bindgen_test_layout_v4l2_querymenu() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_tuner {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11256,7 +11256,7 @@ fn bindgen_test_layout_v4l2_tuner() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_modulator {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11363,7 +11363,7 @@ fn bindgen_test_layout_v4l2_modulator() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency {
     pub tuner: __u32,
     pub type_: __u32,
@@ -11426,7 +11426,7 @@ fn bindgen_test_layout_v4l2_frequency() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency_band {
     pub tuner: __u32,
     pub type_: __u32,
@@ -11533,7 +11533,7 @@ fn bindgen_test_layout_v4l2_frequency_band() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hw_freq_seek {
     pub tuner: __u32,
     pub type_: __u32,
@@ -11640,7 +11640,7 @@ fn bindgen_test_layout_v4l2_hw_freq_seek() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rds_data {
     pub lsb: __u8,
     pub msb: __u8,
@@ -11692,7 +11692,7 @@ fn bindgen_test_layout_v4l2_rds_data() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audio {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11766,7 +11766,7 @@ fn bindgen_test_layout_v4l2_audio() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audioout {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11840,7 +11840,7 @@ fn bindgen_test_layout_v4l2_audioout() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_enc_idx_entry {
     pub offset: __u64,
     pub pts: __u64,
@@ -11914,7 +11914,7 @@ fn bindgen_test_layout_v4l2_enc_idx_entry() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_enc_idx {
     pub entries: __u32,
     pub entries_cap: __u32,
@@ -11989,7 +11989,7 @@ pub union v4l2_encoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub data: [__u32; 8usize],
 }
@@ -12101,7 +12101,7 @@ pub union v4l2_decoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub pts: __u64,
 }
@@ -12138,7 +12138,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2 {
     pub speed: __s32,
     pub format: __u32,
@@ -12186,7 +12186,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3 {
     pub data: [__u32; 16usize],
 }
@@ -12304,7 +12304,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vbi_format {
     pub sampling_rate: __u32,
     pub offset: __u32,
@@ -12411,7 +12411,7 @@ fn bindgen_test_layout_v4l2_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_format {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -12475,7 +12475,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_cap {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -12538,7 +12538,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_cap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_data {
     pub id: __u32,
     pub field: __u32,
@@ -12612,7 +12612,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_data() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0_line {
     pub id: __u8,
     pub data: [__u8; 42usize],
@@ -12654,7 +12654,7 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0_line() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0 {
     pub linemask: [__le32; 2usize],
     pub line: [v4l2_mpeg_vbi_itv0_line; 35usize],
@@ -12695,7 +12695,7 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_ITV0 {
     pub line: [v4l2_mpeg_vbi_itv0_line; 36usize],
 }
@@ -12806,7 +12806,7 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv() {
 }
 #[doc = " struct v4l2_plane_pix_format - additional, per-plane format definition\n @sizeimage:\t\tmaximum size in bytes required for data, for which\n\t\t\tthis plane will be used\n @bytesperline:\tdistance in bytes between the leftmost pixels in two\n\t\t\tadjacent lines\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_plane_pix_format {
     pub sizeimage: __u32,
     pub bytesperline: __u32,
@@ -13051,7 +13051,7 @@ fn bindgen_test_layout_v4l2_pix_format_mplane() {
 }
 #[doc = " struct v4l2_sdr_format - SDR format definition\n @pixelformat:\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sdr_format {
     pub pixelformat: __u32,
     pub buffersize: __u32,
@@ -13104,7 +13104,7 @@ fn bindgen_test_layout_v4l2_sdr_format() {
 }
 #[doc = " struct v4l2_meta_format - metadata format definition\n @dataformat:\t\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_meta_format {
     pub dataformat: __u32,
     pub buffersize: __u32,
@@ -13389,7 +13389,7 @@ fn bindgen_test_layout_v4l2_streamparm() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_vsync {
     pub field: __u8,
 }
@@ -13558,7 +13558,7 @@ fn bindgen_test_layout_v4l2_event_ctrl() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_frame_sync {
     pub frame_sequence: __u32,
 }
@@ -13589,7 +13589,7 @@ fn bindgen_test_layout_v4l2_event_frame_sync() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_src_change {
     pub changes: __u32,
 }
@@ -13621,7 +13621,7 @@ fn bindgen_test_layout_v4l2_event_src_change() {
 }
 #[doc = " struct v4l2_event_motion_det - motion detection event\n @flags:             if V4L2_EVENT_MD_FL_HAVE_FRAME_SEQ is set, then the\n                     frame_sequence field is valid.\n @frame_sequence:    the frame sequence number associated with this event.\n @region_mask:       which regions detected motion."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_motion_det {
     pub flags: __u32,
     pub frame_sequence: __u32,
@@ -13856,7 +13856,7 @@ fn bindgen_test_layout_v4l2_event() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_subscription {
     pub type_: __u32,
     pub id: __u32,

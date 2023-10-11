@@ -91,6 +91,8 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header(ACTUAL_BINDGEN_INPUT_FILE)
         .parse_callbacks(Box::new(Fix753 {}))
+        .derive_partialeq(true)
+        .derive_eq(true)
         .clang_args(clang_args)
         .generate()
         .expect("Unable to generate bindings");

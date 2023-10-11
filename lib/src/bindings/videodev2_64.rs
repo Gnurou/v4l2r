@@ -1209,7 +1209,7 @@ pub type __off_t = ::std::os::raw::c_long;
 pub type __off64_t = ::std::os::raw::c_long;
 pub type __pid_t = ::std::os::raw::c_int;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __fsid_t {
     pub __val: [::std::os::raw::c_int; 2usize],
 }
@@ -1268,7 +1268,7 @@ pub type __socklen_t = ::std::os::raw::c_uint;
 pub type __sig_atomic_t = ::std::os::raw::c_int;
 pub type time_t = __time_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct timeval {
     pub tv_sec: __time_t,
     pub tv_usec: __suseconds_t,
@@ -1310,7 +1310,7 @@ fn bindgen_test_layout_timeval() {
 }
 pub type suseconds_t = __suseconds_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __sigset_t {
     pub __val: [::std::os::raw::c_ulong; 16usize],
 }
@@ -1341,7 +1341,7 @@ fn bindgen_test_layout___sigset_t() {
 }
 pub type sigset_t = __sigset_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
@@ -1383,7 +1383,7 @@ fn bindgen_test_layout_timespec() {
 }
 pub type __fd_mask = ::std::os::raw::c_long;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct fd_set {
     pub __fds_bits: [__fd_mask; 16usize],
 }
@@ -1433,7 +1433,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct timezone {
     pub tz_minuteswest: ::std::os::raw::c_int,
     pub tz_dsttime: ::std::os::raw::c_int,
@@ -1490,7 +1490,7 @@ pub const __itimer_which_ITIMER_VIRTUAL: __itimer_which = 1;
 pub const __itimer_which_ITIMER_PROF: __itimer_which = 2;
 pub type __itimer_which = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct itimerval {
     pub it_interval: timeval,
     pub it_value: timeval,
@@ -1565,7 +1565,7 @@ pub type __u32 = ::std::os::raw::c_uint;
 pub type __s64 = ::std::os::raw::c_longlong;
 pub type __u64 = ::std::os::raw::c_ulonglong;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fd_set {
     pub fds_bits: [::std::os::raw::c_ulong; 16usize],
 }
@@ -1617,7 +1617,7 @@ pub type __kernel_size_t = __kernel_ulong_t;
 pub type __kernel_ssize_t = __kernel_long_t;
 pub type __kernel_ptrdiff_t = __kernel_long_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fsid_t {
     pub val: [::std::os::raw::c_int; 2usize],
 }
@@ -1669,7 +1669,7 @@ pub type __sum16 = __u16;
 pub type __wsum = __u32;
 pub type __poll_t = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_edid {
     pub pad: __u32,
     pub start_block: __u32,
@@ -2451,7 +2451,7 @@ pub const v4l2_stateless_h264_start_code_V4L2_STATELESS_H264_START_CODE_ANNEX_B:
     v4l2_stateless_h264_start_code = 1;
 pub type v4l2_stateless_h264_start_code = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_sps {
     pub profile_idc: __u8,
     pub constraint_set_flags: __u8,
@@ -2677,7 +2677,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_sps() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pps {
     pub pic_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -2825,7 +2825,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_pps() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_scaling_matrix {
     pub scaling_list_4x4: [[__u8; 16usize]; 6usize],
     pub scaling_list_8x8: [[__u8; 64usize]; 6usize],
@@ -2867,7 +2867,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_scaling_matrix() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_weight_factors {
     pub luma_weight: [__s16; 32usize],
     pub luma_offset: [__s16; 32usize],
@@ -2931,7 +2931,7 @@ fn bindgen_test_layout_v4l2_h264_weight_factors() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pred_weights {
     pub luma_log2_weight_denom: __u16,
     pub chroma_log2_weight_denom: __u16,
@@ -2984,7 +2984,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_pred_weights() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_reference {
     pub fields: __u8,
     pub index: __u8,
@@ -3025,7 +3025,7 @@ fn bindgen_test_layout_v4l2_h264_reference() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_slice_params {
     pub header_bit_size: __u32,
     pub first_mb_in_slice: __u32,
@@ -3238,7 +3238,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_slice_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_dpb_entry {
     pub reference_ts: __u64,
     pub pic_num: __u32,
@@ -3345,7 +3345,7 @@ fn bindgen_test_layout_v4l2_h264_dpb_entry() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_decode_params {
     pub dpb: [v4l2_h264_dpb_entry; 16usize],
     pub nal_ref_idc: __u16,
@@ -3532,7 +3532,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_decode_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_fwht_params {
     pub backward_ref_ts: __u64,
     pub version: __u32,
@@ -3651,7 +3651,7 @@ fn bindgen_test_layout_v4l2_ctrl_fwht_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_segment {
     pub quant_update: [__s8; 4usize],
     pub lf_update: [__s8; 4usize],
@@ -3725,7 +3725,7 @@ fn bindgen_test_layout_v4l2_vp8_segment() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_loop_filter {
     pub ref_frm_delta: [__s8; 4usize],
     pub mb_mode_delta: [__s8; 4usize],
@@ -3810,7 +3810,7 @@ fn bindgen_test_layout_v4l2_vp8_loop_filter() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_quantization {
     pub y_ac_qi: __u8,
     pub y_dc_delta: __s8,
@@ -3907,7 +3907,7 @@ fn bindgen_test_layout_v4l2_vp8_quantization() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy {
     pub coeff_probs: [[[[__u8; 11usize]; 3usize]; 8usize]; 4usize],
     pub y_mode_probs: [__u8; 4usize],
@@ -3981,7 +3981,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy_coder_state {
     pub range: __u8,
     pub value: __u8,
@@ -4045,7 +4045,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy_coder_state() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp8_frame {
     pub segment: v4l2_vp8_segment,
     pub lf: v4l2_vp8_loop_filter,
@@ -4306,7 +4306,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp8_frame() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_sequence {
     pub horizontal_size: __u16,
     pub vertical_size: __u16,
@@ -4394,7 +4394,7 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_sequence() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_picture {
     pub backward_ref_ts: __u64,
     pub forward_ref_ts: __u64,
@@ -4502,7 +4502,7 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_picture() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_quantisation {
     pub intra_quantiser_matrix: [__u8; 64usize],
     pub non_intra_quantiser_matrix: [__u8; 64usize],
@@ -4580,7 +4580,7 @@ pub const v4l2_stateless_hevc_start_code_V4L2_STATELESS_HEVC_START_CODE_ANNEX_B:
     v4l2_stateless_hevc_start_code = 1;
 pub type v4l2_stateless_hevc_start_code = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_sps {
     pub video_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -4917,7 +4917,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_sps() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_pps {
     pub pic_parameter_set_id: __u8,
     pub num_extra_slice_header_bits: __u8,
@@ -5131,7 +5131,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_pps() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_dpb_entry {
     pub timestamp: __u64,
     pub flags: __u8,
@@ -5205,7 +5205,7 @@ fn bindgen_test_layout_v4l2_hevc_dpb_entry() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_pred_weight_table {
     pub delta_luma_weight_l0: [__s8; 16usize],
     pub luma_offset_l0: [__s8; 16usize],
@@ -5337,7 +5337,7 @@ fn bindgen_test_layout_v4l2_hevc_pred_weight_table() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_slice_params {
     pub bit_size: __u32,
     pub data_byte_offset: __u32,
@@ -5693,7 +5693,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_slice_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_decode_params {
     pub pic_order_cnt_val: __s32,
     pub short_term_ref_pic_set_size: __u16,
@@ -5869,7 +5869,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_decode_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_scaling_matrix {
     pub scaling_list_4x4: [[__u8; 16usize]; 6usize],
     pub scaling_list_8x8: [[__u8; 64usize]; 6usize],
@@ -5955,7 +5955,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_scaling_matrix() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_cll_info {
     pub max_content_light_level: __u16,
     pub max_pic_average_light_level: __u16,
@@ -5997,7 +5997,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_cll_info() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_mastering_display {
     pub display_primaries_x: [__u16; 3usize],
     pub display_primaries_y: [__u16; 3usize],
@@ -6090,7 +6090,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_mastering_display() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_loop_filter {
     pub ref_deltas: [__s8; 4usize],
     pub mode_deltas: [__s8; 2usize],
@@ -6175,7 +6175,7 @@ fn bindgen_test_layout_v4l2_vp9_loop_filter() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_quantization {
     pub base_q_idx: __u8,
     pub delta_q_y_dc: __s8,
@@ -6250,7 +6250,7 @@ fn bindgen_test_layout_v4l2_vp9_quantization() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_segmentation {
     pub feature_data: [[__s16; 4usize]; 8usize],
     pub feature_enabled: [__u8; 8usize],
@@ -6336,7 +6336,7 @@ fn bindgen_test_layout_v4l2_vp9_segmentation() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_frame {
     pub lf: v4l2_vp9_loop_filter,
     pub quant: v4l2_vp9_quantization,
@@ -6608,7 +6608,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_frame() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_mv_probs {
     pub joint: [__u8; 3usize],
     pub sign: [__u8; 2usize],
@@ -6726,7 +6726,7 @@ fn bindgen_test_layout_v4l2_vp9_mv_probs() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_compressed_hdr {
     pub tx_mode: __u8,
     pub tx8: [[__u8; 1usize]; 2usize],
@@ -6922,7 +6922,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_compressed_hdr() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_sequence {
     pub flags: __u32,
     pub seq_profile: __u8,
@@ -7019,7 +7019,7 @@ fn bindgen_test_layout_v4l2_ctrl_av1_sequence() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_tile_group_entry {
     pub tile_offset: __u32,
     pub tile_size: __u32,
@@ -7097,7 +7097,7 @@ pub const v4l2_av1_reference_frame_V4L2_AV1_REF_ALTREF2_FRAME: v4l2_av1_referenc
 pub const v4l2_av1_reference_frame_V4L2_AV1_REF_ALTREF_FRAME: v4l2_av1_reference_frame = 7;
 pub type v4l2_av1_reference_frame = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_global_motion {
     pub flags: [__u8; 8usize],
     pub type_: [v4l2_av1_warp_model; 8usize],
@@ -7181,7 +7181,7 @@ pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_SWITCHABLE:
     v4l2_av1_frame_restoration_type = 3;
 pub type v4l2_av1_frame_restoration_type = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_loop_restoration {
     pub flags: __u8,
     pub lr_unit_shift: __u8,
@@ -7267,7 +7267,7 @@ fn bindgen_test_layout_v4l2_av1_loop_restoration() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_cdef {
     pub damping_minus_3: __u8,
     pub bits: __u8,
@@ -7359,7 +7359,7 @@ pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_REF_GLOBALMV: v4l2_av1_segme
 pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_MAX: v4l2_av1_segment_feature = 8;
 pub type v4l2_av1_segment_feature = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_segmentation {
     pub flags: __u8,
     pub last_active_seg_id: __u8,
@@ -7423,7 +7423,7 @@ fn bindgen_test_layout_v4l2_av1_segmentation() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_loop_filter {
     pub flags: __u8,
     pub level: [__u8; 4usize],
@@ -7508,7 +7508,7 @@ fn bindgen_test_layout_v4l2_av1_loop_filter() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_quantization {
     pub flags: __u8,
     pub base_q_idx: __u8,
@@ -7649,7 +7649,7 @@ fn bindgen_test_layout_v4l2_av1_quantization() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_tile_info {
     pub flags: __u8,
     pub context_update_tile_id: __u8,
@@ -7798,7 +7798,7 @@ pub const v4l2_av1_tx_mode_V4L2_AV1_TX_MODE_LARGEST: v4l2_av1_tx_mode = 1;
 pub const v4l2_av1_tx_mode_V4L2_AV1_TX_MODE_SELECT: v4l2_av1_tx_mode = 2;
 pub type v4l2_av1_tx_mode = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_frame {
     pub tile_info: v4l2_av1_tile_info,
     pub quantization: v4l2_av1_quantization,
@@ -8114,7 +8114,7 @@ fn bindgen_test_layout_v4l2_ctrl_av1_frame() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_film_grain {
     pub flags: __u8,
     pub cr_mult: __u8,
@@ -8504,7 +8504,7 @@ pub const v4l2_priority_V4L2_PRIORITY_RECORD: v4l2_priority = 3;
 pub const v4l2_priority_V4L2_PRIORITY_DEFAULT: v4l2_priority = 2;
 pub type v4l2_priority = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rect {
     pub left: __s32,
     pub top: __s32,
@@ -8567,7 +8567,7 @@ fn bindgen_test_layout_v4l2_rect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fract {
     pub numerator: __u32,
     pub denominator: __u32,
@@ -8608,7 +8608,7 @@ fn bindgen_test_layout_v4l2_fract() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_area {
     pub width: __u32,
     pub height: __u32,
@@ -8650,7 +8650,7 @@ fn bindgen_test_layout_v4l2_area() {
 }
 #[doc = " struct v4l2_capability - Describes V4L2 device caps returned by VIDIOC_QUERYCAP\n\n @driver:\t   name of the driver module (e.g. \"bttv\")\n @card:\t   name of the card (e.g. \"Hauppauge WinTV\")\n @bus_info:\t   name of the bus (e.g. \"PCI:\" + pci_name(pci_dev) )\n @version:\t   KERNEL_VERSION\n @capabilities: capabilities of the physical device as a whole\n @device_caps:  capabilities accessed via this particular device (node)\n @reserved:\t   reserved fields for future extensions"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_capability {
     pub driver: [__u8; 16usize],
     pub card: [__u8; 32usize],
@@ -8929,7 +8929,7 @@ fn bindgen_test_layout_v4l2_pix_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fmtdesc {
     pub index: __u32,
     pub type_: __u32,
@@ -9029,7 +9029,7 @@ pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS: v4l2_frmsizetypes = 2;
 pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE: v4l2_frmsizetypes = 3;
 pub type v4l2_frmsizetypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_discrete {
     pub width: __u32,
     pub height: __u32,
@@ -9071,7 +9071,7 @@ fn bindgen_test_layout_v4l2_frmsize_discrete() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_stepwise {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -9267,7 +9267,7 @@ pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS: v4l2_frmivaltypes = 2;
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE: v4l2_frmivaltypes = 3;
 pub type v4l2_frmivaltypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmival_stepwise {
     pub min: v4l2_fract,
     pub max: v4l2_fract,
@@ -9448,7 +9448,7 @@ fn bindgen_test_layout_v4l2_frmivalenum() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_timecode {
     pub type_: __u32,
     pub flags: __u32,
@@ -9544,7 +9544,7 @@ fn bindgen_test_layout_v4l2_timecode() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_jpegcompression {
     pub quality: ::std::os::raw::c_int,
     pub APPn: ::std::os::raw::c_int,
@@ -9640,7 +9640,7 @@ fn bindgen_test_layout_v4l2_jpegcompression() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_requestbuffers {
     pub count: __u32,
     pub type_: __u32,
@@ -10113,7 +10113,7 @@ fn bindgen_test_layout_v4l2_buffer() {
 }
 #[doc = " struct v4l2_exportbuffer - export of video buffer as DMABUF file descriptor\n\n @index:\tid number of the buffer\n @type:\tenum v4l2_buf_type; buffer type (type == *_MPLANE for\n\t\tmultiplanar buffers);\n @plane:\tindex of the plane to be exported, 0 for single plane queues\n @flags:\tflags for newly created file, currently only O_CLOEXEC is\n\t\tsupported, refer to manual of open syscall for more details\n @fd:\t\tfile descriptor associated with DMABUF (set by driver)\n @reserved:\tdrivers and applications must zero this array\n\n Contains data used for exporting a video buffer as DMABUF file descriptor.\n The buffer is identified by a 'cookie' returned by VIDIOC_QUERYBUF\n (identical to the cookie used to mmap() the buffer to userspace). All\n reserved fields must be set to zero. The field reserved0 is expected to\n become a structure 'type' allowing an alternative layout of the structure\n content. Therefore this field should not be used for any other extensions."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_exportbuffer {
     pub type_: __u32,
     pub index: __u32,
@@ -10198,7 +10198,7 @@ fn bindgen_test_layout_v4l2_exportbuffer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_framebuffer {
     pub capability: __u32,
     pub flags: __u32,
@@ -10206,7 +10206,7 @@ pub struct v4l2_framebuffer {
     pub fmt: v4l2_framebuffer__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_framebuffer__bindgen_ty_1 {
     pub width: __u32,
     pub height: __u32,
@@ -10369,7 +10369,7 @@ fn bindgen_test_layout_v4l2_framebuffer() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_clip {
     pub c: v4l2_rect,
     pub next: *mut v4l2_clip,
@@ -10410,7 +10410,7 @@ fn bindgen_test_layout_v4l2_clip() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_window {
     pub w: v4l2_rect,
     pub field: __u32,
@@ -10506,7 +10506,7 @@ fn bindgen_test_layout_v4l2_window() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_captureparm {
     pub capability: __u32,
     pub capturemode: __u32,
@@ -10591,7 +10591,7 @@ fn bindgen_test_layout_v4l2_captureparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_outputparm {
     pub capability: __u32,
     pub outputmode: __u32,
@@ -10676,7 +10676,7 @@ fn bindgen_test_layout_v4l2_outputparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_cropcap {
     pub type_: __u32,
     pub bounds: v4l2_rect,
@@ -10739,7 +10739,7 @@ fn bindgen_test_layout_v4l2_cropcap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_crop {
     pub type_: __u32,
     pub c: v4l2_rect,
@@ -10781,7 +10781,7 @@ fn bindgen_test_layout_v4l2_crop() {
 }
 #[doc = " struct v4l2_selection - selection info\n @type:\tbuffer type (do not use *_MPLANE types)\n @target:\tSelection target, used to choose one of possible rectangles;\n\t\tdefined in v4l2-common.h; V4L2_SEL_TGT_* .\n @flags:\tconstraints flags, defined in v4l2-common.h; V4L2_SEL_FLAG_*.\n @r:\t\tcoordinates of selection window\n @reserved:\tfor future use, rounds structure size to 64 bytes, set to zero\n\n Hardware may use multiple helper windows to process a video stream.\n The structure is used to exchange this selection areas between\n an application and a driver."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_selection {
     pub type_: __u32,
     pub target: __u32,
@@ -10856,7 +10856,7 @@ fn bindgen_test_layout_v4l2_selection() {
 }
 pub type v4l2_std_id = __u64;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_standard {
     pub index: __u32,
     pub id: v4l2_std_id,
@@ -10942,7 +10942,7 @@ fn bindgen_test_layout_v4l2_standard() {
 }
 #[doc = " struct v4l2_bt_timings - BT.656/BT.1120 timing data\n @width:\ttotal width of the active video in pixels\n @height:\ttotal height of the active video in lines\n @interlaced:\tInterlaced or progressive\n @polarities:\tPositive or negative polarities\n @pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @hfrontporch:Horizontal front porch in pixels\n @hsync:\tHorizontal Sync length in pixels\n @hbackporch:\tHorizontal back porch in pixels\n @vfrontporch:Vertical front porch in lines\n @vsync:\tVertical Sync length in lines\n @vbackporch:\tVertical back porch in lines\n @il_vfrontporch:Vertical front porch for the even field\n\t\t(aka field 2) of interlaced field formats\n @il_vsync:\tVertical Sync length for the even field\n\t\t(aka field 2) of interlaced field formats\n @il_vbackporch:Vertical back porch for the even field\n\t\t(aka field 2) of interlaced field formats\n @standards:\tStandards the timing belongs to\n @flags:\tFlags\n @picture_aspect: The picture aspect ratio (hor/vert).\n @cea861_vic:\tVIC code as per the CEA-861 standard.\n @hdmi_vic:\tVIC code as per the HDMI standard.\n @reserved:\tReserved fields, must be zeroed.\n\n A note regarding vertical interlaced timings: height refers to the total\n height of the active video frame (= two fields). The blanking timings refer\n to the blanking of each field. So the height of the total frame is\n calculated as follows:\n\n tot_height = height + vfrontporch + vsync + vbackporch +\n                       il_vfrontporch + il_vsync + il_vbackporch\n\n The active height of each field is height / 2."]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_bt_timings {
     pub width: __u32,
     pub height: __u32,
@@ -11320,7 +11320,7 @@ fn bindgen_test_layout_v4l2_enum_dv_timings() {
 }
 #[doc = " struct v4l2_bt_timings_cap - BT.656/BT.1120 timing capabilities\n @min_width:\t\twidth in pixels\n @max_width:\t\twidth in pixels\n @min_height:\t\theight in lines\n @max_height:\t\theight in lines\n @min_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @max_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @standards:\t\tSupported standards\n @capabilities:\tSupported capabilities\n @reserved:\t\tMust be zeroed"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_bt_timings_cap {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -11537,7 +11537,7 @@ fn bindgen_test_layout_v4l2_dv_timings_cap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_input {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11655,7 +11655,7 @@ fn bindgen_test_layout_v4l2_input() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_output {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11762,7 +11762,7 @@ fn bindgen_test_layout_v4l2_output() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_control {
     pub id: __u32,
     pub value: __s32,
@@ -12384,7 +12384,7 @@ pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_FRAME: v4l2_ctrl_type = 642;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_FILM_GRAIN: v4l2_ctrl_type = 643;
 pub type v4l2_ctrl_type = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_queryctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -12502,7 +12502,7 @@ fn bindgen_test_layout_v4l2_queryctrl() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_query_ext_ctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -12759,7 +12759,7 @@ fn bindgen_test_layout_v4l2_querymenu() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_tuner {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -12899,7 +12899,7 @@ fn bindgen_test_layout_v4l2_tuner() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_modulator {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -13006,7 +13006,7 @@ fn bindgen_test_layout_v4l2_modulator() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency {
     pub tuner: __u32,
     pub type_: __u32,
@@ -13069,7 +13069,7 @@ fn bindgen_test_layout_v4l2_frequency() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency_band {
     pub tuner: __u32,
     pub type_: __u32,
@@ -13176,7 +13176,7 @@ fn bindgen_test_layout_v4l2_frequency_band() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hw_freq_seek {
     pub tuner: __u32,
     pub type_: __u32,
@@ -13283,7 +13283,7 @@ fn bindgen_test_layout_v4l2_hw_freq_seek() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rds_data {
     pub lsb: __u8,
     pub msb: __u8,
@@ -13335,7 +13335,7 @@ fn bindgen_test_layout_v4l2_rds_data() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audio {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -13409,7 +13409,7 @@ fn bindgen_test_layout_v4l2_audio() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audioout {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -13483,7 +13483,7 @@ fn bindgen_test_layout_v4l2_audioout() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_enc_idx_entry {
     pub offset: __u64,
     pub pts: __u64,
@@ -13557,7 +13557,7 @@ fn bindgen_test_layout_v4l2_enc_idx_entry() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_enc_idx {
     pub entries: __u32,
     pub entries_cap: __u32,
@@ -13632,7 +13632,7 @@ pub union v4l2_encoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub data: [__u32; 8usize],
 }
@@ -13744,7 +13744,7 @@ pub union v4l2_decoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub pts: __u64,
 }
@@ -13781,7 +13781,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2 {
     pub speed: __s32,
     pub format: __u32,
@@ -13829,7 +13829,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3 {
     pub data: [__u32; 16usize],
 }
@@ -13947,7 +13947,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vbi_format {
     pub sampling_rate: __u32,
     pub offset: __u32,
@@ -14054,7 +14054,7 @@ fn bindgen_test_layout_v4l2_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_format {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -14118,7 +14118,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_cap {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -14181,7 +14181,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_cap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_data {
     pub id: __u32,
     pub field: __u32,
@@ -14255,7 +14255,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_data() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0_line {
     pub id: __u8,
     pub data: [__u8; 42usize],
@@ -14297,7 +14297,7 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0_line() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0 {
     pub linemask: [__le32; 2usize],
     pub line: [v4l2_mpeg_vbi_itv0_line; 35usize],
@@ -14338,7 +14338,7 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_ITV0 {
     pub line: [v4l2_mpeg_vbi_itv0_line; 36usize],
 }
@@ -14449,7 +14449,7 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv() {
 }
 #[doc = " struct v4l2_plane_pix_format - additional, per-plane format definition\n @sizeimage:\t\tmaximum size in bytes required for data, for which\n\t\t\tthis plane will be used\n @bytesperline:\tdistance in bytes between the leftmost pixels in two\n\t\t\tadjacent lines\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_plane_pix_format {
     pub sizeimage: __u32,
     pub bytesperline: __u32,
@@ -14694,7 +14694,7 @@ fn bindgen_test_layout_v4l2_pix_format_mplane() {
 }
 #[doc = " struct v4l2_sdr_format - SDR format definition\n @pixelformat:\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sdr_format {
     pub pixelformat: __u32,
     pub buffersize: __u32,
@@ -14747,7 +14747,7 @@ fn bindgen_test_layout_v4l2_sdr_format() {
 }
 #[doc = " struct v4l2_meta_format - metadata format definition\n @dataformat:\t\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_meta_format {
     pub dataformat: __u32,
     pub buffersize: __u32,
@@ -15032,7 +15032,7 @@ fn bindgen_test_layout_v4l2_streamparm() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_vsync {
     pub field: __u8,
 }
@@ -15201,7 +15201,7 @@ fn bindgen_test_layout_v4l2_event_ctrl() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_frame_sync {
     pub frame_sequence: __u32,
 }
@@ -15232,7 +15232,7 @@ fn bindgen_test_layout_v4l2_event_frame_sync() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_src_change {
     pub changes: __u32,
 }
@@ -15264,7 +15264,7 @@ fn bindgen_test_layout_v4l2_event_src_change() {
 }
 #[doc = " struct v4l2_event_motion_det - motion detection event\n @flags:             if V4L2_EVENT_MD_FL_HAVE_FRAME_SEQ is set, then the\n                     frame_sequence field is valid.\n @frame_sequence:    the frame sequence number associated with this event.\n @region_mask:       which regions detected motion."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_motion_det {
     pub flags: __u32,
     pub frame_sequence: __u32,
@@ -15499,7 +15499,7 @@ fn bindgen_test_layout_v4l2_event() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_subscription {
     pub type_: __u32,
     pub id: __u32,
