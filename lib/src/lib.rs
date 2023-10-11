@@ -19,6 +19,7 @@
 //!
 #[doc(hidden)]
 pub mod bindings;
+pub mod controls;
 pub mod decoder;
 pub mod device;
 pub mod encoder;
@@ -375,4 +376,61 @@ impl Display for Rect {
             self.left, self.top, self.width, self.height
         )
     }
+}
+
+/// Equivalent of `enum v4l2_colorspace`.
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+pub enum Colorspace {
+    Default = bindings::v4l2_colorspace_V4L2_COLORSPACE_DEFAULT,
+    Smpte170M = bindings::v4l2_colorspace_V4L2_COLORSPACE_SMPTE170M,
+    Smpte240M = bindings::v4l2_colorspace_V4L2_COLORSPACE_SMPTE240M,
+    Rec709 = bindings::v4l2_colorspace_V4L2_COLORSPACE_REC709,
+    Bt878 = bindings::v4l2_colorspace_V4L2_COLORSPACE_BT878,
+    SystemM470 = bindings::v4l2_colorspace_V4L2_COLORSPACE_470_SYSTEM_M,
+    SystemBG470 = bindings::v4l2_colorspace_V4L2_COLORSPACE_470_SYSTEM_BG,
+    Jpeg = bindings::v4l2_colorspace_V4L2_COLORSPACE_JPEG,
+    Srgb = bindings::v4l2_colorspace_V4L2_COLORSPACE_SRGB,
+    OpRgb = bindings::v4l2_colorspace_V4L2_COLORSPACE_OPRGB,
+    Bt2020 = bindings::v4l2_colorspace_V4L2_COLORSPACE_BT2020,
+    Raw = bindings::v4l2_colorspace_V4L2_COLORSPACE_RAW,
+    DciP3 = bindings::v4l2_colorspace_V4L2_COLORSPACE_DCI_P3,
+}
+
+/// Equivalent of `enum v4l2_xfer_func`.
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+pub enum XferFunc {
+    Default = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_DEFAULT,
+    F709 = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_709,
+    Srgb = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_SRGB,
+    OpRgb = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_OPRGB,
+    Smpte240M = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_SMPTE240M,
+    None = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_NONE,
+    DciP3 = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_DCI_P3,
+    Smpte2084 = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_SMPTE2084,
+}
+
+/// Equivalent of `enum v4l2_ycbcr_encoding`.
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+pub enum YCbCrEncoding {
+    Default = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_DEFAULT,
+    E601 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_601,
+    E709 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_709,
+    Xv601 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_XV601,
+    Xv709 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_XV709,
+    Sycc = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_SYCC,
+    Bt2020 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_BT2020,
+    Bt2020ConstLum = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_BT2020_CONST_LUM,
+    Smpte240M = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_SMPTE240M,
+}
+
+/// Equivalent of `enum v4l2_quantization`.
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+pub enum Quantization {
+    Default = bindings::v4l2_quantization_V4L2_QUANTIZATION_DEFAULT,
+    FullRange = bindings::v4l2_quantization_V4L2_QUANTIZATION_FULL_RANGE,
+    LimRange = bindings::v4l2_quantization_V4L2_QUANTIZATION_LIM_RANGE,
 }
