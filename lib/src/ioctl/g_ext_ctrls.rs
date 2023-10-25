@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::mem;
 use std::os::unix::io::AsRawFd;
+use std::os::unix::io::RawFd;
 use thiserror::Error;
 
 use crate::bindings;
@@ -128,9 +129,9 @@ pub enum ExtControlError {
 /// Safe wrapper around the `VIDIOC_G_EXT_CTRLS` to get the value of extended controls.
 ///
 /// If successful, values for the controls will be written in the `controls` parameter.
-pub fn g_ext_ctrls<R: AsRawFd, I: AsV4l2ControlSlice>(
+pub fn g_ext_ctrls<I: AsV4l2ControlSlice>(
     fd: &impl AsRawFd,
-    request_fd: Option<&R>,
+    request_fd: Option<RawFd>,
     mut controls: I,
 ) -> Result<(), ExtControlError> {
     let controls_slice = controls.as_v4l2_control_slice();
@@ -142,7 +143,7 @@ pub fn g_ext_ctrls<R: AsRawFd, I: AsV4l2ControlSlice>(
     };
 
     if let Some(request_fd) = request_fd {
-        v4l2_controls.request_fd = request_fd.as_raw_fd();
+        v4l2_controls.request_fd = request_fd;
         v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
     } else {
         v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_CUR_VAL;
@@ -156,9 +157,9 @@ pub fn g_ext_ctrls<R: AsRawFd, I: AsV4l2ControlSlice>(
 }
 
 /// Safe wrapper around the `VIDIOC_S_EXT_CTRLS` to set the value of extended controls.
-pub fn s_ext_ctrls<R: AsRawFd, I: AsV4l2ControlSlice>(
+pub fn s_ext_ctrls<I: AsV4l2ControlSlice>(
     fd: &impl AsRawFd,
-    request_fd: Option<&R>,
+    request_fd: Option<RawFd>,
     mut controls: I,
 ) -> Result<(), ExtControlError> {
     let controls_slice = controls.as_v4l2_control_slice();
@@ -171,7 +172,7 @@ pub fn s_ext_ctrls<R: AsRawFd, I: AsV4l2ControlSlice>(
 
     // the pointer is assigned a proper value
     if let Some(request_fd) = request_fd {
-        v4l2_controls.request_fd = request_fd.as_raw_fd();
+        v4l2_controls.request_fd = request_fd;
         v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
     } else {
         v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_CUR_VAL;
