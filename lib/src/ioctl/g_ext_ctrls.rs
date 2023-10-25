@@ -118,6 +118,7 @@ mod ioctl {
     use crate::bindings::v4l2_ext_controls;
     nix::ioctl_readwrite!(vidioc_g_ext_ctrls, b'V', 71, v4l2_ext_controls);
     nix::ioctl_readwrite!(vidioc_s_ext_ctrls, b'V', 72, v4l2_ext_controls);
+    nix::ioctl_readwrite!(vidioc_try_ext_ctrls, b'V', 73, v4l2_ext_controls);
 }
 
 #[derive(Debug, Error)]
@@ -180,6 +181,35 @@ pub fn s_ext_ctrls<I: AsV4l2ControlSlice>(
 
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_s_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
+        Ok(_) => Ok(()),
+        Err(e) => Err(ExtControlError::IoctlError(e)),
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_TRY_EXT_CTRLS` to test the value of extended controls.
+pub fn try_ext_ctrls<I: AsV4l2ControlSlice>(
+    fd: &impl AsRawFd,
+    request_fd: Option<RawFd>,
+    mut controls: I,
+) -> Result<(), ExtControlError> {
+    let controls_slice = controls.as_v4l2_control_slice();
+    let mut v4l2_controls = v4l2_ext_controls {
+        count: controls_slice.len() as u32,
+        controls: controls_slice.as_mut_ptr(),
+        // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
+        ..unsafe { mem::zeroed() }
+    };
+
+    // the pointer is assigned a proper value
+    if let Some(request_fd) = request_fd {
+        v4l2_controls.request_fd = request_fd;
+        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
+    } else {
+        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_CUR_VAL;
+    }
+
+    // SAFETY: the 'controls' argument is properly set up above
+    match unsafe { ioctl::vidioc_try_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
         Ok(_) => Ok(()),
         Err(e) => Err(ExtControlError::IoctlError(e)),
     }
