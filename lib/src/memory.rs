@@ -49,6 +49,7 @@ use std::os::unix::io::AsFd;
 pub enum MemoryType {
     Mmap = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
     UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR as isize,
+    Overlay = bindings::v4l2_memory_V4L2_MEMORY_OVERLAY as isize,
     DmaBuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF as isize,
 }
 
