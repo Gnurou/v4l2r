@@ -8,6 +8,7 @@ use thiserror::Error;
 use crate::bindings;
 use crate::bindings::v4l2_ctrl_fwht_params;
 use crate::bindings::v4l2_ext_controls;
+use crate::bindings::v4l2_querymenu;
 use crate::controls::codec::FwhtFlags;
 use crate::controls::AsV4l2ControlSlice;
 use crate::Colorspace;
@@ -117,9 +118,11 @@ impl ValidControl<v4l2_ctrl_fwht_params> {
 #[doc(hidden)]
 mod ioctl {
     use crate::bindings::v4l2_ext_controls;
+    use crate::bindings::v4l2_querymenu;
     nix::ioctl_readwrite!(vidioc_g_ext_ctrls, b'V', 71, v4l2_ext_controls);
     nix::ioctl_readwrite!(vidioc_s_ext_ctrls, b'V', 72, v4l2_ext_controls);
     nix::ioctl_readwrite!(vidioc_try_ext_ctrls, b'V', 73, v4l2_ext_controls);
+    nix::ioctl_readwrite!(vidioc_querymenu, b'V', 37, v4l2_querymenu);
 }
 
 #[derive(Debug, Error)]
@@ -221,5 +224,41 @@ pub fn try_ext_ctrls<I: AsV4l2ControlSlice>(
     match unsafe { ioctl::vidioc_try_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
         Ok(_) => Ok(()),
         Err(e) => Err(ExtControlError::IoctlError(e)),
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum QueryMenuError {
+    #[error("invalid id or index value")]
+    InvalidIdOrIndex,
+    #[error("ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
+
+impl From<QueryMenuError> for Errno {
+    fn from(err: QueryMenuError) -> Self {
+        match err {
+            QueryMenuError::InvalidIdOrIndex => Errno::EINVAL,
+            QueryMenuError::IoctlError(e) => e,
+        }
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_QUERYMENU`
+pub fn querymenu<O: From<v4l2_querymenu>>(
+    fd: &impl AsRawFd,
+    id: u32,
+    index: u32,
+) -> Result<O, QueryMenuError> {
+    let mut querymenu = v4l2_querymenu {
+        id,
+        index,
+        ..unsafe { std::mem::zeroed() }
+    };
+
+    match unsafe { ioctl::vidioc_querymenu(fd.as_raw_fd(), &mut querymenu) } {
+        Ok(_) => Ok(querymenu.into()),
+        Err(Errno::EINVAL) => Err(QueryMenuError::InvalidIdOrIndex),
+        Err(e) => Err(QueryMenuError::IoctlError(e)),
     }
 }
