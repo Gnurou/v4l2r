@@ -140,7 +140,7 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum QueryBufError<Q: QueryBuf> {
     #[error("error while converting from v4l2_buffer: {0}")]
-    ConvertionError(Q::Error),
+    ConversionError(Q::Error),
     #[error("ioctl error: {0}")]
     IoctlError(#[from] Errno),
 }
@@ -148,7 +148,7 @@ pub enum QueryBufError<Q: QueryBuf> {
 impl<Q: QueryBuf> From<QueryBufError<Q>> for Errno {
     fn from(err: QueryBufError<Q>) -> Self {
         match err {
-            QueryBufError::ConvertionError(_) => Errno::EINVAL,
+            QueryBufError::ConversionError(_) => Errno::EINVAL,
             QueryBufError::IoctlError(e) => e,
         }
     }
@@ -173,9 +173,9 @@ pub fn querybuf<T: QueryBuf>(
 
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
         Ok(T::try_from_v4l2_buffer(v4l2_buf, Some(plane_data))
-            .map_err(QueryBufError::ConvertionError)?)
+            .map_err(QueryBufError::ConversionError)?)
     } else {
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::try_from_v4l2_buffer(v4l2_buf, None).map_err(QueryBufError::ConvertionError)?)
+        Ok(T::try_from_v4l2_buffer(v4l2_buf, None).map_err(QueryBufError::ConversionError)?)
     }
 }

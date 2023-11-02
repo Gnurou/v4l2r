@@ -20,7 +20,7 @@ mod ioctl {
 #[derive(Debug, Error)]
 pub enum DqBufError<Q: QueryBuf> {
     #[error("error while converting from v4l2_buffer: {0}")]
-    ConvertionError(Q::Error),
+    ConversionError(Q::Error),
     #[error("end-of-stream reached")]
     Eos,
     #[error("no buffer ready for dequeue")]
@@ -42,7 +42,7 @@ impl<Q: QueryBuf> From<Errno> for DqBufError<Q> {
 impl<Q: QueryBuf> From<DqBufError<Q>> for Errno {
     fn from(err: DqBufError<Q>) -> Self {
         match err {
-            DqBufError::ConvertionError(_) => Errno::EINVAL,
+            DqBufError::ConversionError(_) => Errno::EINVAL,
             DqBufError::Eos => Errno::EPIPE,
             DqBufError::NotReady => Errno::EAGAIN,
             DqBufError::IoctlError(e) => e,
@@ -65,10 +65,10 @@ pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T,
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::try_from_v4l2_buffer(v4l2_buf, Some(plane_data)).map_err(DqBufError::ConvertionError)?
+        T::try_from_v4l2_buffer(v4l2_buf, Some(plane_data)).map_err(DqBufError::ConversionError)?
     } else {
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::try_from_v4l2_buffer(v4l2_buf, None).map_err(DqBufError::ConvertionError)?
+        T::try_from_v4l2_buffer(v4l2_buf, None).map_err(DqBufError::ConversionError)?
     };
 
     Ok(dequeued_buffer)

@@ -37,7 +37,7 @@ bitflags! {
 #[derive(Debug, Error)]
 pub enum QBufError<Q: QueryBuf> {
     #[error("error while converting from v4l2_buffer: {0}")]
-    ConvertionError(Q::Error),
+    ConversionError(Q::Error),
     #[error("invalid number of planes specified for the buffer: got {0}, expected {1}")]
     NumPlanesMismatch(usize, usize),
     #[error("data offset specified while using the single-planar API")]
@@ -55,7 +55,7 @@ impl<Q: QueryBuf> From<Errno> for QBufError<Q> {
 impl<Q: QueryBuf> From<QBufError<Q>> for Errno {
     fn from(err: QBufError<Q>) -> Self {
         match err {
-            QBufError::ConvertionError(_) => Errno::EINVAL,
+            QBufError::ConversionError(_) => Errno::EINVAL,
             QBufError::NumPlanesMismatch(_, _) => Errno::EINVAL,
             QBufError::DataOffsetNotSupported => Errno::EINVAL,
             QBufError::IoctlError(e) => e,
@@ -267,10 +267,10 @@ pub fn qbuf<I: QBuf<O>, O: QueryBuf>(
 
         unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
         Ok(O::try_from_v4l2_buffer(v4l2_buf, Some(plane_data))
-            .map_err(QBufError::ConvertionError)?)
+            .map_err(QBufError::ConversionError)?)
     } else {
         buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
         unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(O::try_from_v4l2_buffer(v4l2_buf, None).map_err(QBufError::ConvertionError)?)
+        Ok(O::try_from_v4l2_buffer(v4l2_buf, None).map_err(QBufError::ConversionError)?)
     }
 }
