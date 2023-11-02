@@ -58,10 +58,10 @@ impl QueryBuf for V4l2Buffer {
         v4l2_planes: Option<V4l2BufferPlanes>,
     ) -> Result<Self, Self::Error> {
         if QueueType::n(v4l2_buf.type_).is_none() {
-            return Err(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.type_));
+            return Err(V4l2BufferFromError::UnknownQueueType(v4l2_buf.type_));
         }
         if MemoryType::n(v4l2_buf.memory).is_none() {
-            return Err(V4l2BufferFromError::UnknownQueueType(v4l2_buf.memory));
+            return Err(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory));
         }
 
         Ok(Self {
