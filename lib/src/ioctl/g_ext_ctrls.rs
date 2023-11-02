@@ -1,3 +1,4 @@
+use nix::errno::Errno;
 use std::convert::TryFrom;
 use std::mem;
 use std::os::unix::io::AsRawFd;
@@ -125,6 +126,14 @@ mod ioctl {
 pub enum ExtControlError {
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(nix::Error),
+}
+
+impl From<ExtControlError> for Errno {
+    fn from(err: ExtControlError) -> Self {
+        match err {
+            ExtControlError::IoctlError(e) => e,
+        }
+    }
 }
 
 /// Safe wrapper around the `VIDIOC_G_EXT_CTRLS` to get the value of extended controls.

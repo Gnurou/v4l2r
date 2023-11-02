@@ -1,3 +1,4 @@
+use nix::errno::Errno;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -51,12 +52,20 @@ pub enum FrameSizeError {
     IoctlError(nix::Error),
 }
 
+impl From<FrameSizeError> for Errno {
+    fn from(err: FrameSizeError) -> Self {
+        match err {
+            FrameSizeError::IoctlError(e) => e,
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_ENUM_FRAMESIZES` ioctl.
-pub fn enum_frame_sizes<T: From<v4l2_frmsizeenum>>(
+pub fn enum_frame_sizes<O: From<v4l2_frmsizeenum>>(
     fd: &impl AsRawFd,
     index: u32,
     pixel_format: PixelFormat,
-) -> Result<T, FrameSizeError> {
+) -> Result<O, FrameSizeError> {
     let mut frame_size = v4l2_frmsizeenum {
         index,
         pixel_format: pixel_format.into(),
@@ -64,7 +73,7 @@ pub fn enum_frame_sizes<T: From<v4l2_frmsizeenum>>(
     };
 
     match unsafe { ioctl::vidioc_enum_framesizes(fd.as_raw_fd(), &mut frame_size) } {
-        Ok(_) => Ok(T::from(frame_size)),
+        Ok(_) => Ok(O::from(frame_size)),
         Err(e) => Err(FrameSizeError::IoctlError(e)),
     }
 }

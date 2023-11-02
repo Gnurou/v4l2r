@@ -1,3 +1,4 @@
+use nix::errno::Errno;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -51,14 +52,21 @@ pub enum FrameIntervalsError {
     IoctlError(nix::Error),
 }
 
+impl From<FrameIntervalsError> for Errno {
+    fn from(err: FrameIntervalsError) -> Self {
+        match err {
+            FrameIntervalsError::IoctlError(e) => e,
+        }
+    }
+}
 /// Safe wrapper around the `VIDIOC_ENUM_FRAMEINTERVALS` ioctl.
-pub fn enum_frame_intervals<T: From<v4l2_frmivalenum>>(
+pub fn enum_frame_intervals<O: From<v4l2_frmivalenum>>(
     fd: &impl AsRawFd,
     index: u32,
     pixel_format: PixelFormat,
     width: u32,
     height: u32,
-) -> Result<T, FrameIntervalsError> {
+) -> Result<O, FrameIntervalsError> {
     let mut frame_interval = v4l2_frmivalenum {
         index,
         pixel_format: pixel_format.into(),
@@ -68,7 +76,7 @@ pub fn enum_frame_intervals<T: From<v4l2_frmivalenum>>(
     };
 
     match unsafe { ioctl::vidioc_enum_frameintervals(fd.as_raw_fd(), &mut frame_interval) } {
-        Ok(_) => Ok(T::from(frame_interval)),
+        Ok(_) => Ok(O::from(frame_interval)),
         Err(e) => Err(FrameIntervalsError::IoctlError(e)),
     }
 }
