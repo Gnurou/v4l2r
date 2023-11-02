@@ -66,11 +66,13 @@ pub fn g_input(fd: &impl AsRawFd) -> Result<usize, Errno> {
 }
 
 /// Safe wrapper around the `VIDIOC_S_INPUT` ioctl.
-pub fn s_input(fd: &impl AsRawFd, index: usize) -> Result<(), SelectionError> {
+///
+/// Returns the updated `index` upon success.
+pub fn s_input(fd: &impl AsRawFd, index: usize) -> Result<usize, SelectionError> {
     let mut input: c_int = index as c_int;
 
     match unsafe { ioctl::vidioc_s_input(fd.as_raw_fd(), &mut input) } {
-        Ok(_) => Ok(()),
+        Ok(_) => Ok(input as usize),
         Err(Errno::EINVAL) => Err(SelectionError::OutOfRange(index)),
         Err(e) => Err(SelectionError::IoctlError(e)),
     }
