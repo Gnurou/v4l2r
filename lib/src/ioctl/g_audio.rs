@@ -163,10 +163,10 @@ pub fn g_audio<O: From<v4l2_audio>>(fd: &impl AsRawFd) -> Result<O, GAudioError>
 }
 
 /// Safe wrapper around the `VIDIOC_S_AUDIO` ioctl.
-pub fn s_audio(fd: &impl AsRawFd, index: u32, mode: AudioMode) -> Result<(), GAudioError> {
+pub fn s_audio(fd: &impl AsRawFd, index: u32, mode: Option<AudioMode>) -> Result<(), GAudioError> {
     let audio = v4l2_audio {
         index,
-        mode: mode as u32,
+        mode: mode.map(|m| m as u32).unwrap_or(0),
         ..unsafe { mem::zeroed() }
     };
 
