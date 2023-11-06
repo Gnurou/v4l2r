@@ -45,7 +45,7 @@
 //!     contrast: SafeExtControl::<Contrast>::from_value(128),
 //! };
 //!
-//! s_ext_ctrls::<OwnedFd, _>(&device, None, &mut controls).unwrap();
+//! s_ext_ctrls(&device, None, &mut controls).unwrap();
 //! assert_eq!(controls.brightness.value(), 128);
 //! assert_eq!(controls.contrast.value(), 128);
 //! ```
