@@ -75,7 +75,6 @@ pub use g_fmt::*;
 pub use g_input::*;
 pub use g_selection::*;
 pub use mmap::*;
-use nix::errno::Errno;
 pub use qbuf::*;
 pub use querybuf::*;
 pub use querycap::*;
@@ -86,14 +85,16 @@ pub use streamon::*;
 pub use subscribe_event::*;
 
 use std::fmt::Debug;
-
-use crate::bindings;
-use crate::memory::MemoryType;
-use crate::QueueType;
 use std::{
     ffi::{CStr, FromBytesWithNulError},
     mem,
 };
+
+use nix::errno::Errno;
+
+use crate::bindings;
+use crate::memory::MemoryType;
+use crate::QueueType;
 
 /// Utility function for sub-modules.
 /// Constructs an owned String instance from a slice containing a nul-terminated
