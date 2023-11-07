@@ -51,7 +51,7 @@ pub fn s_parm<I: Into<v4l2_streamparm>, O: From<v4l2_streamparm>>(
 ) -> Result<O, GParmError> {
     let mut parm = parm.into();
 
-    match unsafe { ioctl::vidioc_g_parm(fd.as_raw_fd(), &mut parm) } {
+    match unsafe { ioctl::vidioc_s_parm(fd.as_raw_fd(), &mut parm) } {
         Ok(_) => Ok(O::from(parm)),
         Err(e) => Err(GParmError::IoctlError(e)),
     }
