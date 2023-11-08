@@ -231,6 +231,7 @@ mod ioctl {
     nix::ioctl_readwrite!(vidioc_querybuf, b'V', 9, v4l2_buffer);
     nix::ioctl_readwrite!(vidioc_qbuf, b'V', 15, v4l2_buffer);
     nix::ioctl_readwrite!(vidioc_dqbuf, b'V', 17, v4l2_buffer);
+    nix::ioctl_readwrite!(vidioc_prepare_buf, b'V', 93, v4l2_buffer);
 }
 
 /// Safe wrapper around the `VIDIOC_QBUF` ioctl.
@@ -271,6 +272,34 @@ pub fn qbuf<I: QBuf<O>, O: QueryBuf>(
     } else {
         buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
         unsafe { ioctl::vidioc_qbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(O::try_from_v4l2_buffer(v4l2_buf, None).map_err(QBufError::ConversionError)?)
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_PREPARE_BUF` ioctl.
+pub fn prepare_buf<I: QBuf<O>, O: QueryBuf>(
+    fd: &impl AsRawFd,
+    queue: QueueType,
+    index: usize,
+    buf_data: I,
+) -> Result<O, QBufError<O>> {
+    let mut v4l2_buf = v4l2_buffer {
+        index: index as u32,
+        type_: queue as u32,
+        ..unsafe { mem::zeroed() }
+    };
+
+    if is_multi_planar(queue) {
+        let mut plane_data: V4l2BufferPlanes = Default::default();
+        buf_data.fill_mplane_v4l2_buffer(&mut v4l2_buf, &mut plane_data)?;
+        v4l2_buf.m.planes = plane_data.as_mut_ptr();
+
+        unsafe { ioctl::vidioc_prepare_buf(fd.as_raw_fd(), &mut v4l2_buf) }?;
+        Ok(O::try_from_v4l2_buffer(v4l2_buf, Some(plane_data))
+            .map_err(QBufError::ConversionError)?)
+    } else {
+        buf_data.fill_splane_v4l2_buffer(&mut v4l2_buf)?;
+        unsafe { ioctl::vidioc_prepare_buf(fd.as_raw_fd(), &mut v4l2_buf) }?;
         Ok(O::try_from_v4l2_buffer(v4l2_buf, None).map_err(QBufError::ConversionError)?)
     }
 }
