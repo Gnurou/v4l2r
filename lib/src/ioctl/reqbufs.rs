@@ -1,5 +1,7 @@
 //! Safe wrapper for the `VIDIOC_REQBUFS` ioctl.
 use crate::bindings;
+use crate::bindings::v4l2_create_buffers;
+use crate::bindings::v4l2_format;
 use crate::bindings::v4l2_requestbuffers;
 use crate::memory::MemoryType;
 use crate::QueueType;
@@ -59,8 +61,11 @@ impl From<v4l2_requestbuffers> for RequestBuffers {
 
 #[doc(hidden)]
 mod ioctl {
+    use crate::bindings::v4l2_create_buffers;
     use crate::bindings::v4l2_requestbuffers;
+
     nix::ioctl_readwrite!(vidioc_reqbufs, b'V', 8, v4l2_requestbuffers);
+    nix::ioctl_readwrite!(vidioc_create_bufs, b'V', 92, v4l2_create_buffers);
 }
 
 #[derive(Debug, Error)]
@@ -81,12 +86,12 @@ impl From<ReqbufsError> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_REQBUFS` ioctl.
-pub fn reqbufs<T: From<v4l2_requestbuffers>>(
+pub fn reqbufs<O: From<v4l2_requestbuffers>>(
     fd: &impl AsRawFd,
     queue: QueueType,
     memory: MemoryType,
     count: u32,
-) -> Result<T, ReqbufsError> {
+) -> Result<O, ReqbufsError> {
     let mut reqbufs = v4l2_requestbuffers {
         count,
         type_: queue as u32,
@@ -95,8 +100,50 @@ pub fn reqbufs<T: From<v4l2_requestbuffers>>(
     };
 
     match unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) } {
-        Ok(_) => Ok(T::from(reqbufs)),
+        Ok(_) => Ok(O::from(reqbufs)),
         Err(Errno::EINVAL) => Err(ReqbufsError::InvalidBufferType(queue, memory)),
         Err(e) => Err(ReqbufsError::IoctlError(e)),
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum CreateBufsError {
+    #[error("no memory available to allocate MMAP buffers")]
+    NoMem,
+    #[error("invalid format or memory type requested")]
+    Invalid,
+    #[error("ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
+
+impl From<CreateBufsError> for Errno {
+    fn from(err: CreateBufsError) -> Self {
+        match err {
+            CreateBufsError::NoMem => Errno::ENOMEM,
+            CreateBufsError::Invalid => Errno::EINVAL,
+            CreateBufsError::IoctlError(e) => e,
+        }
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_CREATE_BUFS` ioctl.
+pub fn create_bufs<F: Into<v4l2_format>, O: From<v4l2_create_buffers>>(
+    fd: &impl AsRawFd,
+    count: u32,
+    memory: MemoryType,
+    format: F,
+) -> Result<O, CreateBufsError> {
+    let mut create_bufs = v4l2_create_buffers {
+        count,
+        memory: memory as u32,
+        format: format.into(),
+        ..unsafe { std::mem::zeroed() }
+    };
+
+    match unsafe { ioctl::vidioc_create_bufs(fd.as_raw_fd(), &mut create_bufs) } {
+        Ok(_) => Ok(O::from(create_bufs)),
+        Err(Errno::ENOMEM) => Err(CreateBufsError::NoMem),
+        Err(Errno::EINVAL) => Err(CreateBufsError::Invalid),
+        Err(e) => Err(CreateBufsError::IoctlError(e)),
     }
 }
