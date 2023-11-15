@@ -6,6 +6,7 @@ use std::os::unix::io::RawFd;
 use thiserror::Error;
 
 use crate::bindings;
+use crate::bindings::v4l2_control;
 use crate::bindings::v4l2_ctrl_fwht_params;
 use crate::bindings::v4l2_ext_controls;
 use crate::bindings::v4l2_querymenu;
@@ -117,12 +118,57 @@ impl ValidControl<v4l2_ctrl_fwht_params> {
 
 #[doc(hidden)]
 mod ioctl {
+    use crate::bindings::v4l2_control;
     use crate::bindings::v4l2_ext_controls;
     use crate::bindings::v4l2_querymenu;
+    nix::ioctl_readwrite!(vidioc_g_ctrl, b'V', 27, v4l2_control);
+    nix::ioctl_readwrite!(vidioc_s_ctrl, b'V', 28, v4l2_control);
     nix::ioctl_readwrite!(vidioc_g_ext_ctrls, b'V', 71, v4l2_ext_controls);
     nix::ioctl_readwrite!(vidioc_s_ext_ctrls, b'V', 72, v4l2_ext_controls);
     nix::ioctl_readwrite!(vidioc_try_ext_ctrls, b'V', 73, v4l2_ext_controls);
     nix::ioctl_readwrite!(vidioc_querymenu, b'V', 37, v4l2_querymenu);
+}
+
+#[derive(Debug, Error)]
+pub enum GCtrlError {
+    #[error("Invalid control or value")]
+    Invalid,
+    #[error("Unexpected ioctl error: {0}")]
+    IoctlError(nix::Error),
+}
+
+impl From<GCtrlError> for Errno {
+    fn from(err: GCtrlError) -> Self {
+        match err {
+            GCtrlError::Invalid => Errno::EINVAL,
+            GCtrlError::IoctlError(e) => e,
+        }
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_G_CTRL` ioctl.
+pub fn g_ctrl(fd: &impl AsRawFd, id: u32) -> Result<i32, GCtrlError> {
+    let mut ctrl = v4l2_control {
+        id,
+        ..unsafe { std::mem::zeroed() }
+    };
+
+    match unsafe { ioctl::vidioc_g_ctrl(fd.as_raw_fd(), &mut ctrl) } {
+        Ok(_) => Ok(ctrl.value),
+        Err(Errno::EINVAL) => Err(GCtrlError::Invalid),
+        Err(e) => Err(GCtrlError::IoctlError(e)),
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_S_CTRL` ioctl.
+pub fn s_ctrl(fd: &impl AsRawFd, id: u32, value: i32) -> Result<i32, GCtrlError> {
+    let mut ctrl = v4l2_control { id, value };
+
+    match unsafe { ioctl::vidioc_s_ctrl(fd.as_raw_fd(), &mut ctrl) } {
+        Ok(_) => Ok(ctrl.value),
+        Err(Errno::EINVAL) => Err(GCtrlError::Invalid),
+        Err(e) => Err(GCtrlError::IoctlError(e)),
+    }
 }
 
 #[derive(Debug, Error)]
