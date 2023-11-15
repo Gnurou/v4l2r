@@ -348,7 +348,7 @@ where
             .state
             .handle
             .join()
-            .map_err(|e| EncoderStopError::ThreadPanickedError(e))?;
+            .map_err(EncoderStopError::ThreadPanickedError)?;
 
         encoding_thread
             .capture_queue
