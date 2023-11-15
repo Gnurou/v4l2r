@@ -126,16 +126,34 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum ExtControlError {
+pub enum ExtControlErrorType {
     #[error("Unexpected ioctl error: {0}")]
     IoctlError(nix::Error),
 }
 
+impl From<ExtControlErrorType> for Errno {
+    fn from(err: ExtControlErrorType) -> Self {
+        match err {
+            ExtControlErrorType::IoctlError(e) => e,
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub struct ExtControlError {
+    pub error_idx: u32,
+    pub error: ExtControlErrorType,
+}
+
+impl std::fmt::Display for ExtControlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} at index {}", self.error, self.error_idx)
+    }
+}
+
 impl From<ExtControlError> for Errno {
     fn from(err: ExtControlError) -> Self {
-        match err {
-            ExtControlError::IoctlError(e) => e,
-        }
+        Self::from(err.error)
     }
 }
 
@@ -165,7 +183,10 @@ pub fn g_ext_ctrls<I: AsV4l2ControlSlice>(
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_g_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(ExtControlError::IoctlError(e)),
+        Err(e) => Err(ExtControlError {
+            error_idx: v4l2_controls.error_idx,
+            error: ExtControlErrorType::IoctlError(e),
+        }),
     }
 }
 
@@ -194,7 +215,10 @@ pub fn s_ext_ctrls<I: AsV4l2ControlSlice>(
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_s_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(ExtControlError::IoctlError(e)),
+        Err(e) => Err(ExtControlError {
+            error_idx: v4l2_controls.error_idx,
+            error: ExtControlErrorType::IoctlError(e),
+        }),
     }
 }
 
@@ -223,7 +247,10 @@ pub fn try_ext_ctrls<I: AsV4l2ControlSlice>(
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_try_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
         Ok(_) => Ok(()),
-        Err(e) => Err(ExtControlError::IoctlError(e)),
+        Err(e) => Err(ExtControlError {
+            error_idx: v4l2_controls.error_idx,
+            error: ExtControlErrorType::IoctlError(e),
+        }),
     }
 }
 
