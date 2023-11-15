@@ -1,18 +1,46 @@
-use crate::bindings;
-use crate::bindings::v4l2_encoder_cmd;
+use std::convert::{Infallible, TryFrom};
+use std::mem;
+use std::os::unix::io::AsRawFd;
+
 use nix::errno::Errno;
-use std::{
-    convert::{Infallible, TryFrom},
-    mem,
-    os::unix::io::AsRawFd,
-};
 use thiserror::Error;
+
+use crate::bindings;
+use crate::bindings::v4l2_enc_idx;
+use crate::bindings::v4l2_encoder_cmd;
 
 #[doc(hidden)]
 mod ioctl {
+    use crate::bindings::v4l2_enc_idx;
     use crate::bindings::v4l2_encoder_cmd;
+
+    nix::ioctl_read!(vidioc_g_enc_index, b'V', 76, v4l2_enc_idx);
     nix::ioctl_readwrite!(vidioc_encoder_cmd, b'V', 77, v4l2_encoder_cmd);
     nix::ioctl_readwrite!(vidioc_try_encoder_cmd, b'V', 78, v4l2_encoder_cmd);
+}
+
+#[derive(Debug, Error)]
+pub enum GEncIndexError {
+    #[error("ioctl error: {0}")]
+    IoctlError(Errno),
+}
+
+impl From<GEncIndexError> for Errno {
+    fn from(err: GEncIndexError) -> Self {
+        match err {
+            GEncIndexError::IoctlError(e) => e,
+        }
+    }
+}
+
+/// Safe wrapper around the `VIDIOC_G_ENC_INDEX` ioctl.
+pub fn g_enc_index<O: From<v4l2_enc_idx>>(fd: &impl AsRawFd) -> Result<O, GEncIndexError> {
+    let mut enc_idx: v4l2_enc_idx = unsafe { std::mem::zeroed() };
+
+    match unsafe { ioctl::vidioc_g_enc_index(fd.as_raw_fd(), &mut enc_idx) } {
+        Ok(_) => Ok(O::from(enc_idx)),
+        Err(e) => Err(GEncIndexError::IoctlError(e)),
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
