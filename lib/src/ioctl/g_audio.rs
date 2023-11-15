@@ -10,6 +10,7 @@ use crate::bindings;
 use crate::bindings::v4l2_audio;
 use crate::bindings::v4l2_audioout;
 use crate::bindings::v4l2_frequency;
+use crate::bindings::v4l2_frequency_band;
 use crate::bindings::v4l2_modulator;
 use crate::bindings::v4l2_tuner;
 
@@ -27,7 +28,7 @@ pub enum AudioMode {
     Avl = bindings::V4L2_AUDMODE_AVL,
 }
 
-#[derive(Debug, N)]
+#[derive(Clone, Copy, Debug, N)]
 #[repr(u32)]
 pub enum TunerType {
     Radio = bindings::v4l2_tuner_type_V4L2_TUNER_RADIO,
@@ -81,6 +82,7 @@ mod ioctl {
     use crate::bindings::v4l2_audio;
     use crate::bindings::v4l2_audioout;
     use crate::bindings::v4l2_frequency;
+    use crate::bindings::v4l2_frequency_band;
     use crate::bindings::v4l2_modulator;
     use crate::bindings::v4l2_tuner;
 
@@ -101,6 +103,8 @@ mod ioctl {
 
     nix::ioctl_readwrite!(vidioc_enumaudio, b'V', 65, v4l2_audio);
     nix::ioctl_readwrite!(vidioc_enumaudout, b'V', 66, v4l2_audioout);
+
+    nix::ioctl_readwrite!(vidioc_enum_freq_bands, b'V', 101, v4l2_frequency_band);
 }
 
 #[derive(Debug, Error)]
@@ -303,5 +307,42 @@ pub fn enumaudout<O: From<v4l2_audioout>>(fd: &impl AsRawFd, index: u32) -> Resu
         Ok(_) => Ok(O::from(audio)),
         Err(Errno::EINVAL) => Err(GAudioError::Invalid),
         Err(e) => Err(GAudioError::IoctlError(e)),
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum EnumFreqBandsError {
+    #[error("invalid tuner, index, or type")]
+    Invalid,
+    #[error("ioctl error: {0}")]
+    IoctlError(Errno),
+}
+
+impl From<EnumFreqBandsError> for Errno {
+    fn from(err: EnumFreqBandsError) -> Self {
+        match err {
+            EnumFreqBandsError::Invalid => Errno::EINVAL,
+            EnumFreqBandsError::IoctlError(e) => e,
+        }
+    }
+}
+/// Safe wrapper around the `VIDIOC_ENUM_FREQ_BANDS` ioctl.
+pub fn enum_freq_bands<O: From<v4l2_frequency_band>>(
+    fd: &impl AsRawFd,
+    tuner: u32,
+    type_: TunerType,
+    index: u32,
+) -> Result<O, EnumFreqBandsError> {
+    let mut freq_band = v4l2_frequency_band {
+        tuner,
+        type_: type_ as u32,
+        index,
+        ..unsafe { mem::zeroed() }
+    };
+
+    match unsafe { ioctl::vidioc_enum_freq_bands(fd.as_raw_fd(), &mut freq_band) } {
+        Ok(_) => Ok(O::from(freq_band)),
+        Err(Errno::EINVAL) => Err(EnumFreqBandsError::Invalid),
+        Err(e) => Err(EnumFreqBandsError::IoctlError(e)),
     }
 }
