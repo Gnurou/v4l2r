@@ -203,28 +203,84 @@ impl From<ExtControlError> for Errno {
     }
 }
 
+/// Encapsulates the `ctrl_class` and `which` enum of `v4l2_ext_controls`.
+///
+/// Note that `Default` is an invalid value for `S_EXT_CTRLS` and `TRY_EXT_CTRLS`.
+pub enum CtrlWhich {
+    Current,
+    Default,
+    Request(RawFd),
+    Class(u32),
+}
+
+use bindings::v4l2_ext_controls__bindgen_ty_1 as v4l2_class_or_which;
+
+impl CtrlWhich {
+    fn binding_value(&self) -> v4l2_class_or_which {
+        match self {
+            CtrlWhich::Current => v4l2_class_or_which {
+                which: bindings::V4L2_CTRL_WHICH_CUR_VAL,
+            },
+            CtrlWhich::Default => v4l2_class_or_which {
+                which: bindings::V4L2_CTRL_WHICH_DEF_VAL,
+            },
+            CtrlWhich::Request(_) => v4l2_class_or_which {
+                which: bindings::V4L2_CTRL_WHICH_REQUEST_VAL,
+            },
+            CtrlWhich::Class(class) => v4l2_class_or_which { ctrl_class: *class },
+        }
+    }
+}
+
+impl TryFrom<&v4l2_ext_controls> for CtrlWhich {
+    type Error = ();
+
+    fn try_from(ctrls: &v4l2_ext_controls) -> Result<Self, Self::Error> {
+        let which_or_class = unsafe { ctrls.__bindgen_anon_1.which };
+        match which_or_class {
+            bindings::V4L2_CTRL_WHICH_CUR_VAL => Ok(CtrlWhich::Current),
+            bindings::V4L2_CTRL_WHICH_DEF_VAL => Ok(CtrlWhich::Default),
+            bindings::V4L2_CTRL_WHICH_REQUEST_VAL => Ok(CtrlWhich::Request(ctrls.request_fd)),
+            bindings::V4L2_CTRL_CLASS_USER
+            | bindings::V4L2_CTRL_CLASS_CODEC
+            | bindings::V4L2_CTRL_CLASS_CAMERA
+            | bindings::V4L2_CTRL_CLASS_FM_TX
+            | bindings::V4L2_CTRL_CLASS_FLASH
+            | bindings::V4L2_CTRL_CLASS_JPEG
+            | bindings::V4L2_CTRL_CLASS_IMAGE_SOURCE
+            | bindings::V4L2_CTRL_CLASS_IMAGE_PROC
+            | bindings::V4L2_CTRL_CLASS_DV
+            | bindings::V4L2_CTRL_CLASS_FM_RX
+            | bindings::V4L2_CTRL_CLASS_RF_TUNER
+            | bindings::V4L2_CTRL_CLASS_DETECT
+            | bindings::V4L2_CTRL_CLASS_CODEC_STATELESS
+            | bindings::V4L2_CTRL_CLASS_COLORIMETRY => Ok(CtrlWhich::Class(which_or_class)),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Safe wrapper around the `VIDIOC_G_EXT_CTRLS` to get the value of extended controls.
 ///
 /// If successful, values for the controls will be written in the `controls` parameter.
 pub fn g_ext_ctrls<I: AsV4l2ControlSlice>(
     fd: &impl AsRawFd,
-    request_fd: Option<RawFd>,
+    which: CtrlWhich,
     mut controls: I,
 ) -> Result<(), ExtControlError> {
     let controls_slice = controls.as_v4l2_control_slice();
     let mut v4l2_controls = v4l2_ext_controls {
+        __bindgen_anon_1: which.binding_value(),
         count: controls_slice.len() as u32,
+        request_fd: if let CtrlWhich::Request(fd) = which {
+            fd
+        } else {
+            0
+        },
         controls: controls_slice.as_mut_ptr(),
         // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };
-
-    if let Some(request_fd) = request_fd {
-        v4l2_controls.request_fd = request_fd;
-        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
-    } else {
-        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_CUR_VAL;
-    }
 
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_g_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
@@ -239,24 +295,22 @@ pub fn g_ext_ctrls<I: AsV4l2ControlSlice>(
 /// Safe wrapper around the `VIDIOC_S_EXT_CTRLS` to set the value of extended controls.
 pub fn s_ext_ctrls<I: AsV4l2ControlSlice>(
     fd: &impl AsRawFd,
-    request_fd: Option<RawFd>,
+    which: CtrlWhich,
     mut controls: I,
 ) -> Result<(), ExtControlError> {
     let controls_slice = controls.as_v4l2_control_slice();
     let mut v4l2_controls = v4l2_ext_controls {
+        __bindgen_anon_1: which.binding_value(),
         count: controls_slice.len() as u32,
+        request_fd: if let CtrlWhich::Request(fd) = which {
+            fd
+        } else {
+            0
+        },
         controls: controls_slice.as_mut_ptr(),
         // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };
-
-    // the pointer is assigned a proper value
-    if let Some(request_fd) = request_fd {
-        v4l2_controls.request_fd = request_fd;
-        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
-    } else {
-        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_CUR_VAL;
-    }
 
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_s_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
@@ -271,24 +325,22 @@ pub fn s_ext_ctrls<I: AsV4l2ControlSlice>(
 /// Safe wrapper around the `VIDIOC_TRY_EXT_CTRLS` to test the value of extended controls.
 pub fn try_ext_ctrls<I: AsV4l2ControlSlice>(
     fd: &impl AsRawFd,
-    request_fd: Option<RawFd>,
+    which: CtrlWhich,
     mut controls: I,
 ) -> Result<(), ExtControlError> {
     let controls_slice = controls.as_v4l2_control_slice();
     let mut v4l2_controls = v4l2_ext_controls {
+        __bindgen_anon_1: which.binding_value(),
         count: controls_slice.len() as u32,
+        request_fd: if let CtrlWhich::Request(fd) = which {
+            fd
+        } else {
+            0
+        },
         controls: controls_slice.as_mut_ptr(),
         // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
         ..unsafe { mem::zeroed() }
     };
-
-    // the pointer is assigned a proper value
-    if let Some(request_fd) = request_fd {
-        v4l2_controls.request_fd = request_fd;
-        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_REQUEST_VAL;
-    } else {
-        v4l2_controls.__bindgen_anon_1.which = bindings::V4L2_CTRL_WHICH_CUR_VAL;
-    }
 
     // SAFETY: the 'controls' argument is properly set up above
     match unsafe { ioctl::vidioc_try_ext_ctrls(fd.as_raw_fd(), &mut v4l2_controls) } {
