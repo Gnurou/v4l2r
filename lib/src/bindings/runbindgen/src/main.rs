@@ -93,6 +93,7 @@ fn main() {
         .parse_callbacks(Box::new(Fix753 {}))
         .derive_partialeq(true)
         .derive_eq(true)
+        .derive_default(true)
         .clang_args(clang_args)
         .generate()
         .expect("Unable to generate bindings");

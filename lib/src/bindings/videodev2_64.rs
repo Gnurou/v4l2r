@@ -1209,7 +1209,7 @@ pub type __off_t = ::std::os::raw::c_long;
 pub type __off64_t = ::std::os::raw::c_long;
 pub type __pid_t = ::std::os::raw::c_int;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __fsid_t {
     pub __val: [::std::os::raw::c_int; 2usize],
 }
@@ -1268,7 +1268,7 @@ pub type __socklen_t = ::std::os::raw::c_uint;
 pub type __sig_atomic_t = ::std::os::raw::c_int;
 pub type time_t = __time_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct timeval {
     pub tv_sec: __time_t,
     pub tv_usec: __suseconds_t,
@@ -1310,7 +1310,7 @@ fn bindgen_test_layout_timeval() {
 }
 pub type suseconds_t = __suseconds_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __sigset_t {
     pub __val: [::std::os::raw::c_ulong; 16usize],
 }
@@ -1341,7 +1341,7 @@ fn bindgen_test_layout___sigset_t() {
 }
 pub type sigset_t = __sigset_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
@@ -1383,7 +1383,7 @@ fn bindgen_test_layout_timespec() {
 }
 pub type __fd_mask = ::std::os::raw::c_long;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct fd_set {
     pub __fds_bits: [__fd_mask; 16usize],
 }
@@ -1433,7 +1433,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct timezone {
     pub tz_minuteswest: ::std::os::raw::c_int,
     pub tz_dsttime: ::std::os::raw::c_int,
@@ -1490,7 +1490,7 @@ pub const __itimer_which_ITIMER_VIRTUAL: __itimer_which = 1;
 pub const __itimer_which_ITIMER_PROF: __itimer_which = 2;
 pub type __itimer_which = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct itimerval {
     pub it_interval: timeval,
     pub it_value: timeval,
@@ -1565,7 +1565,7 @@ pub type __u32 = ::std::os::raw::c_uint;
 pub type __s64 = ::std::os::raw::c_longlong;
 pub type __u64 = ::std::os::raw::c_ulonglong;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fd_set {
     pub fds_bits: [::std::os::raw::c_ulong; 16usize],
 }
@@ -1617,7 +1617,7 @@ pub type __kernel_size_t = __kernel_ulong_t;
 pub type __kernel_ssize_t = __kernel_long_t;
 pub type __kernel_ptrdiff_t = __kernel_long_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fsid_t {
     pub val: [::std::os::raw::c_int; 2usize],
 }
@@ -1741,6 +1741,15 @@ fn bindgen_test_layout_v4l2_edid() {
             stringify!(edid)
         )
     );
+}
+impl Default for v4l2_edid {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const v4l2_power_line_frequency_V4L2_CID_POWER_LINE_FREQUENCY_DISABLED:
     v4l2_power_line_frequency = 0;
@@ -2676,8 +2685,17 @@ fn bindgen_test_layout_v4l2_ctrl_h264_sps() {
         )
     );
 }
+impl Default for v4l2_ctrl_h264_sps {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pps {
     pub pic_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -2866,8 +2884,17 @@ fn bindgen_test_layout_v4l2_ctrl_h264_scaling_matrix() {
         )
     );
 }
+impl Default for v4l2_ctrl_h264_scaling_matrix {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_weight_factors {
     pub luma_weight: [__s16; 32usize],
     pub luma_offset: [__s16; 32usize],
@@ -2931,7 +2958,7 @@ fn bindgen_test_layout_v4l2_h264_weight_factors() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pred_weights {
     pub luma_log2_weight_denom: __u16,
     pub chroma_log2_weight_denom: __u16,
@@ -2984,7 +3011,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_pred_weights() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_reference {
     pub fields: __u8,
     pub index: __u8,
@@ -3025,7 +3052,7 @@ fn bindgen_test_layout_v4l2_h264_reference() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_slice_params {
     pub header_bit_size: __u32,
     pub first_mb_in_slice: __u32,
@@ -3238,7 +3265,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_slice_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_dpb_entry {
     pub reference_ts: __u64,
     pub pic_num: __u32,
@@ -3345,7 +3372,7 @@ fn bindgen_test_layout_v4l2_h264_dpb_entry() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_decode_params {
     pub dpb: [v4l2_h264_dpb_entry; 16usize],
     pub nal_ref_idc: __u16,
@@ -3532,7 +3559,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_decode_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_fwht_params {
     pub backward_ref_ts: __u64,
     pub version: __u32,
@@ -3651,7 +3678,7 @@ fn bindgen_test_layout_v4l2_ctrl_fwht_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_segment {
     pub quant_update: [__s8; 4usize],
     pub lf_update: [__s8; 4usize],
@@ -3725,7 +3752,7 @@ fn bindgen_test_layout_v4l2_vp8_segment() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_loop_filter {
     pub ref_frm_delta: [__s8; 4usize],
     pub mb_mode_delta: [__s8; 4usize],
@@ -3810,7 +3837,7 @@ fn bindgen_test_layout_v4l2_vp8_loop_filter() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_quantization {
     pub y_ac_qi: __u8,
     pub y_dc_delta: __s8,
@@ -3907,7 +3934,7 @@ fn bindgen_test_layout_v4l2_vp8_quantization() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy {
     pub coeff_probs: [[[[__u8; 11usize]; 3usize]; 8usize]; 4usize],
     pub y_mode_probs: [__u8; 4usize],
@@ -3981,7 +4008,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy_coder_state {
     pub range: __u8,
     pub value: __u8,
@@ -4045,7 +4072,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy_coder_state() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp8_frame {
     pub segment: v4l2_vp8_segment,
     pub lf: v4l2_vp8_loop_filter,
@@ -4306,7 +4333,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp8_frame() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_sequence {
     pub horizontal_size: __u16,
     pub vertical_size: __u16,
@@ -4394,7 +4421,7 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_sequence() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_picture {
     pub backward_ref_ts: __u64,
     pub forward_ref_ts: __u64,
@@ -4569,6 +4596,15 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_quantisation() {
         )
     );
 }
+impl Default for v4l2_ctrl_mpeg2_quantisation {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_stateless_hevc_decode_mode_V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED:
     v4l2_stateless_hevc_decode_mode = 0;
 pub const v4l2_stateless_hevc_decode_mode_V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED:
@@ -4580,7 +4616,7 @@ pub const v4l2_stateless_hevc_start_code_V4L2_STATELESS_HEVC_START_CODE_ANNEX_B:
     v4l2_stateless_hevc_start_code = 1;
 pub type v4l2_stateless_hevc_start_code = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_sps {
     pub video_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -4917,7 +4953,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_sps() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_pps {
     pub pic_parameter_set_id: __u8,
     pub num_extra_slice_header_bits: __u8,
@@ -5131,7 +5167,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_pps() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_dpb_entry {
     pub timestamp: __u64,
     pub flags: __u8,
@@ -5205,7 +5241,7 @@ fn bindgen_test_layout_v4l2_hevc_dpb_entry() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_pred_weight_table {
     pub delta_luma_weight_l0: [__s8; 16usize],
     pub luma_offset_l0: [__s8; 16usize],
@@ -5337,7 +5373,7 @@ fn bindgen_test_layout_v4l2_hevc_pred_weight_table() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_slice_params {
     pub bit_size: __u32,
     pub data_byte_offset: __u32,
@@ -5693,7 +5729,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_slice_params() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_decode_params {
     pub pic_order_cnt_val: __s32,
     pub short_term_ref_pic_set_size: __u16,
@@ -5954,8 +5990,17 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_scaling_matrix() {
         )
     );
 }
+impl Default for v4l2_ctrl_hevc_scaling_matrix {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_cll_info {
     pub max_content_light_level: __u16,
     pub max_pic_average_light_level: __u16,
@@ -5997,7 +6042,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_cll_info() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_mastering_display {
     pub display_primaries_x: [__u16; 3usize],
     pub display_primaries_y: [__u16; 3usize],
@@ -6090,7 +6135,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_mastering_display() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_loop_filter {
     pub ref_deltas: [__s8; 4usize],
     pub mode_deltas: [__s8; 2usize],
@@ -6175,7 +6220,7 @@ fn bindgen_test_layout_v4l2_vp9_loop_filter() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_quantization {
     pub base_q_idx: __u8,
     pub delta_q_y_dc: __s8,
@@ -6250,7 +6295,7 @@ fn bindgen_test_layout_v4l2_vp9_quantization() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_segmentation {
     pub feature_data: [[__s16; 4usize]; 8usize],
     pub feature_enabled: [__u8; 8usize],
@@ -6336,7 +6381,7 @@ fn bindgen_test_layout_v4l2_vp9_segmentation() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_frame {
     pub lf: v4l2_vp9_loop_filter,
     pub quant: v4l2_vp9_quantization,
@@ -6608,7 +6653,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_frame() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_mv_probs {
     pub joint: [__u8; 3usize],
     pub sign: [__u8; 2usize],
@@ -6726,7 +6771,7 @@ fn bindgen_test_layout_v4l2_vp9_mv_probs() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_compressed_hdr {
     pub tx_mode: __u8,
     pub tx8: [[__u8; 1usize]; 2usize],
@@ -6922,7 +6967,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_compressed_hdr() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_sequence {
     pub flags: __u32,
     pub seq_profile: __u8,
@@ -7019,7 +7064,7 @@ fn bindgen_test_layout_v4l2_ctrl_av1_sequence() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_tile_group_entry {
     pub tile_offset: __u32,
     pub tile_size: __u32,
@@ -7171,6 +7216,15 @@ fn bindgen_test_layout_v4l2_av1_global_motion() {
         )
     );
 }
+impl Default for v4l2_av1_global_motion {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_NONE:
     v4l2_av1_frame_restoration_type = 0;
 pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_WIENER:
@@ -7266,8 +7320,17 @@ fn bindgen_test_layout_v4l2_av1_loop_restoration() {
         )
     );
 }
+impl Default for v4l2_av1_loop_restoration {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_cdef {
     pub damping_minus_3: __u8,
     pub bits: __u8,
@@ -7359,7 +7422,7 @@ pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_REF_GLOBALMV: v4l2_av1_segme
 pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_MAX: v4l2_av1_segment_feature = 8;
 pub type v4l2_av1_segment_feature = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_segmentation {
     pub flags: __u8,
     pub last_active_seg_id: __u8,
@@ -7423,7 +7486,7 @@ fn bindgen_test_layout_v4l2_av1_segmentation() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_loop_filter {
     pub flags: __u8,
     pub level: [__u8; 4usize],
@@ -7508,7 +7571,7 @@ fn bindgen_test_layout_v4l2_av1_loop_filter() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_av1_quantization {
     pub flags: __u8,
     pub base_q_idx: __u8,
@@ -7776,6 +7839,15 @@ fn bindgen_test_layout_v4l2_av1_tile_info() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_av1_tile_info {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const v4l2_av1_frame_type_V4L2_AV1_KEY_FRAME: v4l2_av1_frame_type = 0;
 pub const v4l2_av1_frame_type_V4L2_AV1_INTER_FRAME: v4l2_av1_frame_type = 1;
@@ -8113,8 +8185,17 @@ fn bindgen_test_layout_v4l2_ctrl_av1_frame() {
         )
     );
 }
+impl Default for v4l2_ctrl_av1_frame {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_av1_film_grain {
     pub flags: __u8,
     pub cr_mult: __u8,
@@ -8504,7 +8585,7 @@ pub const v4l2_priority_V4L2_PRIORITY_RECORD: v4l2_priority = 3;
 pub const v4l2_priority_V4L2_PRIORITY_DEFAULT: v4l2_priority = 2;
 pub type v4l2_priority = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rect {
     pub left: __s32,
     pub top: __s32,
@@ -8567,7 +8648,7 @@ fn bindgen_test_layout_v4l2_rect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fract {
     pub numerator: __u32,
     pub denominator: __u32,
@@ -8608,7 +8689,7 @@ fn bindgen_test_layout_v4l2_fract() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_area {
     pub width: __u32,
     pub height: __u32,
@@ -8650,7 +8731,7 @@ fn bindgen_test_layout_v4l2_area() {
 }
 #[doc = " struct v4l2_capability - Describes V4L2 device caps returned by VIDIOC_QUERYCAP\n\n @driver:\t   name of the driver module (e.g. \"bttv\")\n @card:\t   name of the card (e.g. \"Hauppauge WinTV\")\n @bus_info:\t   name of the bus (e.g. \"PCI:\" + pci_name(pci_dev) )\n @version:\t   KERNEL_VERSION\n @capabilities: capabilities of the physical device as a whole\n @device_caps:  capabilities accessed via this particular device (node)\n @reserved:\t   reserved fields for future extensions"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_capability {
     pub driver: [__u8; 16usize],
     pub card: [__u8; 32usize],
@@ -8803,6 +8884,15 @@ fn bindgen_test_layout_v4l2_pix_format__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_pix_format__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_pix_format() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_pix_format> = ::std::mem::MaybeUninit::uninit();
@@ -8928,8 +9018,17 @@ fn bindgen_test_layout_v4l2_pix_format() {
         )
     );
 }
+impl Default for v4l2_pix_format {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fmtdesc {
     pub index: __u32,
     pub type_: __u32,
@@ -9029,7 +9128,7 @@ pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS: v4l2_frmsizetypes = 2;
 pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE: v4l2_frmsizetypes = 3;
 pub type v4l2_frmsizetypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_discrete {
     pub width: __u32,
     pub height: __u32,
@@ -9071,7 +9170,7 @@ fn bindgen_test_layout_v4l2_frmsize_discrete() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_stepwise {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -9207,6 +9306,15 @@ fn bindgen_test_layout_v4l2_frmsizeenum__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_frmsizeenum__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_frmsizeenum() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_frmsizeenum> = ::std::mem::MaybeUninit::uninit();
@@ -9262,12 +9370,21 @@ fn bindgen_test_layout_v4l2_frmsizeenum() {
         )
     );
 }
+impl Default for v4l2_frmsizeenum {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_DISCRETE: v4l2_frmivaltypes = 1;
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS: v4l2_frmivaltypes = 2;
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE: v4l2_frmivaltypes = 3;
 pub type v4l2_frmivaltypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmival_stepwise {
     pub min: v4l2_fract,
     pub max: v4l2_fract,
@@ -9372,6 +9489,15 @@ fn bindgen_test_layout_v4l2_frmivalenum__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_frmivalenum__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_frmivalenum() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_frmivalenum> = ::std::mem::MaybeUninit::uninit();
@@ -9447,8 +9573,17 @@ fn bindgen_test_layout_v4l2_frmivalenum() {
         )
     );
 }
+impl Default for v4l2_frmivalenum {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_timecode {
     pub type_: __u32,
     pub flags: __u32,
@@ -9639,8 +9774,17 @@ fn bindgen_test_layout_v4l2_jpegcompression() {
         )
     );
 }
+impl Default for v4l2_jpegcompression {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_requestbuffers {
     pub count: __u32,
     pub type_: __u32,
@@ -9787,6 +9931,15 @@ fn bindgen_test_layout_v4l2_plane__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_plane__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_plane() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_plane> = ::std::mem::MaybeUninit::uninit();
@@ -9851,6 +10004,15 @@ fn bindgen_test_layout_v4l2_plane() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_plane {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " struct v4l2_buffer - video buffer info\n @index:\tid number of the buffer\n @type:\tenum v4l2_buf_type; buffer type (type == *_MPLANE for\n\t\tmultiplanar buffers);\n @bytesused:\tnumber of bytes occupied by data in the buffer (payload);\n\t\tunused (set to 0) for multiplanar buffers\n @flags:\tbuffer informational flags\n @field:\tenum v4l2_field; field order of the image in the buffer\n @timestamp:\tframe timestamp\n @timecode:\tframe timecode\n @sequence:\tsequence count of this frame\n @memory:\tenum v4l2_memory; the method, in which the actual video data is\n\t\tpassed\n @offset:\tfor non-multiplanar buffers with memory == V4L2_MEMORY_MMAP;\n\t\toffset from the start of the device memory for this plane,\n\t\t(or a \"cookie\" that should be passed to mmap() as offset)\n @userptr:\tfor non-multiplanar buffers with memory == V4L2_MEMORY_USERPTR;\n\t\ta userspace pointer pointing to this buffer\n @fd:\t\tfor non-multiplanar buffers with memory == V4L2_MEMORY_DMABUF;\n\t\ta userspace file descriptor associated with this buffer\n @planes:\tfor multiplanar buffers; userspace pointer to the array of plane\n\t\tinfo structs for this buffer\n @m:\t\tunion of @offset, @userptr, @planes and @fd\n @length:\tsize in bytes of the buffer (NOT its payload) for single-plane\n\t\tbuffers (when type != *_MPLANE); number of elements in the\n\t\tplanes array for multi-plane buffers\n @reserved2:\tdrivers and applications must zero this field\n @request_fd: fd of the request that this buffer should use\n @reserved:\tfor backwards compatibility with applications that do not know\n\t\tabout @request_fd\n\n Contains data exchanged by application and driver using one of the Streaming\n I/O methods."]
 #[repr(C)]
@@ -9934,6 +10096,15 @@ fn bindgen_test_layout_v4l2_buffer__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_buffer__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union v4l2_buffer__bindgen_ty_2 {
@@ -9975,6 +10146,15 @@ fn bindgen_test_layout_v4l2_buffer__bindgen_ty_2() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_buffer__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_buffer() {
@@ -10111,9 +10291,18 @@ fn bindgen_test_layout_v4l2_buffer() {
         )
     );
 }
+impl Default for v4l2_buffer {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_exportbuffer - export of video buffer as DMABUF file descriptor\n\n @index:\tid number of the buffer\n @type:\tenum v4l2_buf_type; buffer type (type == *_MPLANE for\n\t\tmultiplanar buffers);\n @plane:\tindex of the plane to be exported, 0 for single plane queues\n @flags:\tflags for newly created file, currently only O_CLOEXEC is\n\t\tsupported, refer to manual of open syscall for more details\n @fd:\t\tfile descriptor associated with DMABUF (set by driver)\n @reserved:\tdrivers and applications must zero this array\n\n Contains data used for exporting a video buffer as DMABUF file descriptor.\n The buffer is identified by a 'cookie' returned by VIDIOC_QUERYBUF\n (identical to the cookie used to mmap() the buffer to userspace). All\n reserved fields must be set to zero. The field reserved0 is expected to\n become a structure 'type' allowing an alternative layout of the structure\n content. Therefore this field should not be used for any other extensions."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_exportbuffer {
     pub type_: __u32,
     pub index: __u32,
@@ -10206,7 +10395,7 @@ pub struct v4l2_framebuffer {
     pub fmt: v4l2_framebuffer__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_framebuffer__bindgen_ty_1 {
     pub width: __u32,
     pub height: __u32,
@@ -10368,6 +10557,15 @@ fn bindgen_test_layout_v4l2_framebuffer() {
         )
     );
 }
+impl Default for v4l2_framebuffer {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_clip {
@@ -10408,6 +10606,15 @@ fn bindgen_test_layout_v4l2_clip() {
             stringify!(next)
         )
     );
+}
+impl Default for v4l2_clip {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -10505,8 +10712,17 @@ fn bindgen_test_layout_v4l2_window() {
         )
     );
 }
+impl Default for v4l2_window {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_captureparm {
     pub capability: __u32,
     pub capturemode: __u32,
@@ -10591,7 +10807,7 @@ fn bindgen_test_layout_v4l2_captureparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_outputparm {
     pub capability: __u32,
     pub outputmode: __u32,
@@ -10676,7 +10892,7 @@ fn bindgen_test_layout_v4l2_outputparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_cropcap {
     pub type_: __u32,
     pub bounds: v4l2_rect,
@@ -10739,7 +10955,7 @@ fn bindgen_test_layout_v4l2_cropcap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_crop {
     pub type_: __u32,
     pub c: v4l2_rect,
@@ -10781,7 +10997,7 @@ fn bindgen_test_layout_v4l2_crop() {
 }
 #[doc = " struct v4l2_selection - selection info\n @type:\tbuffer type (do not use *_MPLANE types)\n @target:\tSelection target, used to choose one of possible rectangles;\n\t\tdefined in v4l2-common.h; V4L2_SEL_TGT_* .\n @flags:\tconstraints flags, defined in v4l2-common.h; V4L2_SEL_FLAG_*.\n @r:\t\tcoordinates of selection window\n @reserved:\tfor future use, rounds structure size to 64 bytes, set to zero\n\n Hardware may use multiple helper windows to process a video stream.\n The structure is used to exchange this selection areas between\n an application and a driver."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_selection {
     pub type_: __u32,
     pub target: __u32,
@@ -10856,7 +11072,7 @@ fn bindgen_test_layout_v4l2_selection() {
 }
 pub type v4l2_std_id = __u64;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_standard {
     pub index: __u32,
     pub id: v4l2_std_id,
@@ -11180,6 +11396,15 @@ fn bindgen_test_layout_v4l2_bt_timings() {
         )
     );
 }
+impl Default for v4l2_bt_timings {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_dv_timings - DV timings\n @type:\tthe type of the timings\n @bt:\tBT656/1120 timings"]
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -11229,6 +11454,15 @@ fn bindgen_test_layout_v4l2_dv_timings__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_dv_timings__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_dv_timings() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_dv_timings> = ::std::mem::MaybeUninit::uninit();
@@ -11253,6 +11487,15 @@ fn bindgen_test_layout_v4l2_dv_timings() {
             stringify!(type_)
         )
     );
+}
+impl Default for v4l2_dv_timings {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " struct v4l2_enum_dv_timings - DV timings enumeration\n @index:\tenumeration index\n @pad:\tthe pad number for which to enumerate timings (used with\n\t\tv4l-subdev nodes only)\n @reserved:\tmust be zeroed\n @timings:\tthe timings for the given index"]
 #[repr(C)]
@@ -11318,9 +11561,18 @@ fn bindgen_test_layout_v4l2_enum_dv_timings() {
         )
     );
 }
+impl Default for v4l2_enum_dv_timings {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_bt_timings_cap - BT.656/BT.1120 timing capabilities\n @min_width:\t\twidth in pixels\n @max_width:\t\twidth in pixels\n @min_height:\t\theight in lines\n @max_height:\t\theight in lines\n @min_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @max_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @standards:\t\tSupported standards\n @capabilities:\tSupported capabilities\n @reserved:\t\tMust be zeroed"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_bt_timings_cap {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -11491,6 +11743,15 @@ fn bindgen_test_layout_v4l2_dv_timings_cap__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_dv_timings_cap__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_dv_timings_cap() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_dv_timings_cap> = ::std::mem::MaybeUninit::uninit();
@@ -11536,8 +11797,17 @@ fn bindgen_test_layout_v4l2_dv_timings_cap() {
         )
     );
 }
+impl Default for v4l2_dv_timings_cap {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_input {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11655,7 +11925,7 @@ fn bindgen_test_layout_v4l2_input() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_output {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11762,7 +12032,7 @@ fn bindgen_test_layout_v4l2_output() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_control {
     pub id: __u32,
     pub value: __s32,
@@ -12182,6 +12452,15 @@ fn bindgen_test_layout_v4l2_ext_control__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_ext_control__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_ext_control() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_ext_control> = ::std::mem::MaybeUninit::uninit();
@@ -12226,6 +12505,15 @@ fn bindgen_test_layout_v4l2_ext_control() {
             stringify!(reserved2)
         )
     );
+}
+impl Default for v4l2_ext_control {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -12278,6 +12566,15 @@ fn bindgen_test_layout_v4l2_ext_controls__bindgen_ty_1() {
             stringify!(which)
         )
     );
+}
+impl Default for v4l2_ext_controls__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_ext_controls() {
@@ -12344,6 +12641,15 @@ fn bindgen_test_layout_v4l2_ext_controls() {
         )
     );
 }
+impl Default for v4l2_ext_controls {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_INTEGER: v4l2_ctrl_type = 1;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_BOOLEAN: v4l2_ctrl_type = 2;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_MENU: v4l2_ctrl_type = 3;
@@ -12384,7 +12690,7 @@ pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_FRAME: v4l2_ctrl_type = 642;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_FILM_GRAIN: v4l2_ctrl_type = 643;
 pub type v4l2_ctrl_type = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_queryctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -12502,7 +12808,7 @@ fn bindgen_test_layout_v4l2_queryctrl() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_query_ext_ctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -12713,6 +13019,15 @@ fn bindgen_test_layout_v4l2_querymenu__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_querymenu__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_querymenu() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_querymenu> = ::std::mem::MaybeUninit::uninit();
@@ -12758,8 +13073,17 @@ fn bindgen_test_layout_v4l2_querymenu() {
         )
     );
 }
+impl Default for v4l2_querymenu {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_tuner {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -12899,7 +13223,7 @@ fn bindgen_test_layout_v4l2_tuner() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_modulator {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -13006,7 +13330,7 @@ fn bindgen_test_layout_v4l2_modulator() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency {
     pub tuner: __u32,
     pub type_: __u32,
@@ -13069,7 +13393,7 @@ fn bindgen_test_layout_v4l2_frequency() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency_band {
     pub tuner: __u32,
     pub type_: __u32,
@@ -13176,7 +13500,7 @@ fn bindgen_test_layout_v4l2_frequency_band() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hw_freq_seek {
     pub tuner: __u32,
     pub type_: __u32,
@@ -13283,7 +13607,7 @@ fn bindgen_test_layout_v4l2_hw_freq_seek() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rds_data {
     pub lsb: __u8,
     pub msb: __u8,
@@ -13335,7 +13659,7 @@ fn bindgen_test_layout_v4l2_rds_data() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audio {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -13409,7 +13733,7 @@ fn bindgen_test_layout_v4l2_audio() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audioout {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -13483,7 +13807,7 @@ fn bindgen_test_layout_v4l2_audioout() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_enc_idx_entry {
     pub offset: __u64,
     pub pts: __u64,
@@ -13619,6 +13943,15 @@ fn bindgen_test_layout_v4l2_enc_idx() {
         )
     );
 }
+impl Default for v4l2_enc_idx {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct v4l2_encoder_cmd {
@@ -13632,7 +13965,7 @@ pub union v4l2_encoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub data: [__u32; 8usize],
 }
@@ -13694,6 +14027,15 @@ fn bindgen_test_layout_v4l2_encoder_cmd__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_encoder_cmd__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_encoder_cmd() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_encoder_cmd> = ::std::mem::MaybeUninit::uninit();
@@ -13729,6 +14071,15 @@ fn bindgen_test_layout_v4l2_encoder_cmd() {
         )
     );
 }
+impl Default for v4l2_encoder_cmd {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct v4l2_decoder_cmd {
@@ -13744,7 +14095,7 @@ pub union v4l2_decoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub pts: __u64,
 }
@@ -13781,7 +14132,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2 {
     pub speed: __s32,
     pub format: __u32,
@@ -13829,7 +14180,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3 {
     pub data: [__u32; 16usize],
 }
@@ -13911,6 +14262,15 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_decoder_cmd__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_decoder_cmd() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_decoder_cmd> = ::std::mem::MaybeUninit::uninit();
@@ -13946,8 +14306,17 @@ fn bindgen_test_layout_v4l2_decoder_cmd() {
         )
     );
 }
+impl Default for v4l2_decoder_cmd {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vbi_format {
     pub sampling_rate: __u32,
     pub offset: __u32,
@@ -14054,7 +14423,7 @@ fn bindgen_test_layout_v4l2_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_format {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -14118,7 +14487,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_cap {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -14254,6 +14623,15 @@ fn bindgen_test_layout_v4l2_sliced_vbi_data() {
         )
     );
 }
+impl Default for v4l2_sliced_vbi_data {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0_line {
@@ -14296,6 +14674,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0_line() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_itv0_line {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0 {
@@ -14337,6 +14724,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_itv0 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_ITV0 {
@@ -14366,6 +14762,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_ITV0() {
             stringify!(line)
         )
     );
+}
+impl Default for v4l2_mpeg_vbi_ITV0 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -14421,6 +14826,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_fmt_ivtv__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_mpeg_vbi_fmt_ivtv> =
@@ -14447,9 +14861,18 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_fmt_ivtv {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_plane_pix_format - additional, per-plane format definition\n @sizeimage:\t\tmaximum size in bytes required for data, for which\n\t\t\tthis plane will be used\n @bytesperline:\tdistance in bytes between the leftmost pixels in two\n\t\t\tadjacent lines\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_plane_pix_format {
     pub sizeimage: __u32,
     pub bytesperline: __u32,
@@ -14565,6 +14988,15 @@ fn bindgen_test_layout_v4l2_pix_format_mplane__bindgen_ty_1() {
             stringify!(hsv_enc)
         )
     );
+}
+impl Default for v4l2_pix_format_mplane__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_pix_format_mplane() {
@@ -14692,9 +15124,18 @@ fn bindgen_test_layout_v4l2_pix_format_mplane() {
         )
     );
 }
+impl Default for v4l2_pix_format_mplane {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_sdr_format - SDR format definition\n @pixelformat:\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sdr_format {
     pub pixelformat: __u32,
     pub buffersize: __u32,
@@ -14747,7 +15188,7 @@ fn bindgen_test_layout_v4l2_sdr_format() {
 }
 #[doc = " struct v4l2_meta_format - metadata format definition\n @dataformat:\t\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_meta_format {
     pub dataformat: __u32,
     pub buffersize: __u32,
@@ -14902,6 +15343,15 @@ fn bindgen_test_layout_v4l2_format__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_format__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_format() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_format> = ::std::mem::MaybeUninit::uninit();
@@ -14936,6 +15386,15 @@ fn bindgen_test_layout_v4l2_format() {
             stringify!(fmt)
         )
     );
+}
+impl Default for v4l2_format {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -14996,6 +15455,15 @@ fn bindgen_test_layout_v4l2_streamparm__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_streamparm__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_streamparm() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_streamparm> = ::std::mem::MaybeUninit::uninit();
@@ -15031,8 +15499,17 @@ fn bindgen_test_layout_v4l2_streamparm() {
         )
     );
 }
+impl Default for v4l2_streamparm {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_vsync {
     pub field: __u8,
 }
@@ -15114,6 +15591,15 @@ fn bindgen_test_layout_v4l2_event_ctrl__bindgen_ty_1() {
             stringify!(value64)
         )
     );
+}
+impl Default for v4l2_event_ctrl__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_event_ctrl() {
@@ -15200,8 +15686,17 @@ fn bindgen_test_layout_v4l2_event_ctrl() {
         )
     );
 }
+impl Default for v4l2_event_ctrl {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_frame_sync {
     pub frame_sequence: __u32,
 }
@@ -15232,7 +15727,7 @@ fn bindgen_test_layout_v4l2_event_frame_sync() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_src_change {
     pub changes: __u32,
 }
@@ -15264,7 +15759,7 @@ fn bindgen_test_layout_v4l2_event_src_change() {
 }
 #[doc = " struct v4l2_event_motion_det - motion detection event\n @flags:             if V4L2_EVENT_MD_FL_HAVE_FRAME_SEQ is set, then the\n                     frame_sequence field is valid.\n @frame_sequence:    the frame sequence number associated with this event.\n @region_mask:       which regions detected motion."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_motion_det {
     pub flags: __u32,
     pub frame_sequence: __u32,
@@ -15413,6 +15908,15 @@ fn bindgen_test_layout_v4l2_event__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_event__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_event() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_event> = ::std::mem::MaybeUninit::uninit();
@@ -15498,8 +16002,17 @@ fn bindgen_test_layout_v4l2_event() {
         )
     );
 }
+impl Default for v4l2_event {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_subscription {
     pub type_: __u32,
     pub id: __u32,
@@ -15610,6 +16123,15 @@ fn bindgen_test_layout_v4l2_dbg_match__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_dbg_match__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_dbg_match() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_dbg_match> = ::std::mem::MaybeUninit::uninit();
@@ -15634,6 +16156,15 @@ fn bindgen_test_layout_v4l2_dbg_match() {
             stringify!(type_)
         )
     );
+}
+impl Default for v4l2_dbg_match {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -15698,6 +16229,15 @@ fn bindgen_test_layout_v4l2_dbg_register() {
         )
     );
 }
+impl Default for v4l2_dbg_register {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct v4l2_dbg_chip_info {
@@ -15760,6 +16300,15 @@ fn bindgen_test_layout_v4l2_dbg_chip_info() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_dbg_chip_info {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " struct v4l2_create_buffers - VIDIOC_CREATE_BUFS argument\n @index:\ton return, index of the first created buffer\n @count:\tentry: number of requested buffers,\n\t\treturn: number of created buffers\n @memory:\tenum v4l2_memory; buffer memory type\n @format:\tframe format, for which buffers are requested\n @capabilities: capabilities of this buffer type.\n @flags:\tadditional buffer management attributes (ignored unless the\n\t\tqueue has V4L2_BUF_CAP_SUPPORTS_MMAP_CACHE_HINTS capability\n\t\tand configured for MMAP streaming I/O).\n @reserved:\tfuture extensions"]
 #[repr(C)]
@@ -15857,6 +16406,15 @@ fn bindgen_test_layout_v4l2_create_buffers() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_create_buffers {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const V4L2_FWHT_FL_IS_INTERLACED: ::std::os::raw::c_ulong = 1;
 pub const V4L2_FWHT_FL_IS_BOTTOM_FIRST: ::std::os::raw::c_ulong = 2;

@@ -76,15 +76,6 @@ impl TryFrom<(QueueType, &Format)> for v4l2_format {
     }
 }
 
-// We cannot derive from the bindings since they are generated.
-#[allow(clippy::derivable_impls)]
-impl Default for bindings::v4l2_plane_pix_format {
-    fn default() -> Self {
-        // Safe because C does it and this results in a valid format.
-        unsafe { mem::zeroed() }
-    }
-}
-
 impl From<&PlaneLayout> for bindings::v4l2_plane_pix_format {
     fn from(plane: &PlaneLayout) -> Self {
         bindings::v4l2_plane_pix_format {

@@ -90,11 +90,9 @@ pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
 
+use std::ffi::CStr;
+use std::ffi::FromBytesWithNulError;
 use std::fmt::Debug;
-use std::{
-    ffi::{CStr, FromBytesWithNulError},
-    mem,
-};
 
 use nix::errno::Errno;
 
@@ -176,13 +174,6 @@ where
 /// A memory area we can pass to ioctls in order to get/set plane information
 /// with the multi-planar API.
 type V4l2BufferPlanes = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
-
-/// For simple initialization of `V4l2BufferPlanes`.
-impl Default for bindings::v4l2_plane {
-    fn default() -> Self {
-        unsafe { mem::zeroed() }
-    }
-}
 
 /// Information about a single plane of a V4L2 buffer.
 pub struct V4l2BufferPlane<'a> {

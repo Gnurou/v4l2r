@@ -375,6 +375,8 @@ pub const V4L2_CID_MPEG_VIDEO_HEVC_B_FRAME_MIN_QP: u32 = 10029963;
 pub const V4L2_CID_MPEG_VIDEO_HEVC_B_FRAME_MAX_QP: u32 = 10029964;
 pub const V4L2_CID_MPEG_VIDEO_DEC_DISPLAY_DELAY: u32 = 10029965;
 pub const V4L2_CID_MPEG_VIDEO_DEC_DISPLAY_DELAY_ENABLE: u32 = 10029966;
+pub const V4L2_CID_MPEG_VIDEO_AV1_PROFILE: u32 = 10029967;
+pub const V4L2_CID_MPEG_VIDEO_AV1_LEVEL: u32 = 10029968;
 pub const V4L2_CID_CODEC_CX2341X_BASE: u32 = 10031104;
 pub const V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE: u32 = 10031104;
 pub const V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER: u32 = 10031105;
@@ -796,6 +798,87 @@ pub const V4L2_VP9_TX_MODE_ALLOW_8X8: u32 = 1;
 pub const V4L2_VP9_TX_MODE_ALLOW_16X16: u32 = 2;
 pub const V4L2_VP9_TX_MODE_ALLOW_32X32: u32 = 3;
 pub const V4L2_VP9_TX_MODE_SELECT: u32 = 4;
+pub const V4L2_AV1_TOTAL_REFS_PER_FRAME: u32 = 8;
+pub const V4L2_AV1_CDEF_MAX: u32 = 8;
+pub const V4L2_AV1_NUM_PLANES_MAX: u32 = 3;
+pub const V4L2_AV1_MAX_SEGMENTS: u32 = 8;
+pub const V4L2_AV1_MAX_OPERATING_POINTS: u32 = 32;
+pub const V4L2_AV1_REFS_PER_FRAME: u32 = 7;
+pub const V4L2_AV1_MAX_NUM_Y_POINTS: u32 = 16;
+pub const V4L2_AV1_MAX_NUM_CB_POINTS: u32 = 16;
+pub const V4L2_AV1_MAX_NUM_CR_POINTS: u32 = 16;
+pub const V4L2_AV1_AR_COEFFS_SIZE: u32 = 25;
+pub const V4L2_AV1_MAX_NUM_PLANES: u32 = 3;
+pub const V4L2_AV1_MAX_TILE_COLS: u32 = 64;
+pub const V4L2_AV1_MAX_TILE_ROWS: u32 = 64;
+pub const V4L2_AV1_MAX_TILE_COUNT: u32 = 512;
+pub const V4L2_AV1_SEQUENCE_FLAG_STILL_PICTURE: u32 = 1;
+pub const V4L2_AV1_SEQUENCE_FLAG_USE_128X128_SUPERBLOCK: u32 = 2;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_FILTER_INTRA: u32 = 4;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_INTRA_EDGE_FILTER: u32 = 8;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_INTERINTRA_COMPOUND: u32 = 16;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_MASKED_COMPOUND: u32 = 32;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_WARPED_MOTION: u32 = 64;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_DUAL_FILTER: u32 = 128;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_ORDER_HINT: u32 = 256;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_JNT_COMP: u32 = 512;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_REF_FRAME_MVS: u32 = 1024;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_SUPERRES: u32 = 2048;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_CDEF: u32 = 4096;
+pub const V4L2_AV1_SEQUENCE_FLAG_ENABLE_RESTORATION: u32 = 8192;
+pub const V4L2_AV1_SEQUENCE_FLAG_MONO_CHROME: u32 = 16384;
+pub const V4L2_AV1_SEQUENCE_FLAG_COLOR_RANGE: u32 = 32768;
+pub const V4L2_AV1_SEQUENCE_FLAG_SUBSAMPLING_X: u32 = 65536;
+pub const V4L2_AV1_SEQUENCE_FLAG_SUBSAMPLING_Y: u32 = 131072;
+pub const V4L2_AV1_SEQUENCE_FLAG_FILM_GRAIN_PARAMS_PRESENT: u32 = 262144;
+pub const V4L2_AV1_SEQUENCE_FLAG_SEPARATE_UV_DELTA_Q: u32 = 524288;
+pub const V4L2_CID_STATELESS_AV1_SEQUENCE: u32 = 10750708;
+pub const V4L2_CID_STATELESS_AV1_TILE_GROUP_ENTRY: u32 = 10750709;
+pub const V4L2_AV1_GLOBAL_MOTION_FLAG_IS_GLOBAL: u32 = 1;
+pub const V4L2_AV1_GLOBAL_MOTION_FLAG_IS_ROT_ZOOM: u32 = 2;
+pub const V4L2_AV1_GLOBAL_MOTION_FLAG_IS_TRANSLATION: u32 = 4;
+pub const V4L2_AV1_LOOP_RESTORATION_FLAG_USES_LR: u32 = 1;
+pub const V4L2_AV1_LOOP_RESTORATION_FLAG_USES_CHROMA_LR: u32 = 2;
+pub const V4L2_AV1_SEGMENTATION_FLAG_ENABLED: u32 = 1;
+pub const V4L2_AV1_SEGMENTATION_FLAG_UPDATE_MAP: u32 = 2;
+pub const V4L2_AV1_SEGMENTATION_FLAG_TEMPORAL_UPDATE: u32 = 4;
+pub const V4L2_AV1_SEGMENTATION_FLAG_UPDATE_DATA: u32 = 8;
+pub const V4L2_AV1_SEGMENTATION_FLAG_SEG_ID_PRE_SKIP: u32 = 16;
+pub const V4L2_AV1_LOOP_FILTER_FLAG_DELTA_ENABLED: u32 = 1;
+pub const V4L2_AV1_LOOP_FILTER_FLAG_DELTA_UPDATE: u32 = 2;
+pub const V4L2_AV1_LOOP_FILTER_FLAG_DELTA_LF_PRESENT: u32 = 4;
+pub const V4L2_AV1_LOOP_FILTER_FLAG_DELTA_LF_MULTI: u32 = 8;
+pub const V4L2_AV1_QUANTIZATION_FLAG_DIFF_UV_DELTA: u32 = 1;
+pub const V4L2_AV1_QUANTIZATION_FLAG_USING_QMATRIX: u32 = 2;
+pub const V4L2_AV1_QUANTIZATION_FLAG_DELTA_Q_PRESENT: u32 = 4;
+pub const V4L2_AV1_TILE_INFO_FLAG_UNIFORM_TILE_SPACING: u32 = 1;
+pub const V4L2_AV1_FRAME_FLAG_SHOW_FRAME: u32 = 1;
+pub const V4L2_AV1_FRAME_FLAG_SHOWABLE_FRAME: u32 = 2;
+pub const V4L2_AV1_FRAME_FLAG_ERROR_RESILIENT_MODE: u32 = 4;
+pub const V4L2_AV1_FRAME_FLAG_DISABLE_CDF_UPDATE: u32 = 8;
+pub const V4L2_AV1_FRAME_FLAG_ALLOW_SCREEN_CONTENT_TOOLS: u32 = 16;
+pub const V4L2_AV1_FRAME_FLAG_FORCE_INTEGER_MV: u32 = 32;
+pub const V4L2_AV1_FRAME_FLAG_ALLOW_INTRABC: u32 = 64;
+pub const V4L2_AV1_FRAME_FLAG_USE_SUPERRES: u32 = 128;
+pub const V4L2_AV1_FRAME_FLAG_ALLOW_HIGH_PRECISION_MV: u32 = 256;
+pub const V4L2_AV1_FRAME_FLAG_IS_MOTION_MODE_SWITCHABLE: u32 = 512;
+pub const V4L2_AV1_FRAME_FLAG_USE_REF_FRAME_MVS: u32 = 1024;
+pub const V4L2_AV1_FRAME_FLAG_DISABLE_FRAME_END_UPDATE_CDF: u32 = 2048;
+pub const V4L2_AV1_FRAME_FLAG_ALLOW_WARPED_MOTION: u32 = 4096;
+pub const V4L2_AV1_FRAME_FLAG_REFERENCE_SELECT: u32 = 8192;
+pub const V4L2_AV1_FRAME_FLAG_REDUCED_TX_SET: u32 = 16384;
+pub const V4L2_AV1_FRAME_FLAG_SKIP_MODE_ALLOWED: u32 = 32768;
+pub const V4L2_AV1_FRAME_FLAG_SKIP_MODE_PRESENT: u32 = 65536;
+pub const V4L2_AV1_FRAME_FLAG_FRAME_SIZE_OVERRIDE: u32 = 131072;
+pub const V4L2_AV1_FRAME_FLAG_BUFFER_REMOVAL_TIME_PRESENT: u32 = 262144;
+pub const V4L2_AV1_FRAME_FLAG_FRAME_REFS_SHORT_SIGNALING: u32 = 524288;
+pub const V4L2_CID_STATELESS_AV1_FRAME: u32 = 10750710;
+pub const V4L2_AV1_FILM_GRAIN_FLAG_APPLY_GRAIN: u32 = 1;
+pub const V4L2_AV1_FILM_GRAIN_FLAG_UPDATE_GRAIN: u32 = 2;
+pub const V4L2_AV1_FILM_GRAIN_FLAG_CHROMA_SCALING_FROM_LUMA: u32 = 4;
+pub const V4L2_AV1_FILM_GRAIN_FLAG_OVERLAP: u32 = 8;
+pub const V4L2_AV1_FILM_GRAIN_FLAG_CLIP_TO_RESTRICTED_RANGE: u32 = 16;
+pub const V4L2_CID_STATELESS_AV1_FILM_GRAIN: u32 = 10750713;
 pub const V4L2_CTRL_CLASS_MPEG: u32 = 10027008;
 pub const V4L2_CID_MPEG_CLASS: u32 = 10027009;
 pub const V4L2_CID_MPEG_BASE: u32 = 10029312;
@@ -1125,7 +1208,7 @@ pub type __off_t = ::std::os::raw::c_long;
 pub type __off64_t = __int64_t;
 pub type __pid_t = ::std::os::raw::c_int;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __fsid_t {
     pub __val: [::std::os::raw::c_int; 2usize],
 }
@@ -1185,7 +1268,7 @@ pub type __sig_atomic_t = ::std::os::raw::c_int;
 pub type __time64_t = __int64_t;
 pub type time_t = __time_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct timeval {
     pub tv_sec: __time_t,
     pub tv_usec: __suseconds_t,
@@ -1227,7 +1310,7 @@ fn bindgen_test_layout_timeval() {
 }
 pub type suseconds_t = __suseconds_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __sigset_t {
     pub __val: [::std::os::raw::c_ulong; 32usize],
 }
@@ -1258,7 +1341,7 @@ fn bindgen_test_layout___sigset_t() {
 }
 pub type sigset_t = __sigset_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
@@ -1300,7 +1383,7 @@ fn bindgen_test_layout_timespec() {
 }
 pub type __fd_mask = ::std::os::raw::c_long;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct fd_set {
     pub __fds_bits: [__fd_mask; 32usize],
 }
@@ -1350,7 +1433,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct timezone {
     pub tz_minuteswest: ::std::os::raw::c_int,
     pub tz_dsttime: ::std::os::raw::c_int,
@@ -1407,7 +1490,7 @@ pub const __itimer_which_ITIMER_VIRTUAL: __itimer_which = 1;
 pub const __itimer_which_ITIMER_PROF: __itimer_which = 2;
 pub type __itimer_which = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct itimerval {
     pub it_interval: timeval,
     pub it_value: timeval,
@@ -1482,7 +1565,7 @@ pub type __u32 = ::std::os::raw::c_uint;
 pub type __s64 = ::std::os::raw::c_longlong;
 pub type __u64 = ::std::os::raw::c_ulonglong;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fd_set {
     pub fds_bits: [::std::os::raw::c_ulong; 32usize],
 }
@@ -1534,7 +1617,7 @@ pub type __kernel_size_t = ::std::os::raw::c_uint;
 pub type __kernel_ssize_t = ::std::os::raw::c_int;
 pub type __kernel_ptrdiff_t = ::std::os::raw::c_int;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct __kernel_fsid_t {
     pub val: [::std::os::raw::c_int; 2usize],
 }
@@ -1656,6 +1739,15 @@ fn bindgen_test_layout_v4l2_edid() {
             stringify!(edid)
         )
     );
+}
+impl Default for v4l2_edid {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const v4l2_power_line_frequency_V4L2_CID_POWER_LINE_FREQUENCY_DISABLED:
     v4l2_power_line_frequency = 0;
@@ -2188,6 +2280,40 @@ pub const v4l2_mpeg_video_frame_skip_mode_V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_LEVEL_
 pub const v4l2_mpeg_video_frame_skip_mode_V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT:
     v4l2_mpeg_video_frame_skip_mode = 2;
 pub type v4l2_mpeg_video_frame_skip_mode = ::std::os::raw::c_uint;
+pub const v4l2_mpeg_video_av1_profile_V4L2_MPEG_VIDEO_AV1_PROFILE_MAIN:
+    v4l2_mpeg_video_av1_profile = 0;
+pub const v4l2_mpeg_video_av1_profile_V4L2_MPEG_VIDEO_AV1_PROFILE_HIGH:
+    v4l2_mpeg_video_av1_profile = 1;
+pub const v4l2_mpeg_video_av1_profile_V4L2_MPEG_VIDEO_AV1_PROFILE_PROFESSIONAL:
+    v4l2_mpeg_video_av1_profile = 2;
+#[doc = " enum v4l2_mpeg_video_av1_profile - AV1 profiles\n\n @V4L2_MPEG_VIDEO_AV1_PROFILE_MAIN: compliant decoders must be able to decode\n streams with seq_profile equal to 0.\n @V4L2_MPEG_VIDEO_AV1_PROFILE_HIGH: compliant decoders must be able to decode\n streams with seq_profile equal less than or equal to 1.\n @V4L2_MPEG_VIDEO_AV1_PROFILE_PROFESSIONAL: compliant decoders must be able to\n decode streams with seq_profile less than or equal to 2.\n\n Conveys the highest profile a decoder can work with."]
+pub type v4l2_mpeg_video_av1_profile = ::std::os::raw::c_uint;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_2_0: v4l2_mpeg_video_av1_level = 0;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_2_1: v4l2_mpeg_video_av1_level = 1;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_2_2: v4l2_mpeg_video_av1_level = 2;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_2_3: v4l2_mpeg_video_av1_level = 3;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_3_0: v4l2_mpeg_video_av1_level = 4;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_3_1: v4l2_mpeg_video_av1_level = 5;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_3_2: v4l2_mpeg_video_av1_level = 6;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_3_3: v4l2_mpeg_video_av1_level = 7;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_4_0: v4l2_mpeg_video_av1_level = 8;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_4_1: v4l2_mpeg_video_av1_level = 9;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_4_2: v4l2_mpeg_video_av1_level = 10;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_4_3: v4l2_mpeg_video_av1_level = 11;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_5_0: v4l2_mpeg_video_av1_level = 12;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_5_1: v4l2_mpeg_video_av1_level = 13;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_5_2: v4l2_mpeg_video_av1_level = 14;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_5_3: v4l2_mpeg_video_av1_level = 15;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_6_0: v4l2_mpeg_video_av1_level = 16;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_6_1: v4l2_mpeg_video_av1_level = 17;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_6_2: v4l2_mpeg_video_av1_level = 18;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_6_3: v4l2_mpeg_video_av1_level = 19;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_7_0: v4l2_mpeg_video_av1_level = 20;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_7_1: v4l2_mpeg_video_av1_level = 21;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_7_2: v4l2_mpeg_video_av1_level = 22;
+pub const v4l2_mpeg_video_av1_level_V4L2_MPEG_VIDEO_AV1_LEVEL_7_3: v4l2_mpeg_video_av1_level = 23;
+#[doc = " enum v4l2_mpeg_video_av1_level - AV1 levels\n\n @V4L2_MPEG_VIDEO_AV1_LEVEL_2_0: Level 2.0.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_2_1: Level 2.1.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_2_2: Level 2.2.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_2_3: Level 2.3.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_3_0: Level 3.0.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_3_1: Level 3.1.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_3_2: Level 3.2.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_3_3: Level 3.3.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_4_0: Level 4.0.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_4_1: Level 4.1.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_4_2: Level 4.2.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_4_3: Level 4.3.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_5_0: Level 5.0.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_5_1: Level 5.1.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_5_2: Level 5.2.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_5_3: Level 5.3.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_6_0: Level 6.0.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_6_1: Level 6.1.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_6_2: Level 6.2.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_6_3: Level 6.3.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_7_0: Level 7.0.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_7_1: Level 7.1.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_7_2: Level 7.2.\n @V4L2_MPEG_VIDEO_AV1_LEVEL_7_3: Level 7.3.\n\n Conveys the highest level a decoder can work with."]
+pub type v4l2_mpeg_video_av1_level = ::std::os::raw::c_uint;
 pub const v4l2_mpeg_cx2341x_video_spatial_filter_mode_V4L2_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE_MANUAL : v4l2_mpeg_cx2341x_video_spatial_filter_mode = 0 ;
 pub const v4l2_mpeg_cx2341x_video_spatial_filter_mode_V4L2_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE_AUTO : v4l2_mpeg_cx2341x_video_spatial_filter_mode = 1 ;
 pub type v4l2_mpeg_cx2341x_video_spatial_filter_mode = ::std::os::raw::c_uint;
@@ -2562,9 +2688,18 @@ fn bindgen_test_layout_v4l2_ctrl_h264_sps() {
         )
     );
 }
+impl Default for v4l2_ctrl_h264_sps {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_ctrl_h264_pps - H264 picture parameter set\n\n Except where noted, all the members on this picture parameter set\n structure match the picture parameter set syntax as specified\n by the H264 specification.\n\n In particular, V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT flag\n has a specific meaning. This flag should be set if a non-flat\n scaling matrix applies to the picture. In this case, applications\n are expected to use V4L2_CID_STATELESS_H264_SCALING_MATRIX,\n to pass the values of the non-flat matrices.\n\n @pic_parameter_set_id: see H264 specification.\n @seq_parameter_set_id: see H264 specification.\n @num_slice_groups_minus1: see H264 specification.\n @num_ref_idx_l0_default_active_minus1: see H264 specification.\n @num_ref_idx_l1_default_active_minus1: see H264 specification.\n @weighted_bipred_idc: see H264 specification.\n @pic_init_qp_minus26: see H264 specification.\n @pic_init_qs_minus26: see H264 specification.\n @chroma_qp_index_offset: see H264 specification.\n @second_chroma_qp_index_offset: see H264 specification.\n @flags: see V4L2_H264_PPS_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pps {
     pub pic_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -2754,8 +2889,17 @@ fn bindgen_test_layout_v4l2_ctrl_h264_scaling_matrix() {
         )
     );
 }
+impl Default for v4l2_ctrl_h264_scaling_matrix {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_weight_factors {
     pub luma_weight: [__s16; 32usize],
     pub luma_offset: [__s16; 32usize],
@@ -2820,7 +2964,7 @@ fn bindgen_test_layout_v4l2_h264_weight_factors() {
 }
 #[doc = " struct v4l2_ctrl_h264_pred_weights - Prediction weight table\n\n Prediction weight table, which matches the syntax specified\n by the H264 specification.\n\n @luma_log2_weight_denom: see H264 specification.\n @chroma_log2_weight_denom: see H264 specification.\n @weight_factors: luma and chroma weight factors."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_pred_weights {
     pub luma_log2_weight_denom: __u16,
     pub chroma_log2_weight_denom: __u16,
@@ -2874,7 +3018,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_pred_weights() {
 }
 #[doc = " struct v4l2_h264_reference - H264 picture reference\n\n @fields: indicates how the picture is referenced.\n Valid values are V4L2_H264_{}_REF.\n @index: index into v4l2_ctrl_h264_decode_params.dpb[]."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_reference {
     pub fields: __u8,
     pub index: __u8,
@@ -2916,7 +3060,7 @@ fn bindgen_test_layout_v4l2_h264_reference() {
 }
 #[doc = " struct v4l2_ctrl_h264_slice_params - H264 slice parameters\n\n This structure holds the H264 syntax elements that are specified\n as non-invariant for the slices in a given frame.\n\n Slice invariant syntax elements are contained in struct\n v4l2_ctrl_h264_decode_params. This is done to reduce the API surface\n on frame-based decoders, where slice header parsing is done by the\n hardware.\n\n Slice invariant syntax elements are specified in specification section\n \"7.4.3 Slice header semantics\".\n\n Except where noted, the members on this struct match the slice header syntax.\n\n @header_bit_size: offset in bits to slice_data() from the beginning of this slice.\n @first_mb_in_slice: see H264 specification.\n @slice_type: see H264 specification.\n @colour_plane_id: see H264 specification.\n @redundant_pic_cnt: see H264 specification.\n @cabac_init_idc: see H264 specification.\n @slice_qp_delta: see H264 specification.\n @slice_qs_delta: see H264 specification.\n @disable_deblocking_filter_idc: see H264 specification.\n @slice_alpha_c0_offset_div2: see H264 specification.\n @slice_beta_offset_div2: see H264 specification.\n @num_ref_idx_l0_active_minus1: see H264 specification.\n @num_ref_idx_l1_active_minus1: see H264 specification.\n @reserved: padding field. Should be zeroed by applications.\n @ref_pic_list0: reference picture list 0 after applying the per-slice modifications.\n @ref_pic_list1: reference picture list 1 after applying the per-slice modifications.\n @flags: see V4L2_H264_SLICE_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_slice_params {
     pub header_bit_size: __u32,
     pub first_mb_in_slice: __u32,
@@ -3130,7 +3274,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_slice_params() {
 }
 #[doc = " struct v4l2_h264_dpb_entry - H264 decoded picture buffer entry\n\n @reference_ts: timestamp of the V4L2 capture buffer to use as reference.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @pic_num: matches PicNum variable assigned during the reference\n picture lists construction process.\n @frame_num: frame identifier which matches frame_num syntax element.\n @fields: indicates how the DPB entry is referenced. Valid values are\n V4L2_H264_{}_REF.\n @reserved: padding field. Should be zeroed by applications.\n @top_field_order_cnt: matches TopFieldOrderCnt picture value.\n @bottom_field_order_cnt: matches BottomFieldOrderCnt picture value.\n Note that picture field is indicated by v4l2_buffer.field.\n @flags: see V4L2_H264_DPB_ENTRY_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_h264_dpb_entry {
     pub reference_ts: __u64,
     pub pic_num: __u32,
@@ -3238,7 +3382,7 @@ fn bindgen_test_layout_v4l2_h264_dpb_entry() {
 }
 #[doc = " struct v4l2_ctrl_h264_decode_params - H264 decoding parameters\n\n @dpb: decoded picture buffer.\n @nal_ref_idc: slice header syntax element.\n @frame_num: slice header syntax element.\n @top_field_order_cnt: matches TopFieldOrderCnt picture value.\n @bottom_field_order_cnt: matches BottomFieldOrderCnt picture value.\n Note that picture field is indicated by v4l2_buffer.field.\n @idr_pic_id: slice header syntax element.\n @pic_order_cnt_lsb: slice header syntax element.\n @delta_pic_order_cnt_bottom: slice header syntax element.\n @delta_pic_order_cnt0: slice header syntax element.\n @delta_pic_order_cnt1: slice header syntax element.\n @dec_ref_pic_marking_bit_size: size in bits of dec_ref_pic_marking()\n syntax element.\n @pic_order_cnt_bit_size: size in bits of pic order count syntax.\n @slice_group_change_cycle: slice header syntax element.\n @reserved: padding field. Should be zeroed by applications.\n @flags: see V4L2_H264_DECODE_PARAM_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_h264_decode_params {
     pub dpb: [v4l2_h264_dpb_entry; 16usize],
     pub nal_ref_idc: __u16,
@@ -3426,7 +3570,7 @@ fn bindgen_test_layout_v4l2_ctrl_h264_decode_params() {
 }
 #[doc = " struct v4l2_ctrl_fwht_params - FWHT parameters\n\n @backward_ref_ts: timestamp of the V4L2 capture buffer to use as reference.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @version: must be V4L2_FWHT_VERSION.\n @width: width of frame.\n @height: height of frame.\n @flags: FWHT flags (see V4L2_FWHT_FL_*).\n @colorspace: the colorspace (enum v4l2_colorspace).\n @xfer_func: the transfer function (enum v4l2_xfer_func).\n @ycbcr_enc: the Y'CbCr encoding (enum v4l2_ycbcr_encoding).\n @quantization: the quantization (enum v4l2_quantization)."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_fwht_params {
     pub backward_ref_ts: __u64,
     pub version: __u32,
@@ -3546,7 +3690,7 @@ fn bindgen_test_layout_v4l2_ctrl_fwht_params() {
 }
 #[doc = " struct v4l2_vp8_segment - VP8 segment-based adjustments parameters\n\n @quant_update: update values for the segment quantizer.\n @lf_update: update values for the loop filter level.\n @segment_probs: branch probabilities of the segment_id decoding tree.\n @padding: padding field. Should be zeroed by applications.\n @flags: see V4L2_VP8_SEGMENT_FLAG_{}.\n\n This structure contains segment-based adjustments related parameters.\n See the 'update_segmentation()' part of the frame header syntax,\n and section '9.3. Segment-Based Adjustments' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_segment {
     pub quant_update: [__s8; 4usize],
     pub lf_update: [__s8; 4usize],
@@ -3621,7 +3765,7 @@ fn bindgen_test_layout_v4l2_vp8_segment() {
 }
 #[doc = " struct v4l2_vp8_loop_filter - VP8 loop filter parameters\n\n @ref_frm_delta: Reference frame signed delta values.\n @mb_mode_delta: MB prediction mode signed delta values.\n @sharpness_level: matches sharpness_level syntax element.\n @level: matches loop_filter_level syntax element.\n @padding: padding field. Should be zeroed by applications.\n @flags: see V4L2_VP8_LF_{}.\n\n This structure contains loop filter related parameters.\n See the 'mb_lf_adjustments()' part of the frame header syntax,\n and section '9.4. Loop Filter Type and Levels' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_loop_filter {
     pub ref_frm_delta: [__s8; 4usize],
     pub mb_mode_delta: [__s8; 4usize],
@@ -3707,7 +3851,7 @@ fn bindgen_test_layout_v4l2_vp8_loop_filter() {
 }
 #[doc = " struct v4l2_vp8_quantization - VP8 quantizattion indices\n\n @y_ac_qi: luma AC coefficient table index.\n @y_dc_delta: luma DC delta vaue.\n @y2_dc_delta: y2 block DC delta value.\n @y2_ac_delta: y2 block AC delta value.\n @uv_dc_delta: chroma DC delta value.\n @uv_ac_delta: chroma AC delta value.\n @padding: padding field. Should be zeroed by applications.\n\n This structure contains the quantization indices present\n in 'quant_indices()' part of the frame header syntax.\n See section '9.6. Dequantization Indices' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_quantization {
     pub y_ac_qi: __u8,
     pub y_dc_delta: __s8,
@@ -3805,7 +3949,7 @@ fn bindgen_test_layout_v4l2_vp8_quantization() {
 }
 #[doc = " struct v4l2_vp8_entropy - VP8 update probabilities\n\n @coeff_probs: coefficient probability update values.\n @y_mode_probs: luma intra-prediction probabilities.\n @uv_mode_probs: chroma intra-prediction probabilities.\n @mv_probs: mv decoding probability.\n @padding: padding field. Should be zeroed by applications.\n\n This structure contains the update probabilities present in\n 'token_prob_update()' and 'mv_prob_update()' part of the frame header.\n See section '17.2. Probability Updates' of the VP8 specification\n for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy {
     pub coeff_probs: [[[[__u8; 11usize]; 3usize]; 8usize]; 4usize],
     pub y_mode_probs: [__u8; 4usize],
@@ -3880,7 +4024,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy() {
 }
 #[doc = " struct v4l2_vp8_entropy_coder_state - VP8 boolean coder state\n\n @range: coder state value for \"Range\"\n @value: coder state value for \"Value\"\n @bit_count: number of bits left in range \"Value\".\n @padding: padding field. Should be zeroed by applications.\n\n This structure contains the state for the boolean coder, as\n explained in section '7. Boolean Entropy Decoder' of the VP8 specification."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp8_entropy_coder_state {
     pub range: __u8,
     pub value: __u8,
@@ -3945,7 +4089,7 @@ fn bindgen_test_layout_v4l2_vp8_entropy_coder_state() {
 }
 #[doc = " struct v4l2_ctrl_vp8_frame - VP8 frame parameters\n\n @segment: segmentation parameters. See &v4l2_vp8_segment for more details\n @lf: loop filter parameters. See &v4l2_vp8_loop_filter for more details\n @quant: quantization parameters. See &v4l2_vp8_quantization for more details\n @entropy: update probabilities. See &v4l2_vp8_entropy for more details\n @coder_state: boolean coder state. See &v4l2_vp8_entropy_coder_state for more details\n @width: frame width.\n @height: frame height.\n @horizontal_scale: horizontal scaling factor.\n @vertical_scale: vertical scaling factor.\n @version: bitstream version.\n @prob_skip_false: frame header syntax element.\n @prob_intra: frame header syntax element.\n @prob_last: frame header syntax element.\n @prob_gf: frame header syntax element.\n @num_dct_parts: number of DCT coefficients partitions.\n @first_part_size: size of the first partition, i.e. the control partition.\n @first_part_header_bits: size in bits of the first partition header portion.\n @dct_part_sizes: DCT coefficients sizes.\n @last_frame_ts: \"last\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @golden_frame_ts: \"golden\" reference buffer timestamp.\n @alt_frame_ts: \"alt\" reference buffer timestamp.\n @flags: see V4L2_VP8_FRAME_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp8_frame {
     pub segment: v4l2_vp8_segment,
     pub lf: v4l2_vp8_loop_filter,
@@ -4207,7 +4351,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp8_frame() {
 }
 #[doc = " struct v4l2_ctrl_mpeg2_sequence - MPEG-2 sequence header\n\n All the members on this structure match the sequence header and sequence\n extension syntaxes as specified by the MPEG-2 specification.\n\n Fields horizontal_size, vertical_size and vbv_buffer_size are a\n combination of respective _value and extension syntax elements,\n as described in section 6.3.3 \"Sequence header\".\n\n @horizontal_size: combination of elements horizontal_size_value and\n horizontal_size_extension.\n @vertical_size: combination of elements vertical_size_value and\n vertical_size_extension.\n @vbv_buffer_size: combination of elements vbv_buffer_size_value and\n vbv_buffer_size_extension.\n @profile_and_level_indication: see MPEG-2 specification.\n @chroma_format: see MPEG-2 specification.\n @flags: see V4L2_MPEG2_SEQ_FLAG_{}."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_sequence {
     pub horizontal_size: __u16,
     pub vertical_size: __u16,
@@ -4296,7 +4440,7 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_sequence() {
 }
 #[doc = " struct v4l2_ctrl_mpeg2_picture - MPEG-2 picture header\n\n All the members on this structure match the picture header and picture\n coding extension syntaxes as specified by the MPEG-2 specification.\n\n @backward_ref_ts: timestamp of the V4L2 capture buffer to use as\n reference for backward prediction.\n @forward_ref_ts: timestamp of the V4L2 capture buffer to use as\n reference for forward prediction. These timestamp refers to the\n timestamp field in struct v4l2_buffer. Use v4l2_timeval_to_ns()\n to convert the struct timeval to a __u64.\n @flags: see V4L2_MPEG2_PIC_FLAG_{}.\n @f_code: see MPEG-2 specification.\n @picture_coding_type: see MPEG-2 specification.\n @picture_structure: see V4L2_MPEG2_PIC_{}_FIELD.\n @intra_dc_precision: see MPEG-2 specification.\n @reserved: padding field. Should be zeroed by applications."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_mpeg2_picture {
     pub backward_ref_ts: __u64,
     pub forward_ref_ts: __u64,
@@ -4472,6 +4616,15 @@ fn bindgen_test_layout_v4l2_ctrl_mpeg2_quantisation() {
         )
     );
 }
+impl Default for v4l2_ctrl_mpeg2_quantisation {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_stateless_hevc_decode_mode_V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED:
     v4l2_stateless_hevc_decode_mode = 0;
 pub const v4l2_stateless_hevc_decode_mode_V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED:
@@ -4484,7 +4637,7 @@ pub const v4l2_stateless_hevc_start_code_V4L2_STATELESS_HEVC_START_CODE_ANNEX_B:
 pub type v4l2_stateless_hevc_start_code = ::std::os::raw::c_uint;
 #[doc = " struct v4l2_ctrl_hevc_sps - ITU-T Rec. H.265: Sequence parameter set\n\n @video_parameter_set_id: specifies the value of the\n\t\t\tvps_video_parameter_set_id of the active VPS\n @seq_parameter_set_id: provides an identifier for the SPS for\n\t\t\t  reference by other syntax elements\n @pic_width_in_luma_samples:\tspecifies the width of each decoded picture\n\t\t\t\tin units of luma samples\n @pic_height_in_luma_samples: specifies the height of each decoded picture\n\t\t\t\tin units of luma samples\n @bit_depth_luma_minus8: this value plus 8specifies the bit depth of the\n                         samples of the luma array\n @bit_depth_chroma_minus8: this value plus 8 specifies the bit depth of the\n                           samples of the chroma arrays\n @log2_max_pic_order_cnt_lsb_minus4: this value plus 4 specifies the value of\n                                     the variable MaxPicOrderCntLsb\n @sps_max_dec_pic_buffering_minus1: this value plus 1 specifies the maximum\n                                    required size of the decoded picture\n                                    buffer for the codec video sequence\n @sps_max_num_reorder_pics: indicates the maximum allowed number of pictures\n @sps_max_latency_increase_plus1: not equal to 0 is used to compute the\n\t\t\t\t    value of SpsMaxLatencyPictures array\n @log2_min_luma_coding_block_size_minus3: plus 3 specifies the minimum\n\t\t\t\t\t    luma coding block size\n @log2_diff_max_min_luma_coding_block_size: specifies the difference between\n\t\t\t\t\t      the maximum and minimum luma\n\t\t\t\t\t      coding block size\n @log2_min_luma_transform_block_size_minus2: plus 2 specifies the minimum luma\n\t\t\t\t\t       transform block size\n @log2_diff_max_min_luma_transform_block_size: specifies the difference between\n\t\t\t\t\t\t the maximum and minimum luma\n\t\t\t\t\t\t transform block size\n @max_transform_hierarchy_depth_inter: specifies the maximum hierarchy\n\t\t\t\t\t depth for transform units of\n\t\t\t\t\t coding units coded in inter\n\t\t\t\t\t prediction mode\n @max_transform_hierarchy_depth_intra: specifies the maximum hierarchy\n\t\t\t\t\t depth for transform units of\n\t\t\t\t\t coding units coded in intra\n\t\t\t\t\t prediction mode\n @pcm_sample_bit_depth_luma_minus1: this value plus 1 specifies the number of\n                                    bits used to represent each of PCM sample\n                                    values of the luma component\n @pcm_sample_bit_depth_chroma_minus1: this value plus 1 specifies the number\n                                      of bits used to represent each of PCM\n                                      sample values of the chroma components\n @log2_min_pcm_luma_coding_block_size_minus3: this value plus 3 specifies the\n                                              minimum size of coding blocks\n @log2_diff_max_min_pcm_luma_coding_block_size: specifies the difference between\n\t\t\t\t\t\t  the maximum and minimum size of\n\t\t\t\t\t\t  coding blocks\n @num_short_term_ref_pic_sets: specifies the number of st_ref_pic_set()\n\t\t\t\t syntax structures included in the SPS\n @num_long_term_ref_pics_sps: specifies the number of candidate long-term\n\t\t\t\treference pictures that are specified in the SPS\n @chroma_format_idc: specifies the chroma sampling\n @sps_max_sub_layers_minus1: this value plus 1 specifies the maximum number\n                             of temporal sub-layers\n @reserved: padding field. Should be zeroed by applications.\n @flags: see V4L2_HEVC_SPS_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_sps {
     pub video_parameter_set_id: __u8,
     pub seq_parameter_set_id: __u8,
@@ -4822,7 +4975,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_sps() {
 }
 #[doc = " struct v4l2_ctrl_hevc_pps - ITU-T Rec. H.265: Picture parameter set\n\n @pic_parameter_set_id: identifies the PPS for reference by other\n\t\t\t  syntax elements\n @num_extra_slice_header_bits: specifies the number of extra slice header\n\t\t\t\t bits that are present in the slice header RBSP\n\t\t\t\t for coded pictures referring to the PPS.\n @num_ref_idx_l0_default_active_minus1: this value plus 1 specifies the\n                                        inferred value of num_ref_idx_l0_active_minus1\n @num_ref_idx_l1_default_active_minus1: this value plus 1 specifies the\n                                        inferred value of num_ref_idx_l1_active_minus1\n @init_qp_minus26: this value plus 26 specifies the initial value of SliceQp Y for\n\t\t     each slice referring to the PPS\n @diff_cu_qp_delta_depth: specifies the difference between the luma coding\n\t\t\t    tree block size and the minimum luma coding block\n\t\t\t    size of coding units that convey cu_qp_delta_abs\n\t\t\t    and cu_qp_delta_sign_flag\n @pps_cb_qp_offset: specify the offsets to the luma quantization parameter Cb\n @pps_cr_qp_offset: specify the offsets to the luma quantization parameter Cr\n @num_tile_columns_minus1: this value plus 1 specifies the number of tile columns\n\t\t\t     partitioning the picture\n @num_tile_rows_minus1: this value plus 1 specifies the number of tile rows partitioning\n\t\t\t  the picture\n @column_width_minus1: this value plus 1 specifies the width of the each tile column in\n\t\t\t units of coding tree blocks\n @row_height_minus1: this value plus 1 specifies the height of the each tile row in\n\t\t       units of coding tree blocks\n @pps_beta_offset_div2: specify the default deblocking parameter offsets for\n\t\t\t  beta divided by 2\n @pps_tc_offset_div2: specify the default deblocking parameter offsets for tC\n\t\t\tdivided by 2\n @log2_parallel_merge_level_minus2: this value plus 2 specifies the value of\n                                    the variable Log2ParMrgLevel\n @reserved: padding field. Should be zeroed by applications.\n @flags: see V4L2_HEVC_PPS_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_pps {
     pub pic_parameter_set_id: __u8,
     pub num_extra_slice_header_bits: __u8,
@@ -5037,7 +5190,7 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_pps() {
 }
 #[doc = " struct v4l2_hevc_dpb_entry - HEVC decoded picture buffer entry\n\n @timestamp: timestamp of the V4L2 capture buffer to use as reference.\n @flags: long term flag for the reference frame\n @field_pic: whether the reference is a field picture or a frame.\n @reserved: padding field. Should be zeroed by applications.\n @pic_order_cnt_val: the picture order count of the current picture."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_dpb_entry {
     pub timestamp: __u64,
     pub flags: __u8,
@@ -5112,7 +5265,7 @@ fn bindgen_test_layout_v4l2_hevc_dpb_entry() {
 }
 #[doc = " struct v4l2_hevc_pred_weight_table - HEVC weighted prediction parameters\n\n @delta_luma_weight_l0: the difference of the weighting factor applied\n\t\t\t  to the luma prediction value for list 0\n @luma_offset_l0: the additive offset applied to the luma prediction value\n\t\t    for list 0\n @delta_chroma_weight_l0: the difference of the weighting factor applied\n\t\t\t    to the chroma prediction values for list 0\n @chroma_offset_l0: the difference of the additive offset applied to\n\t\t      the chroma prediction values for list 0\n @delta_luma_weight_l1: the difference of the weighting factor applied\n\t\t\t  to the luma prediction value for list 1\n @luma_offset_l1: the additive offset applied to the luma prediction value\n\t\t    for list 1\n @delta_chroma_weight_l1: the difference of the weighting factor applied\n\t\t\t    to the chroma prediction values for list 1\n @chroma_offset_l1: the difference of the additive offset applied to\n\t\t      the chroma prediction values for list 1\n @luma_log2_weight_denom: the base 2 logarithm of the denominator for\n\t\t\t    all luma weighting factors\n @delta_chroma_log2_weight_denom: the difference of the base 2 logarithm\n\t\t\t\t    of the denominator for all chroma\n\t\t\t\t    weighting factors"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hevc_pred_weight_table {
     pub delta_luma_weight_l0: [__s8; 16usize],
     pub luma_offset_l0: [__s8; 16usize],
@@ -5245,7 +5398,7 @@ fn bindgen_test_layout_v4l2_hevc_pred_weight_table() {
 }
 #[doc = " struct v4l2_ctrl_hevc_slice_params - HEVC slice parameters\n\n This control is a dynamically sized 1-dimensional array,\n V4L2_CTRL_FLAG_DYNAMIC_ARRAY flag must be set when using it.\n\n @bit_size: size (in bits) of the current slice data\n @data_byte_offset: offset (in bytes) to the video data in the current slice data\n @num_entry_point_offsets: specifies the number of entry point offset syntax\n\t\t\t     elements in the slice header.\n @nal_unit_type: specifies the coding type of the slice (B, P or I)\n @nuh_temporal_id_plus1: minus 1 specifies a temporal identifier for the NAL unit\n @slice_type: see V4L2_HEVC_SLICE_TYPE_{}\n @colour_plane_id: specifies the colour plane associated with the current slice\n @slice_pic_order_cnt: specifies the picture order count\n @num_ref_idx_l0_active_minus1: this value plus 1 specifies the maximum\n                                reference index for reference picture list 0\n                                that may be used to decode the slice\n @num_ref_idx_l1_active_minus1: this value plus 1 specifies the maximum\n                                reference index for reference picture list 1\n                                that may be used to decode the slice\n @collocated_ref_idx: specifies the reference index of the collocated picture used\n\t\t\tfor temporal motion vector prediction\n @five_minus_max_num_merge_cand: specifies the maximum number of merging\n\t\t\t\t   motion vector prediction candidates supported in\n\t\t\t\t   the slice subtracted from 5\n @slice_qp_delta: specifies the initial value of QpY to be used for the coding\n\t\t    blocks in the slice\n @slice_cb_qp_offset: specifies a difference to be added to the value of pps_cb_qp_offset\n @slice_cr_qp_offset: specifies a difference to be added to the value of pps_cr_qp_offset\n @slice_act_y_qp_offset: screen content extension parameters\n @slice_act_cb_qp_offset: screen content extension parameters\n @slice_act_cr_qp_offset: screen content extension parameters\n @slice_beta_offset_div2: specify the deblocking parameter offsets for beta divided by 2\n @slice_tc_offset_div2: specify the deblocking parameter offsets for tC divided by 2\n @pic_struct: indicates whether a picture should be displayed as a frame or as one or\n\t\tmore fields\n @reserved0: padding field. Should be zeroed by applications.\n @slice_segment_addr: specifies the address of the first coding tree block in\n\t\t\tthe slice segment\n @ref_idx_l0: the list of L0 reference elements as indices in the DPB\n @ref_idx_l1: the list of L1 reference elements as indices in the DPB\n @short_term_ref_pic_set_size: specifies the size of short-term reference\n\t\t\t\t pictures set included in the SPS\n @long_term_ref_pic_set_size: specifies the size of long-term reference\n\t\t\t\tpictures set include in the SPS\n @pred_weight_table: the prediction weight coefficients for inter-picture\n\t\t       prediction\n @reserved1: padding field. Should be zeroed by applications.\n @flags: see V4L2_HEVC_SLICE_PARAMS_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_slice_params {
     pub bit_size: __u32,
     pub data_byte_offset: __u32,
@@ -5600,9 +5753,9 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_slice_params() {
         )
     );
 }
-#[doc = " struct v4l2_ctrl_hevc_decode_params - HEVC decode parameters\n\n @pic_order_cnt_val: picture order count\n @short_term_ref_pic_set_size: specifies the size of short-term reference\n\t\t\t\t pictures set included in the SPS of the first slice\n @long_term_ref_pic_set_size: specifies the size of long-term reference\n\t\t\t\tpictures set include in the SPS of the first slice\n @num_active_dpb_entries: the number of entries in dpb\n @num_poc_st_curr_before: the number of reference pictures in the short-term\n\t\t\t    set that come before the current frame\n @num_poc_st_curr_after: the number of reference pictures in the short-term\n\t\t\t   set that come after the current frame\n @num_poc_lt_curr: the number of reference pictures in the long-term set\n @poc_st_curr_before: provides the index of the short term before references\n\t\t\tin DPB array\n @poc_st_curr_after: provides the index of the short term after references\n\t\t       in DPB array\n @poc_lt_curr: provides the index of the long term references in DPB array\n @reserved: padding field. Should be zeroed by applications.\n @dpb: the decoded picture buffer, for meta-data about reference frames\n @flags: see V4L2_HEVC_DECODE_PARAM_FLAG_{}"]
+#[doc = " struct v4l2_ctrl_hevc_decode_params - HEVC decode parameters\n\n @pic_order_cnt_val: picture order count\n @short_term_ref_pic_set_size: specifies the size of short-term reference\n\t\t\t\t pictures set included in the SPS of the first slice\n @long_term_ref_pic_set_size: specifies the size of long-term reference\n\t\t\t\tpictures set include in the SPS of the first slice\n @num_active_dpb_entries: the number of entries in dpb\n @num_poc_st_curr_before: the number of reference pictures in the short-term\n\t\t\t    set that come before the current frame\n @num_poc_st_curr_after: the number of reference pictures in the short-term\n\t\t\t   set that come after the current frame\n @num_poc_lt_curr: the number of reference pictures in the long-term set\n @poc_st_curr_before: provides the index of the short term before references\n\t\t\tin DPB array\n @poc_st_curr_after: provides the index of the short term after references\n\t\t       in DPB array\n @poc_lt_curr: provides the index of the long term references in DPB array\n @num_delta_pocs_of_ref_rps_idx: same as the derived value NumDeltaPocs[RefRpsIdx],\n\t\t\t\t   can be used to parse the RPS data in slice headers\n\t\t\t\t   instead of skipping it with @short_term_ref_pic_set_size.\n @reserved: padding field. Should be zeroed by applications.\n @dpb: the decoded picture buffer, for meta-data about reference frames\n @flags: see V4L2_HEVC_DECODE_PARAM_FLAG_{}"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hevc_decode_params {
     pub pic_order_cnt_val: __s32,
     pub short_term_ref_pic_set_size: __u16,
@@ -5614,7 +5767,8 @@ pub struct v4l2_ctrl_hevc_decode_params {
     pub poc_st_curr_before: [__u8; 16usize],
     pub poc_st_curr_after: [__u8; 16usize],
     pub poc_lt_curr: [__u8; 16usize],
-    pub reserved: [__u8; 4usize],
+    pub num_delta_pocs_of_ref_rps_idx: __u8,
+    pub reserved: [__u8; 3usize],
     pub dpb: [v4l2_hevc_dpb_entry; 16usize],
     pub flags: __u64,
 }
@@ -5734,8 +5888,20 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_decode_params() {
         )
     );
     assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        unsafe {
+            ::std::ptr::addr_of!((*ptr).num_delta_pocs_of_ref_rps_idx) as usize - ptr as usize
+        },
         60usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_hevc_decode_params),
+            "::",
+            stringify!(num_delta_pocs_of_ref_rps_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        61usize,
         concat!(
             "Offset of field: ",
             stringify!(v4l2_ctrl_hevc_decode_params),
@@ -5851,8 +6017,17 @@ fn bindgen_test_layout_v4l2_ctrl_hevc_scaling_matrix() {
         )
     );
 }
+impl Default for v4l2_ctrl_hevc_scaling_matrix {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_cll_info {
     pub max_content_light_level: __u16,
     pub max_pic_average_light_level: __u16,
@@ -5894,7 +6069,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_cll_info() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_hdr10_mastering_display {
     pub display_primaries_x: [__u16; 3usize],
     pub display_primaries_y: [__u16; 3usize],
@@ -5988,7 +6163,7 @@ fn bindgen_test_layout_v4l2_ctrl_hdr10_mastering_display() {
 }
 #[doc = " struct v4l2_vp9_loop_filter - VP9 loop filter parameters\n\n @ref_deltas: contains the adjustment needed for the filter level based on the\n chosen reference frame. If this syntax element is not present in the bitstream,\n users should pass its last value.\n @mode_deltas: contains the adjustment needed for the filter level based on the\n chosen mode.\tIf this syntax element is not present in the bitstream, users should\n pass its last value.\n @level: indicates the loop filter strength.\n @sharpness: indicates the sharpness level.\n @flags: combination of V4L2_VP9_LOOP_FILTER_FLAG_{} flags.\n @reserved: padding field. Should be zeroed by applications.\n\n This structure contains all loop filter related parameters. See sections\n '7.2.8 Loop filter semantics' of the VP9 specification for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_loop_filter {
     pub ref_deltas: [__s8; 4usize],
     pub mode_deltas: [__s8; 2usize],
@@ -6074,7 +6249,7 @@ fn bindgen_test_layout_v4l2_vp9_loop_filter() {
 }
 #[doc = " struct v4l2_vp9_quantization - VP9 quantization parameters\n\n @base_q_idx: indicates the base frame qindex.\n @delta_q_y_dc: indicates the Y DC quantizer relative to base_q_idx.\n @delta_q_uv_dc: indicates the UV DC quantizer relative to base_q_idx.\n @delta_q_uv_ac: indicates the UV AC quantizer relative to base_q_idx.\n @reserved: padding field. Should be zeroed by applications.\n\n Encodes the quantization parameters. See section '7.2.9 Quantization params\n syntax' of the VP9 specification for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_quantization {
     pub base_q_idx: __u8,
     pub delta_q_y_dc: __s8,
@@ -6150,7 +6325,7 @@ fn bindgen_test_layout_v4l2_vp9_quantization() {
 }
 #[doc = " struct v4l2_vp9_segmentation - VP9 segmentation parameters\n\n @feature_data: data attached to each feature. Data entry is only valid if\n the feature is enabled. The array shall be indexed with segment number as\n the first dimension (0..7) and one of V4L2_VP9_SEG_{} as the second dimension.\n @feature_enabled: bitmask defining which features are enabled in each segment.\n The value for each segment is a combination of V4L2_VP9_SEGMENT_FEATURE_ENABLED(id)\n values where id is one of V4L2_VP9_SEG_LVL_{}.\n @tree_probs: specifies the probability values to be used when decoding a\n Segment-ID. See '5.15. Segmentation map' section of the VP9 specification\n for more details.\n @pred_probs: specifies the probability values to be used when decoding a\n Predicted-Segment-ID. See '6.4.14. Get segment id syntax' section of :ref:`vp9`\n for more details.\n @flags: combination of V4L2_VP9_SEGMENTATION_FLAG_{} flags.\n @reserved: padding field. Should be zeroed by applications.\n\n Encodes the quantization parameters. See section '7.2.10 Segmentation params syntax' of\n the VP9 specification for more details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_segmentation {
     pub feature_data: [[__s16; 4usize]; 8usize],
     pub feature_enabled: [__u8; 8usize],
@@ -6237,7 +6412,7 @@ fn bindgen_test_layout_v4l2_vp9_segmentation() {
 }
 #[doc = " struct v4l2_ctrl_vp9_frame - VP9 frame decoding control\n\n @lf: loop filter parameters. See &v4l2_vp9_loop_filter for more details.\n @quant: quantization parameters. See &v4l2_vp9_quantization for more details.\n @seg: segmentation parameters. See &v4l2_vp9_segmentation for more details.\n @flags: combination of V4L2_VP9_FRAME_FLAG_{} flags.\n @compressed_header_size: compressed header size in bytes.\n @uncompressed_header_size: uncompressed header size in bytes.\n @frame_width_minus_1: add 1 to it and you'll get the frame width expressed in pixels.\n @frame_height_minus_1: add 1 to it and you'll get the frame height expressed in pixels.\n @render_width_minus_1: add 1 to it and you'll get the expected render width expressed in\n pixels. This is not used during the decoding process but might be used by HW scalers\n to prepare a frame that's ready for scanout.\n @render_height_minus_1: add 1 to it and you'll get the expected render height expressed in\n pixels. This is not used during the decoding process but might be used by HW scalers\n to prepare a frame that's ready for scanout.\n @last_frame_ts: \"last\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @golden_frame_ts: \"golden\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @alt_frame_ts: \"alt\" reference buffer timestamp.\n The timestamp refers to the timestamp field in struct v4l2_buffer.\n Use v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @ref_frame_sign_bias: a bitfield specifying whether the sign bias is set for a given\n reference frame. Either of V4L2_VP9_SIGN_BIAS_{}.\n @reset_frame_context: specifies whether the frame context should be reset to default values.\n Either of V4L2_VP9_RESET_FRAME_CTX_{}.\n @frame_context_idx: frame context that should be used/updated.\n @profile: VP9 profile. Can be 0, 1, 2 or 3.\n @bit_depth: bits per components. Can be 8, 10 or 12. Note that not all profiles support\n 10 and/or 12 bits depths.\n @interpolation_filter: specifies the filter selection used for performing inter prediction.\n Set to one of V4L2_VP9_INTERP_FILTER_{}.\n @tile_cols_log2: specifies the base 2 logarithm of the width of each tile (where the width\n is measured in units of 8x8 blocks). Shall be less than or equal to 6.\n @tile_rows_log2: specifies the base 2 logarithm of the height of each tile (where the height\n is measured in units of 8x8 blocks).\n @reference_mode: specifies the type of inter prediction to be used.\n Set to one of V4L2_VP9_REFERENCE_MODE_{}.\n @reserved: padding field. Should be zeroed by applications."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_frame {
     pub lf: v4l2_vp9_loop_filter,
     pub quant: v4l2_vp9_quantization,
@@ -6510,7 +6685,7 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_frame() {
 }
 #[doc = " struct v4l2_vp9_mv_probs - VP9 Motion vector probability updates\n @joint: motion vector joint probability updates.\n @sign: motion vector sign probability updates.\n @classes: motion vector class probability updates.\n @class0_bit: motion vector class0 bit probability updates.\n @bits: motion vector bits probability updates.\n @class0_fr: motion vector class0 fractional bit probability updates.\n @fr: motion vector fractional bit probability updates.\n @class0_hp: motion vector class0 high precision fractional bit probability updates.\n @hp: motion vector high precision fractional bit probability updates.\n\n This structure contains new values of motion vector probabilities.\n A value of zero in an array element means there is no update of the relevant probability.\n See `struct v4l2_vp9_prob_updates` for details."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vp9_mv_probs {
     pub joint: [__u8; 3usize],
     pub sign: [__u8; 2usize],
@@ -6629,7 +6804,7 @@ fn bindgen_test_layout_v4l2_vp9_mv_probs() {
 }
 #[doc = " struct v4l2_ctrl_vp9_compressed_hdr - VP9 probability updates control\n @tx_mode: specifies the TX mode. Set to one of V4L2_VP9_TX_MODE_{}.\n @tx8: TX 8x8 probability updates.\n @tx16: TX 16x16 probability updates.\n @tx32: TX 32x32 probability updates.\n @coef: coefficient probability updates.\n @skip: skip probability updates.\n @inter_mode: inter mode probability updates.\n @interp_filter: interpolation filter probability updates.\n @is_inter: is inter-block probability updates.\n @comp_mode: compound prediction mode probability updates.\n @single_ref: single ref probability updates.\n @comp_ref: compound ref probability updates.\n @y_mode: Y prediction mode probability updates.\n @uv_mode: UV prediction mode probability updates.\n @partition: partition probability updates.\n @mv: motion vector probability updates.\n\n This structure holds the probabilities update as parsed in the compressed\n header (Spec 6.3). These values represent the value of probability update after\n being translated with inv_map_table[] (see 6.3.5). A value of zero in an array element\n means that there is no update of the relevant probability.\n\n This control is optional and needs to be used when dealing with the hardware which is\n not capable of parsing the compressed header itself. Only drivers which need it will\n implement it."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_ctrl_vp9_compressed_hdr {
     pub tx_mode: __u8,
     pub tx8: [[__u8; 1usize]; 2usize],
@@ -6824,6 +6999,1558 @@ fn bindgen_test_layout_v4l2_ctrl_vp9_compressed_hdr() {
         )
     );
 }
+#[doc = " struct v4l2_ctrl_av1_sequence - AV1 Sequence\n\n Represents an AV1 Sequence OBU. See section 5.5 \"Sequence header OBU syntax\"\n for more details.\n\n @flags: See V4L2_AV1_SEQUENCE_FLAG_{}.\n @seq_profile: specifies the features that can be used in the coded video\n sequence.\n @order_hint_bits: specifies the number of bits used for the order_hint field\n at each frame.\n @bit_depth: the bitdepth to use for the sequence as described in section\n 5.5.2 \"Color config syntax\".\n @reserved: padding field. Should be zeroed by applications.\n @max_frame_width_minus_1: specifies the maximum frame width minus 1 for the\n frames represented by this sequence header.\n @max_frame_height_minus_1: specifies the maximum frame height minus 1 for the\n frames represented by this sequence header."]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_ctrl_av1_sequence {
+    pub flags: __u32,
+    pub seq_profile: __u8,
+    pub order_hint_bits: __u8,
+    pub bit_depth: __u8,
+    pub reserved: __u8,
+    pub max_frame_width_minus_1: __u16,
+    pub max_frame_height_minus_1: __u16,
+}
+#[test]
+fn bindgen_test_layout_v4l2_ctrl_av1_sequence() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_ctrl_av1_sequence> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_ctrl_av1_sequence>(),
+        12usize,
+        concat!("Size of: ", stringify!(v4l2_ctrl_av1_sequence))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_ctrl_av1_sequence>(),
+        4usize,
+        concat!("Alignment of ", stringify!(v4l2_ctrl_av1_sequence))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).seq_profile) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(seq_profile)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).order_hint_bits) as usize - ptr as usize },
+        5usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(order_hint_bits)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).bit_depth) as usize - ptr as usize },
+        6usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(bit_depth)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        7usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(reserved)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).max_frame_width_minus_1) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(max_frame_width_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).max_frame_height_minus_1) as usize - ptr as usize },
+        10usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_sequence),
+            "::",
+            stringify!(max_frame_height_minus_1)
+        )
+    );
+}
+#[doc = " struct v4l2_ctrl_av1_tile_group_entry - AV1 Tile Group entry\n\n Represents a single AV1 tile inside an AV1 Tile Group. Note that MiRowStart,\n MiRowEnd, MiColStart and MiColEnd can be retrieved from struct\n v4l2_av1_tile_info in struct v4l2_ctrl_av1_frame using tile_row and\n tile_col. See section 6.10.1 \"General tile group OBU semantics\" for more\n details.\n\n @tile_offset: offset from the OBU data, i.e. where the coded tile data\n actually starts.\n @tile_size: specifies the size in bytes of the coded tile. Equivalent to\n \"TileSize\" in the AV1 Specification.\n @tile_row: specifies the row of the current tile. Equivalent to \"TileRow\" in\n the AV1 Specification.\n @tile_col: specifies the col of the current tile. Equivalent to \"TileCol\" in\n the AV1 Specification."]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_ctrl_av1_tile_group_entry {
+    pub tile_offset: __u32,
+    pub tile_size: __u32,
+    pub tile_row: __u32,
+    pub tile_col: __u32,
+}
+#[test]
+fn bindgen_test_layout_v4l2_ctrl_av1_tile_group_entry() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_ctrl_av1_tile_group_entry> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_ctrl_av1_tile_group_entry>(),
+        16usize,
+        concat!("Size of: ", stringify!(v4l2_ctrl_av1_tile_group_entry))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_ctrl_av1_tile_group_entry>(),
+        4usize,
+        concat!("Alignment of ", stringify!(v4l2_ctrl_av1_tile_group_entry))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_offset) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_tile_group_entry),
+            "::",
+            stringify!(tile_offset)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_size) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_tile_group_entry),
+            "::",
+            stringify!(tile_size)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_row) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_tile_group_entry),
+            "::",
+            stringify!(tile_row)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_col) as usize - ptr as usize },
+        12usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_tile_group_entry),
+            "::",
+            stringify!(tile_col)
+        )
+    );
+}
+pub const v4l2_av1_warp_model_V4L2_AV1_WARP_MODEL_IDENTITY: v4l2_av1_warp_model = 0;
+pub const v4l2_av1_warp_model_V4L2_AV1_WARP_MODEL_TRANSLATION: v4l2_av1_warp_model = 1;
+pub const v4l2_av1_warp_model_V4L2_AV1_WARP_MODEL_ROTZOOM: v4l2_av1_warp_model = 2;
+pub const v4l2_av1_warp_model_V4L2_AV1_WARP_MODEL_AFFINE: v4l2_av1_warp_model = 3;
+#[doc = " enum v4l2_av1_warp_model - AV1 Warp Model as described in section 3\n \"Symbols and abbreviated terms\" of the AV1 Specification.\n\n @V4L2_AV1_WARP_MODEL_IDENTITY: Warp model is just an identity transform.\n @V4L2_AV1_WARP_MODEL_TRANSLATION: Warp model is a pure translation.\n @V4L2_AV1_WARP_MODEL_ROTZOOM: Warp model is a rotation + symmetric zoom +\n translation.\n @V4L2_AV1_WARP_MODEL_AFFINE: Warp model is a general affine transform."]
+pub type v4l2_av1_warp_model = ::std::os::raw::c_uint;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_INTRA_FRAME: v4l2_av1_reference_frame = 0;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_LAST_FRAME: v4l2_av1_reference_frame = 1;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_LAST2_FRAME: v4l2_av1_reference_frame = 2;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_LAST3_FRAME: v4l2_av1_reference_frame = 3;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_GOLDEN_FRAME: v4l2_av1_reference_frame = 4;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_BWDREF_FRAME: v4l2_av1_reference_frame = 5;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_ALTREF2_FRAME: v4l2_av1_reference_frame = 6;
+pub const v4l2_av1_reference_frame_V4L2_AV1_REF_ALTREF_FRAME: v4l2_av1_reference_frame = 7;
+#[doc = " enum v4l2_av1_reference_frame - AV1 reference frames\n\n @V4L2_AV1_REF_INTRA_FRAME: Intra Frame Reference\n @V4L2_AV1_REF_LAST_FRAME: Last Reference Frame\n @V4L2_AV1_REF_LAST2_FRAME: Last2 Reference Frame\n @V4L2_AV1_REF_LAST3_FRAME: Last3 Reference Frame\n @V4L2_AV1_REF_GOLDEN_FRAME: Golden Reference Frame\n @V4L2_AV1_REF_BWDREF_FRAME: BWD Reference Frame\n @V4L2_AV1_REF_ALTREF2_FRAME: Alternative2 Reference Frame\n @V4L2_AV1_REF_ALTREF_FRAME: Alternative Reference Frame"]
+pub type v4l2_av1_reference_frame = ::std::os::raw::c_uint;
+#[doc = " struct v4l2_av1_global_motion - AV1 Global Motion parameters as described in\n section 6.8.17 \"Global motion params semantics\" of the AV1 specification.\n\n @flags: A bitfield containing the flags per reference frame. See\n V4L2_AV1_GLOBAL_MOTION_FLAG_{}\n @type: The type of global motion transform used.\n @params: this field has the same meaning as \"gm_params\" in the AV1\n specification.\n @invalid: bitfield indicating whether the global motion params are invalid\n for a given reference frame. See section 7.11.3.6 Setup shear process and\n the variable \"warpValid\". Use V4L2_AV1_GLOBAL_MOTION_IS_INVALID(ref) to\n create a suitable mask.\n @reserved: padding field. Should be zeroed by applications."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_global_motion {
+    pub flags: [__u8; 8usize],
+    pub type_: [v4l2_av1_warp_model; 8usize],
+    pub params: [[__s32; 6usize]; 8usize],
+    pub invalid: __u8,
+    pub reserved: [__u8; 3usize],
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_global_motion() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_global_motion> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_global_motion>(),
+        236usize,
+        concat!("Size of: ", stringify!(v4l2_av1_global_motion))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_global_motion>(),
+        4usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_global_motion))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_global_motion),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).type_) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_global_motion),
+            "::",
+            stringify!(type_)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).params) as usize - ptr as usize },
+        40usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_global_motion),
+            "::",
+            stringify!(params)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).invalid) as usize - ptr as usize },
+        232usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_global_motion),
+            "::",
+            stringify!(invalid)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        233usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_global_motion),
+            "::",
+            stringify!(reserved)
+        )
+    );
+}
+impl Default for v4l2_av1_global_motion {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_NONE:
+    v4l2_av1_frame_restoration_type = 0;
+pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_WIENER:
+    v4l2_av1_frame_restoration_type = 1;
+pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_SGRPROJ:
+    v4l2_av1_frame_restoration_type = 2;
+pub const v4l2_av1_frame_restoration_type_V4L2_AV1_FRAME_RESTORE_SWITCHABLE:
+    v4l2_av1_frame_restoration_type = 3;
+#[doc = " enum v4l2_av1_frame_restoration_type - AV1 Frame Restoration Type\n @V4L2_AV1_FRAME_RESTORE_NONE: no filtering is applied.\n @V4L2_AV1_FRAME_RESTORE_WIENER: Wiener filter process is invoked.\n @V4L2_AV1_FRAME_RESTORE_SGRPROJ: self guided filter process is invoked.\n @V4L2_AV1_FRAME_RESTORE_SWITCHABLE: restoration filter is swichtable."]
+pub type v4l2_av1_frame_restoration_type = ::std::os::raw::c_uint;
+#[doc = " struct v4l2_av1_loop_restoration - AV1 Loop Restauration as described in\n section 6.10.15 \"Loop restoration params semantics\" of the AV1 specification.\n\n @flags: See V4L2_AV1_LOOP_RESTORATION_FLAG_{}.\n @lr_unit_shift: specifies if the luma restoration size should be halved.\n @lr_uv_shift: specifies if the chroma size should be half the luma size.\n @reserved: padding field. Should be zeroed by applications.\n @frame_restoration_type: specifies the type of restoration used for each\n plane. See enum v4l2_av1_frame_restoration_type.\n @loop_restoration_size: specifies the size of loop restoration units in units\n of samples in the current plane."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_loop_restoration {
+    pub flags: __u8,
+    pub lr_unit_shift: __u8,
+    pub lr_uv_shift: __u8,
+    pub reserved: __u8,
+    pub frame_restoration_type: [v4l2_av1_frame_restoration_type; 3usize],
+    pub loop_restoration_size: [__u32; 3usize],
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_loop_restoration() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_loop_restoration> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_loop_restoration>(),
+        28usize,
+        concat!("Size of: ", stringify!(v4l2_av1_loop_restoration))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_loop_restoration>(),
+        4usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_loop_restoration))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_restoration),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).lr_unit_shift) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_restoration),
+            "::",
+            stringify!(lr_unit_shift)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).lr_uv_shift) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_restoration),
+            "::",
+            stringify!(lr_uv_shift)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        3usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_restoration),
+            "::",
+            stringify!(reserved)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).frame_restoration_type) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_restoration),
+            "::",
+            stringify!(frame_restoration_type)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).loop_restoration_size) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_restoration),
+            "::",
+            stringify!(loop_restoration_size)
+        )
+    );
+}
+impl Default for v4l2_av1_loop_restoration {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " struct v4l2_av1_cdef - AV1 CDEF params semantics as described in section\n 6.10.14 \"CDEF params semantics\" of the AV1 specification\n\n @damping_minus_3: controls the amount of damping in the deringing filter.\n @bits: specifies the number of bits needed to specify which CDEF filter to\n apply.\n @y_pri_strength: specifies the strength of the primary filter.\n @y_sec_strength: specifies the strength of the secondary filter.\n @uv_pri_strength: specifies the strength of the primary filter.\n @uv_sec_strength: specifies the strength of the secondary filter."]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_cdef {
+    pub damping_minus_3: __u8,
+    pub bits: __u8,
+    pub y_pri_strength: [__u8; 8usize],
+    pub y_sec_strength: [__u8; 8usize],
+    pub uv_pri_strength: [__u8; 8usize],
+    pub uv_sec_strength: [__u8; 8usize],
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_cdef() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_cdef> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_cdef>(),
+        34usize,
+        concat!("Size of: ", stringify!(v4l2_av1_cdef))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_cdef>(),
+        1usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_cdef))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).damping_minus_3) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_cdef),
+            "::",
+            stringify!(damping_minus_3)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).bits) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_cdef),
+            "::",
+            stringify!(bits)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).y_pri_strength) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_cdef),
+            "::",
+            stringify!(y_pri_strength)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).y_sec_strength) as usize - ptr as usize },
+        10usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_cdef),
+            "::",
+            stringify!(y_sec_strength)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).uv_pri_strength) as usize - ptr as usize },
+        18usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_cdef),
+            "::",
+            stringify!(uv_pri_strength)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).uv_sec_strength) as usize - ptr as usize },
+        26usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_cdef),
+            "::",
+            stringify!(uv_sec_strength)
+        )
+    );
+}
+pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_ALT_Q: v4l2_av1_segment_feature = 0;
+pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_ALT_LF_Y_V: v4l2_av1_segment_feature = 1;
+pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_REF_FRAME: v4l2_av1_segment_feature = 5;
+pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_REF_SKIP: v4l2_av1_segment_feature = 6;
+pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_REF_GLOBALMV: v4l2_av1_segment_feature = 7;
+pub const v4l2_av1_segment_feature_V4L2_AV1_SEG_LVL_MAX: v4l2_av1_segment_feature = 8;
+#[doc = " enum v4l2_av1_segment_feature - AV1 segment features as described in section\n 3 \"Symbols and abbreviated terms\" of the AV1 specification.\n\n @V4L2_AV1_SEG_LVL_ALT_Q: Index for quantizer segment feature.\n @V4L2_AV1_SEG_LVL_ALT_LF_Y_V: Index for vertical luma loop filter segment\n feature.\n @V4L2_AV1_SEG_LVL_REF_FRAME: Index for reference frame segment feature.\n @V4L2_AV1_SEG_LVL_REF_SKIP: Index for skip segment feature.\n @V4L2_AV1_SEG_LVL_REF_GLOBALMV: Index for global mv feature.\n @V4L2_AV1_SEG_LVL_MAX: Number of segment features."]
+pub type v4l2_av1_segment_feature = ::std::os::raw::c_uint;
+#[doc = " struct v4l2_av1_segmentation - AV1 Segmentation params as defined in section\n 6.8.13 \"Segmentation params semantics\" of the AV1 specification.\n\n @flags: see V4L2_AV1_SEGMENTATION_FLAG_{}.\n @last_active_seg_id: indicates the highest numbered segment id that has some\n enabled feature. This is used when decoding the segment id to only decode\n choices corresponding to used segments.\n @feature_enabled: bitmask defining which features are enabled in each\n segment. Use V4L2_AV1_SEGMENT_FEATURE_ENABLED to build a suitable mask.\n @feature_data: data attached to each feature. Data entry is only valid if the\n feature is enabled"]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_segmentation {
+    pub flags: __u8,
+    pub last_active_seg_id: __u8,
+    pub feature_enabled: [__u8; 8usize],
+    pub feature_data: [[__s16; 8usize]; 8usize],
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_segmentation() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_segmentation> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_segmentation>(),
+        138usize,
+        concat!("Size of: ", stringify!(v4l2_av1_segmentation))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_segmentation>(),
+        2usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_segmentation))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_segmentation),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).last_active_seg_id) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_segmentation),
+            "::",
+            stringify!(last_active_seg_id)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).feature_enabled) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_segmentation),
+            "::",
+            stringify!(feature_enabled)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).feature_data) as usize - ptr as usize },
+        10usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_segmentation),
+            "::",
+            stringify!(feature_data)
+        )
+    );
+}
+#[doc = " struct v4l2_av1_loop_filter - AV1 Loop filter params as defined in section\n 6.8.10 \"Loop filter semantics\" and 6.8.16 \"Loop filter delta parameters\n semantics\" of the AV1 specification.\n\n @flags: see V4L2_AV1_LOOP_FILTER_FLAG_{}\n @level: an array containing loop filter strength values. Different loop\n filter strength values from the array are used depending on the image plane\n being filtered, and the edge direction (vertical or horizontal) being\n filtered.\n @sharpness: indicates the sharpness level. The loop_filter_level and\n loop_filter_sharpness together determine when a block edge is filtered, and\n by how much the filtering can change the sample values. The loop filter\n process is described in section 7.14 of the AV1 specification.\n @ref_deltas: contains the adjustment needed for the filter level based on the\n chosen reference frame. If this syntax element is not present, it maintains\n its previous value.\n @mode_deltas: contains the adjustment needed for the filter level based on\n the chosen mode. If this syntax element is not present, it maintains its\n previous value.\n @delta_lf_res: specifies the left shift which should be applied to decoded\n loop filter delta values."]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_loop_filter {
+    pub flags: __u8,
+    pub level: [__u8; 4usize],
+    pub sharpness: __u8,
+    pub ref_deltas: [__s8; 8usize],
+    pub mode_deltas: [__s8; 2usize],
+    pub delta_lf_res: __u8,
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_loop_filter() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_loop_filter> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_loop_filter>(),
+        17usize,
+        concat!("Size of: ", stringify!(v4l2_av1_loop_filter))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_loop_filter>(),
+        1usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_loop_filter))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_filter),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).level) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_filter),
+            "::",
+            stringify!(level)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).sharpness) as usize - ptr as usize },
+        5usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_filter),
+            "::",
+            stringify!(sharpness)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ref_deltas) as usize - ptr as usize },
+        6usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_filter),
+            "::",
+            stringify!(ref_deltas)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).mode_deltas) as usize - ptr as usize },
+        14usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_filter),
+            "::",
+            stringify!(mode_deltas)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_lf_res) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_loop_filter),
+            "::",
+            stringify!(delta_lf_res)
+        )
+    );
+}
+#[doc = " struct v4l2_av1_quantization - AV1 Quantization params as defined in section\n 6.8.11 \"Quantization params semantics\" of the AV1 specification.\n\n @flags: see V4L2_AV1_QUANTIZATION_FLAG_{}\n @base_q_idx: indicates the base frame qindex. This is used for Y AC\n coefficients and as the base value for the other quantizers.\n @delta_q_y_dc: indicates the Y DC quantizer relative to base_q_idx.\n @delta_q_u_dc: indicates the U DC quantizer relative to base_q_idx.\n @delta_q_u_ac: indicates the U AC quantizer relative to base_q_idx.\n @delta_q_v_dc: indicates the V DC quantizer relative to base_q_idx.\n @delta_q_v_ac: indicates the V AC quantizer relative to base_q_idx.\n @qm_y: specifies the level in the quantizer matrix that should be used for\n luma plane decoding.\n @qm_u: specifies the level in the quantizer matrix that should be used for\n chroma U plane decoding.\n @qm_v: specifies the level in the quantizer matrix that should be used for\n chroma V plane decoding.\n @delta_q_res: specifies the left shift which should be applied to decoded\n quantizer index delta values."]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_quantization {
+    pub flags: __u8,
+    pub base_q_idx: __u8,
+    pub delta_q_y_dc: __s8,
+    pub delta_q_u_dc: __s8,
+    pub delta_q_u_ac: __s8,
+    pub delta_q_v_dc: __s8,
+    pub delta_q_v_ac: __s8,
+    pub qm_y: __u8,
+    pub qm_u: __u8,
+    pub qm_v: __u8,
+    pub delta_q_res: __u8,
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_quantization() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_quantization> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_quantization>(),
+        11usize,
+        concat!("Size of: ", stringify!(v4l2_av1_quantization))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_quantization>(),
+        1usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_quantization))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).base_q_idx) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(base_q_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_q_y_dc) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(delta_q_y_dc)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_q_u_dc) as usize - ptr as usize },
+        3usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(delta_q_u_dc)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_q_u_ac) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(delta_q_u_ac)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_q_v_dc) as usize - ptr as usize },
+        5usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(delta_q_v_dc)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_q_v_ac) as usize - ptr as usize },
+        6usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(delta_q_v_ac)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).qm_y) as usize - ptr as usize },
+        7usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(qm_y)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).qm_u) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(qm_u)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).qm_v) as usize - ptr as usize },
+        9usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(qm_v)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).delta_q_res) as usize - ptr as usize },
+        10usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_quantization),
+            "::",
+            stringify!(delta_q_res)
+        )
+    );
+}
+#[doc = " struct v4l2_av1_tile_info - AV1 Tile info as defined in section 6.8.14 \"Tile\n info semantics\" of the AV1 specification.\n\n @flags: see V4L2_AV1_TILE_INFO_FLAG_{}\n @context_update_tile_id: specifies which tile to use for the CDF update.\n @tile_rows: specifies the number of tiles down the frame.\n @tile_cols: specifies the number of tiles across the frame.\n @mi_col_starts: an array specifying the start column (in units of 4x4 luma\n samples) for each tile across the image.\n @mi_row_starts: an array specifying the start row (in units of 4x4 luma\n samples) for each tile down the image.\n @width_in_sbs_minus_1: specifies the width of a tile minus 1 in units of\n superblocks.\n @height_in_sbs_minus_1:  specifies the height of a tile minus 1 in units of\n superblocks.\n @tile_size_bytes: specifies the number of bytes needed to code each tile\n size.\n @reserved: padding field. Should be zeroed by applications."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_av1_tile_info {
+    pub flags: __u8,
+    pub context_update_tile_id: __u8,
+    pub tile_cols: __u8,
+    pub tile_rows: __u8,
+    pub mi_col_starts: [__u32; 65usize],
+    pub mi_row_starts: [__u32; 65usize],
+    pub width_in_sbs_minus_1: [__u32; 64usize],
+    pub height_in_sbs_minus_1: [__u32; 64usize],
+    pub tile_size_bytes: __u8,
+    pub reserved: [__u8; 3usize],
+}
+#[test]
+fn bindgen_test_layout_v4l2_av1_tile_info() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_av1_tile_info> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_av1_tile_info>(),
+        1040usize,
+        concat!("Size of: ", stringify!(v4l2_av1_tile_info))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_av1_tile_info>(),
+        4usize,
+        concat!("Alignment of ", stringify!(v4l2_av1_tile_info))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).context_update_tile_id) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(context_update_tile_id)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_cols) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(tile_cols)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_rows) as usize - ptr as usize },
+        3usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(tile_rows)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).mi_col_starts) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(mi_col_starts)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).mi_row_starts) as usize - ptr as usize },
+        264usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(mi_row_starts)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).width_in_sbs_minus_1) as usize - ptr as usize },
+        524usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(width_in_sbs_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).height_in_sbs_minus_1) as usize - ptr as usize },
+        780usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(height_in_sbs_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_size_bytes) as usize - ptr as usize },
+        1036usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(tile_size_bytes)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        1037usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_av1_tile_info),
+            "::",
+            stringify!(reserved)
+        )
+    );
+}
+impl Default for v4l2_av1_tile_info {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub const v4l2_av1_frame_type_V4L2_AV1_KEY_FRAME: v4l2_av1_frame_type = 0;
+pub const v4l2_av1_frame_type_V4L2_AV1_INTER_FRAME: v4l2_av1_frame_type = 1;
+pub const v4l2_av1_frame_type_V4L2_AV1_INTRA_ONLY_FRAME: v4l2_av1_frame_type = 2;
+pub const v4l2_av1_frame_type_V4L2_AV1_SWITCH_FRAME: v4l2_av1_frame_type = 3;
+#[doc = " enum v4l2_av1_frame_type - AV1 Frame Type\n\n @V4L2_AV1_KEY_FRAME: Key frame\n @V4L2_AV1_INTER_FRAME: Inter frame\n @V4L2_AV1_INTRA_ONLY_FRAME: Intra-only frame\n @V4L2_AV1_SWITCH_FRAME: Switch frame"]
+pub type v4l2_av1_frame_type = ::std::os::raw::c_uint;
+pub const v4l2_av1_interpolation_filter_V4L2_AV1_INTERPOLATION_FILTER_EIGHTTAP:
+    v4l2_av1_interpolation_filter = 0;
+pub const v4l2_av1_interpolation_filter_V4L2_AV1_INTERPOLATION_FILTER_EIGHTTAP_SMOOTH:
+    v4l2_av1_interpolation_filter = 1;
+pub const v4l2_av1_interpolation_filter_V4L2_AV1_INTERPOLATION_FILTER_EIGHTTAP_SHARP:
+    v4l2_av1_interpolation_filter = 2;
+pub const v4l2_av1_interpolation_filter_V4L2_AV1_INTERPOLATION_FILTER_BILINEAR:
+    v4l2_av1_interpolation_filter = 3;
+pub const v4l2_av1_interpolation_filter_V4L2_AV1_INTERPOLATION_FILTER_SWITCHABLE:
+    v4l2_av1_interpolation_filter = 4;
+#[doc = " enum v4l2_av1_interpolation_filter - AV1 interpolation filter types\n\n @V4L2_AV1_INTERPOLATION_FILTER_EIGHTTAP: eight tap filter\n @V4L2_AV1_INTERPOLATION_FILTER_EIGHTTAP_SMOOTH: eight tap smooth filter\n @V4L2_AV1_INTERPOLATION_FILTER_EIGHTTAP_SHARP: eight tap sharp filter\n @V4L2_AV1_INTERPOLATION_FILTER_BILINEAR: bilinear filter\n @V4L2_AV1_INTERPOLATION_FILTER_SWITCHABLE: filter selection is signaled at\n the block level\n\n See section 6.8.9 \"Interpolation filter semantics\" of the AV1 specification\n for more details."]
+pub type v4l2_av1_interpolation_filter = ::std::os::raw::c_uint;
+pub const v4l2_av1_tx_mode_V4L2_AV1_TX_MODE_ONLY_4X4: v4l2_av1_tx_mode = 0;
+pub const v4l2_av1_tx_mode_V4L2_AV1_TX_MODE_LARGEST: v4l2_av1_tx_mode = 1;
+pub const v4l2_av1_tx_mode_V4L2_AV1_TX_MODE_SELECT: v4l2_av1_tx_mode = 2;
+#[doc = " enum v4l2_av1_tx_mode - AV1 Tx mode as described in section 6.8.21 \"TX mode\n semantics\" of the AV1 specification.\n @V4L2_AV1_TX_MODE_ONLY_4X4: the inverse transform will use only 4x4\n transforms\n @V4L2_AV1_TX_MODE_LARGEST: the inverse transform will use the largest\n transform size that fits inside the block\n @V4L2_AV1_TX_MODE_SELECT: the choice of transform size is specified\n explicitly for each block."]
+pub type v4l2_av1_tx_mode = ::std::os::raw::c_uint;
+#[doc = " struct v4l2_ctrl_av1_frame - Represents an AV1 Frame Header OBU.\n\n @tile_info: tile info\n @quantization: quantization params\n @segmentation: segmentation params\n @superres_denom: the denominator for the upscaling ratio.\n @loop_filter: loop filter params\n @cdef: cdef params\n @skip_mode_frame: specifies the frames to use for compound prediction when\n skip_mode is equal to 1.\n @primary_ref_frame: specifies which reference frame contains the CDF values\n and other state that should be loaded at the start of the frame.\n @loop_restoration: loop restoration params\n @global_motion: global motion params\n @flags: see V4L2_AV1_FRAME_FLAG_{}\n @frame_type: specifies the AV1 frame type\n @order_hint: specifies OrderHintBits least significant bits of the expected\n output order for this frame.\n @upscaled_width: the upscaled width.\n @interpolation_filter: specifies the filter selection used for performing\n inter prediction.\n @tx_mode: specifies how the transform size is determined.\n @frame_width_minus_1: add 1 to get the frame's width.\n @frame_height_minus_1: add 1 to get the frame's height\n @render_width_minus_1: add 1 to get the render width of the frame in luma\n samples.\n @render_height_minus_1: add 1 to get the render height of the frame in luma\n samples.\n @current_frame_id: specifies the frame id number for the current frame. Frame\n id numbers are additional information that do not affect the decoding\n process, but provide decoders with a way of detecting missing reference\n frames so that appropriate action can be taken.\n @buffer_removal_time: specifies the frame removal time in units of DecCT clock\n ticks counted from the removal time of the last random access point for\n operating point opNum.\n @reserved: padding field. Should be zeroed by applications.\n @order_hints: specifies the expected output order hint for each reference\n frame. This field corresponds to the OrderHints variable from the\n specification (section 5.9.2 \"Uncompressed header syntax\"). As such, this is\n only used for non-intra frames and ignored otherwise. order_hints[0] is\n always ignored.\n @reference_frame_ts: the V4L2 timestamp of the reference frame slots.\n @ref_frame_idx: used to index into @reference_frame_ts when decoding\n inter-frames. The meaning of this array is the same as in the specification.\n The timestamp refers to the timestamp field in struct v4l2_buffer. Use\n v4l2_timeval_to_ns() to convert the struct timeval to a __u64.\n @refresh_frame_flags: contains a bitmask that specifies which reference frame\n slots will be updated with the current frame after it is decoded."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_ctrl_av1_frame {
+    pub tile_info: v4l2_av1_tile_info,
+    pub quantization: v4l2_av1_quantization,
+    pub superres_denom: __u8,
+    pub segmentation: v4l2_av1_segmentation,
+    pub loop_filter: v4l2_av1_loop_filter,
+    pub cdef: v4l2_av1_cdef,
+    pub skip_mode_frame: [__u8; 2usize],
+    pub primary_ref_frame: __u8,
+    pub loop_restoration: v4l2_av1_loop_restoration,
+    pub global_motion: v4l2_av1_global_motion,
+    pub flags: __u32,
+    pub frame_type: v4l2_av1_frame_type,
+    pub order_hint: __u32,
+    pub upscaled_width: __u32,
+    pub interpolation_filter: v4l2_av1_interpolation_filter,
+    pub tx_mode: v4l2_av1_tx_mode,
+    pub frame_width_minus_1: __u32,
+    pub frame_height_minus_1: __u32,
+    pub render_width_minus_1: __u16,
+    pub render_height_minus_1: __u16,
+    pub current_frame_id: __u32,
+    pub buffer_removal_time: [__u32; 32usize],
+    pub reserved: [__u8; 4usize],
+    pub order_hints: [__u32; 8usize],
+    pub reference_frame_ts: [__u64; 8usize],
+    pub ref_frame_idx: [__s8; 7usize],
+    pub refresh_frame_flags: __u8,
+}
+#[test]
+fn bindgen_test_layout_v4l2_ctrl_av1_frame() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_ctrl_av1_frame> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_ctrl_av1_frame>(),
+        1784usize,
+        concat!("Size of: ", stringify!(v4l2_ctrl_av1_frame))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_ctrl_av1_frame>(),
+        4usize,
+        concat!("Alignment of ", stringify!(v4l2_ctrl_av1_frame))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tile_info) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(tile_info)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).quantization) as usize - ptr as usize },
+        1040usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(quantization)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).superres_denom) as usize - ptr as usize },
+        1051usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(superres_denom)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).segmentation) as usize - ptr as usize },
+        1052usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(segmentation)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).loop_filter) as usize - ptr as usize },
+        1190usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(loop_filter)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cdef) as usize - ptr as usize },
+        1207usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(cdef)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).skip_mode_frame) as usize - ptr as usize },
+        1241usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(skip_mode_frame)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).primary_ref_frame) as usize - ptr as usize },
+        1243usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(primary_ref_frame)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).loop_restoration) as usize - ptr as usize },
+        1244usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(loop_restoration)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).global_motion) as usize - ptr as usize },
+        1272usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(global_motion)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        1508usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).frame_type) as usize - ptr as usize },
+        1512usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(frame_type)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).order_hint) as usize - ptr as usize },
+        1516usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(order_hint)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).upscaled_width) as usize - ptr as usize },
+        1520usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(upscaled_width)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).interpolation_filter) as usize - ptr as usize },
+        1524usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(interpolation_filter)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tx_mode) as usize - ptr as usize },
+        1528usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(tx_mode)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).frame_width_minus_1) as usize - ptr as usize },
+        1532usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(frame_width_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).frame_height_minus_1) as usize - ptr as usize },
+        1536usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(frame_height_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).render_width_minus_1) as usize - ptr as usize },
+        1540usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(render_width_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).render_height_minus_1) as usize - ptr as usize },
+        1542usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(render_height_minus_1)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).current_frame_id) as usize - ptr as usize },
+        1544usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(current_frame_id)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).buffer_removal_time) as usize - ptr as usize },
+        1548usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(buffer_removal_time)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        1676usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(reserved)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).order_hints) as usize - ptr as usize },
+        1680usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(order_hints)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reference_frame_ts) as usize - ptr as usize },
+        1712usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(reference_frame_ts)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ref_frame_idx) as usize - ptr as usize },
+        1776usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(ref_frame_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).refresh_frame_flags) as usize - ptr as usize },
+        1783usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_frame),
+            "::",
+            stringify!(refresh_frame_flags)
+        )
+    );
+}
+impl Default for v4l2_ctrl_av1_frame {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[doc = " struct v4l2_ctrl_av1_film_grain - AV1 Film Grain parameters.\n\n Film grain parameters as specified by section 6.8.20 of the AV1 Specification.\n\n @flags: see V4L2_AV1_FILM_GRAIN_{}.\n @cr_mult: represents a multiplier for the cr component used in derivation of\n the input index to the cr component scaling function.\n @grain_seed: specifies the starting value for the pseudo-random numbers used\n during film grain synthesis.\n @film_grain_params_ref_idx: indicates which reference frame contains the\n film grain parameters to be used for this frame.\n @num_y_points: specifies the number of points for the piece-wise linear\n scaling function of the luma component.\n @point_y_value: represents the x (luma value) coordinate for the i-th point\n of the piecewise linear scaling function for luma component. The values are\n signaled on the scale of 0..255. In case of 10 bit video, these values\n correspond to luma values divided by 4. In case of 12 bit video, these values\n correspond to luma values divided by 16.\n @point_y_scaling:  represents the scaling (output) value for the i-th point\n of the piecewise linear scaling function for luma component.\n @num_cb_points: specifies the number of points for the piece-wise linear\n scaling function of the cb component.\n @point_cb_value: represents the x coordinate for the i-th point of the\n piece-wise linear scaling function for cb component. The values are signaled\n on the scale of 0..255.\n @point_cb_scaling: represents the scaling (output) value for the i-th point\n of the piecewise linear scaling function for cb component.\n @num_cr_points: specifies represents the number of points for the piece-wise\n linear scaling function of the cr component.\n @point_cr_value:  represents the x coordinate for the i-th point of the\n piece-wise linear scaling function for cr component. The values are signaled\n on the scale of 0..255.\n @point_cr_scaling:  represents the scaling (output) value for the i-th point\n of the piecewise linear scaling function for cr component.\n @grain_scaling_minus_8: represents the shift – 8 applied to the values of the\n chroma component. The grain_scaling_minus_8 can take values of 0..3 and\n determines the range and quantization step of the standard deviation of film\n grain.\n @ar_coeff_lag: specifies the number of auto-regressive coefficients for luma\n and chroma.\n @ar_coeffs_y_plus_128: specifies auto-regressive coefficients used for the Y\n plane.\n @ar_coeffs_cb_plus_128: specifies auto-regressive coefficients used for the U\n plane.\n @ar_coeffs_cr_plus_128: specifies auto-regressive coefficients used for the V\n plane.\n @ar_coeff_shift_minus_6: specifies the range of the auto-regressive\n coefficients. Values of 0, 1, 2, and 3 correspond to the ranges for\n auto-regressive coefficients of [-2, 2), [-1, 1), [-0.5, 0.5) and [-0.25,\n 0.25) respectively.\n @grain_scale_shift: specifies how much the Gaussian random numbers should be\n scaled down during the grain synthesis process.\n @cb_mult: represents a multiplier for the cb component used in derivation of\n the input index to the cb component scaling function.\n @cb_luma_mult: represents a multiplier for the average luma component used in\n derivation of the input index to the cb component scaling function.\n @cr_luma_mult: represents a multiplier for the average luma component used in\n derivation of the input index to the cr component scaling function.\n @cb_offset: represents an offset used in derivation of the input index to the\n cb component scaling function.\n @cr_offset: represents an offset used in derivation of the input index to the\n cr component scaling function.\n @reserved: padding field. Should be zeroed by applications."]
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+pub struct v4l2_ctrl_av1_film_grain {
+    pub flags: __u8,
+    pub cr_mult: __u8,
+    pub grain_seed: __u16,
+    pub film_grain_params_ref_idx: __u8,
+    pub num_y_points: __u8,
+    pub point_y_value: [__u8; 16usize],
+    pub point_y_scaling: [__u8; 16usize],
+    pub num_cb_points: __u8,
+    pub point_cb_value: [__u8; 16usize],
+    pub point_cb_scaling: [__u8; 16usize],
+    pub num_cr_points: __u8,
+    pub point_cr_value: [__u8; 16usize],
+    pub point_cr_scaling: [__u8; 16usize],
+    pub grain_scaling_minus_8: __u8,
+    pub ar_coeff_lag: __u8,
+    pub ar_coeffs_y_plus_128: [__u8; 25usize],
+    pub ar_coeffs_cb_plus_128: [__u8; 25usize],
+    pub ar_coeffs_cr_plus_128: [__u8; 25usize],
+    pub ar_coeff_shift_minus_6: __u8,
+    pub grain_scale_shift: __u8,
+    pub cb_mult: __u8,
+    pub cb_luma_mult: __u8,
+    pub cr_luma_mult: __u8,
+    pub cb_offset: __u16,
+    pub cr_offset: __u16,
+    pub reserved: [__u8; 4usize],
+}
+#[test]
+fn bindgen_test_layout_v4l2_ctrl_av1_film_grain() {
+    const UNINIT: ::std::mem::MaybeUninit<v4l2_ctrl_av1_film_grain> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<v4l2_ctrl_av1_film_grain>(),
+        194usize,
+        concat!("Size of: ", stringify!(v4l2_ctrl_av1_film_grain))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<v4l2_ctrl_av1_film_grain>(),
+        2usize,
+        concat!("Alignment of ", stringify!(v4l2_ctrl_av1_film_grain))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).flags) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(flags)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cr_mult) as usize - ptr as usize },
+        1usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(cr_mult)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).grain_seed) as usize - ptr as usize },
+        2usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(grain_seed)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).film_grain_params_ref_idx) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(film_grain_params_ref_idx)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).num_y_points) as usize - ptr as usize },
+        5usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(num_y_points)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).point_y_value) as usize - ptr as usize },
+        6usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(point_y_value)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).point_y_scaling) as usize - ptr as usize },
+        22usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(point_y_scaling)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).num_cb_points) as usize - ptr as usize },
+        38usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(num_cb_points)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).point_cb_value) as usize - ptr as usize },
+        39usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(point_cb_value)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).point_cb_scaling) as usize - ptr as usize },
+        55usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(point_cb_scaling)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).num_cr_points) as usize - ptr as usize },
+        71usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(num_cr_points)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).point_cr_value) as usize - ptr as usize },
+        72usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(point_cr_value)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).point_cr_scaling) as usize - ptr as usize },
+        88usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(point_cr_scaling)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).grain_scaling_minus_8) as usize - ptr as usize },
+        104usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(grain_scaling_minus_8)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ar_coeff_lag) as usize - ptr as usize },
+        105usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(ar_coeff_lag)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ar_coeffs_y_plus_128) as usize - ptr as usize },
+        106usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(ar_coeffs_y_plus_128)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ar_coeffs_cb_plus_128) as usize - ptr as usize },
+        131usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(ar_coeffs_cb_plus_128)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ar_coeffs_cr_plus_128) as usize - ptr as usize },
+        156usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(ar_coeffs_cr_plus_128)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).ar_coeff_shift_minus_6) as usize - ptr as usize },
+        181usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(ar_coeff_shift_minus_6)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).grain_scale_shift) as usize - ptr as usize },
+        182usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(grain_scale_shift)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cb_mult) as usize - ptr as usize },
+        183usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(cb_mult)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cb_luma_mult) as usize - ptr as usize },
+        184usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(cb_luma_mult)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cr_luma_mult) as usize - ptr as usize },
+        185usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(cr_luma_mult)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cb_offset) as usize - ptr as usize },
+        186usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(cb_offset)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).cr_offset) as usize - ptr as usize },
+        188usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(cr_offset)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).reserved) as usize - ptr as usize },
+        190usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ctrl_av1_film_grain),
+            "::",
+            stringify!(reserved)
+        )
+    );
+}
 pub const v4l2_field_V4L2_FIELD_ANY: v4l2_field = 0;
 pub const v4l2_field_V4L2_FIELD_NONE: v4l2_field = 1;
 pub const v4l2_field_V4L2_FIELD_TOP: v4l2_field = 2;
@@ -6909,7 +8636,7 @@ pub const v4l2_priority_V4L2_PRIORITY_RECORD: v4l2_priority = 3;
 pub const v4l2_priority_V4L2_PRIORITY_DEFAULT: v4l2_priority = 2;
 pub type v4l2_priority = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rect {
     pub left: __s32,
     pub top: __s32,
@@ -6972,7 +8699,7 @@ fn bindgen_test_layout_v4l2_rect() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fract {
     pub numerator: __u32,
     pub denominator: __u32,
@@ -7013,7 +8740,7 @@ fn bindgen_test_layout_v4l2_fract() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_area {
     pub width: __u32,
     pub height: __u32,
@@ -7055,7 +8782,7 @@ fn bindgen_test_layout_v4l2_area() {
 }
 #[doc = " struct v4l2_capability - Describes V4L2 device caps returned by VIDIOC_QUERYCAP\n\n @driver:\t   name of the driver module (e.g. \"bttv\")\n @card:\t   name of the card (e.g. \"Hauppauge WinTV\")\n @bus_info:\t   name of the bus (e.g. \"PCI:\" + pci_name(pci_dev) )\n @version:\t   KERNEL_VERSION\n @capabilities: capabilities of the physical device as a whole\n @device_caps:  capabilities accessed via this particular device (node)\n @reserved:\t   reserved fields for future extensions"]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_capability {
     pub driver: [__u8; 16usize],
     pub card: [__u8; 32usize],
@@ -7208,6 +8935,15 @@ fn bindgen_test_layout_v4l2_pix_format__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_pix_format__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_pix_format() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_pix_format> = ::std::mem::MaybeUninit::uninit();
@@ -7333,8 +9069,17 @@ fn bindgen_test_layout_v4l2_pix_format() {
         )
     );
 }
+impl Default for v4l2_pix_format {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_fmtdesc {
     pub index: __u32,
     pub type_: __u32,
@@ -7434,7 +9179,7 @@ pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS: v4l2_frmsizetypes = 2;
 pub const v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE: v4l2_frmsizetypes = 3;
 pub type v4l2_frmsizetypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_discrete {
     pub width: __u32,
     pub height: __u32,
@@ -7476,7 +9221,7 @@ fn bindgen_test_layout_v4l2_frmsize_discrete() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmsize_stepwise {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -7612,6 +9357,15 @@ fn bindgen_test_layout_v4l2_frmsizeenum__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_frmsizeenum__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_frmsizeenum() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_frmsizeenum> = ::std::mem::MaybeUninit::uninit();
@@ -7667,12 +9421,21 @@ fn bindgen_test_layout_v4l2_frmsizeenum() {
         )
     );
 }
+impl Default for v4l2_frmsizeenum {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_DISCRETE: v4l2_frmivaltypes = 1;
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_CONTINUOUS: v4l2_frmivaltypes = 2;
 pub const v4l2_frmivaltypes_V4L2_FRMIVAL_TYPE_STEPWISE: v4l2_frmivaltypes = 3;
 pub type v4l2_frmivaltypes = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frmival_stepwise {
     pub min: v4l2_fract,
     pub max: v4l2_fract,
@@ -7777,6 +9540,15 @@ fn bindgen_test_layout_v4l2_frmivalenum__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_frmivalenum__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_frmivalenum() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_frmivalenum> = ::std::mem::MaybeUninit::uninit();
@@ -7852,8 +9624,17 @@ fn bindgen_test_layout_v4l2_frmivalenum() {
         )
     );
 }
+impl Default for v4l2_frmivalenum {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_timecode {
     pub type_: __u32,
     pub flags: __u32,
@@ -8044,8 +9825,17 @@ fn bindgen_test_layout_v4l2_jpegcompression() {
         )
     );
 }
+impl Default for v4l2_jpegcompression {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_requestbuffers {
     pub count: __u32,
     pub type_: __u32,
@@ -8192,6 +9982,15 @@ fn bindgen_test_layout_v4l2_plane__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_plane__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_plane() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_plane> = ::std::mem::MaybeUninit::uninit();
@@ -8256,6 +10055,15 @@ fn bindgen_test_layout_v4l2_plane() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_plane {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " struct v4l2_buffer - video buffer info\n @index:\tid number of the buffer\n @type:\tenum v4l2_buf_type; buffer type (type == *_MPLANE for\n\t\tmultiplanar buffers);\n @bytesused:\tnumber of bytes occupied by data in the buffer (payload);\n\t\tunused (set to 0) for multiplanar buffers\n @flags:\tbuffer informational flags\n @field:\tenum v4l2_field; field order of the image in the buffer\n @timestamp:\tframe timestamp\n @timecode:\tframe timecode\n @sequence:\tsequence count of this frame\n @memory:\tenum v4l2_memory; the method, in which the actual video data is\n\t\tpassed\n @offset:\tfor non-multiplanar buffers with memory == V4L2_MEMORY_MMAP;\n\t\toffset from the start of the device memory for this plane,\n\t\t(or a \"cookie\" that should be passed to mmap() as offset)\n @userptr:\tfor non-multiplanar buffers with memory == V4L2_MEMORY_USERPTR;\n\t\ta userspace pointer pointing to this buffer\n @fd:\t\tfor non-multiplanar buffers with memory == V4L2_MEMORY_DMABUF;\n\t\ta userspace file descriptor associated with this buffer\n @planes:\tfor multiplanar buffers; userspace pointer to the array of plane\n\t\tinfo structs for this buffer\n @m:\t\tunion of @offset, @userptr, @planes and @fd\n @length:\tsize in bytes of the buffer (NOT its payload) for single-plane\n\t\tbuffers (when type != *_MPLANE); number of elements in the\n\t\tplanes array for multi-plane buffers\n @reserved2:\tdrivers and applications must zero this field\n @request_fd: fd of the request that this buffer should use\n @reserved:\tfor backwards compatibility with applications that do not know\n\t\tabout @request_fd\n\n Contains data exchanged by application and driver using one of the Streaming\n I/O methods."]
 #[repr(C)]
@@ -8339,6 +10147,15 @@ fn bindgen_test_layout_v4l2_buffer__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_buffer__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union v4l2_buffer__bindgen_ty_2 {
@@ -8380,6 +10197,15 @@ fn bindgen_test_layout_v4l2_buffer__bindgen_ty_2() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_buffer__bindgen_ty_2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_buffer() {
@@ -8516,9 +10342,18 @@ fn bindgen_test_layout_v4l2_buffer() {
         )
     );
 }
+impl Default for v4l2_buffer {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_exportbuffer - export of video buffer as DMABUF file descriptor\n\n @index:\tid number of the buffer\n @type:\tenum v4l2_buf_type; buffer type (type == *_MPLANE for\n\t\tmultiplanar buffers);\n @plane:\tindex of the plane to be exported, 0 for single plane queues\n @flags:\tflags for newly created file, currently only O_CLOEXEC is\n\t\tsupported, refer to manual of open syscall for more details\n @fd:\t\tfile descriptor associated with DMABUF (set by driver)\n @reserved:\tdrivers and applications must zero this array\n\n Contains data used for exporting a video buffer as DMABUF file descriptor.\n The buffer is identified by a 'cookie' returned by VIDIOC_QUERYBUF\n (identical to the cookie used to mmap() the buffer to userspace). All\n reserved fields must be set to zero. The field reserved0 is expected to\n become a structure 'type' allowing an alternative layout of the structure\n content. Therefore this field should not be used for any other extensions."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_exportbuffer {
     pub type_: __u32,
     pub index: __u32,
@@ -8611,7 +10446,7 @@ pub struct v4l2_framebuffer {
     pub fmt: v4l2_framebuffer__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_framebuffer__bindgen_ty_1 {
     pub width: __u32,
     pub height: __u32,
@@ -8773,6 +10608,15 @@ fn bindgen_test_layout_v4l2_framebuffer() {
         )
     );
 }
+impl Default for v4l2_framebuffer {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_clip {
@@ -8813,6 +10657,15 @@ fn bindgen_test_layout_v4l2_clip() {
             stringify!(next)
         )
     );
+}
+impl Default for v4l2_clip {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -8910,8 +10763,17 @@ fn bindgen_test_layout_v4l2_window() {
         )
     );
 }
+impl Default for v4l2_window {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_captureparm {
     pub capability: __u32,
     pub capturemode: __u32,
@@ -8996,7 +10858,7 @@ fn bindgen_test_layout_v4l2_captureparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_outputparm {
     pub capability: __u32,
     pub outputmode: __u32,
@@ -9081,7 +10943,7 @@ fn bindgen_test_layout_v4l2_outputparm() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_cropcap {
     pub type_: __u32,
     pub bounds: v4l2_rect,
@@ -9144,7 +11006,7 @@ fn bindgen_test_layout_v4l2_cropcap() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_crop {
     pub type_: __u32,
     pub c: v4l2_rect,
@@ -9186,7 +11048,7 @@ fn bindgen_test_layout_v4l2_crop() {
 }
 #[doc = " struct v4l2_selection - selection info\n @type:\tbuffer type (do not use *_MPLANE types)\n @target:\tSelection target, used to choose one of possible rectangles;\n\t\tdefined in v4l2-common.h; V4L2_SEL_TGT_* .\n @flags:\tconstraints flags, defined in v4l2-common.h; V4L2_SEL_FLAG_*.\n @r:\t\tcoordinates of selection window\n @reserved:\tfor future use, rounds structure size to 64 bytes, set to zero\n\n Hardware may use multiple helper windows to process a video stream.\n The structure is used to exchange this selection areas between\n an application and a driver."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_selection {
     pub type_: __u32,
     pub target: __u32,
@@ -9261,7 +11123,7 @@ fn bindgen_test_layout_v4l2_selection() {
 }
 pub type v4l2_std_id = __u64;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_standard {
     pub index: __u32,
     pub id: v4l2_std_id,
@@ -9585,6 +11447,15 @@ fn bindgen_test_layout_v4l2_bt_timings() {
         )
     );
 }
+impl Default for v4l2_bt_timings {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_dv_timings - DV timings\n @type:\tthe type of the timings\n @bt:\tBT656/1120 timings"]
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -9634,6 +11505,15 @@ fn bindgen_test_layout_v4l2_dv_timings__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_dv_timings__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_dv_timings() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_dv_timings> = ::std::mem::MaybeUninit::uninit();
@@ -9658,6 +11538,15 @@ fn bindgen_test_layout_v4l2_dv_timings() {
             stringify!(type_)
         )
     );
+}
+impl Default for v4l2_dv_timings {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " struct v4l2_enum_dv_timings - DV timings enumeration\n @index:\tenumeration index\n @pad:\tthe pad number for which to enumerate timings (used with\n\t\tv4l-subdev nodes only)\n @reserved:\tmust be zeroed\n @timings:\tthe timings for the given index"]
 #[repr(C)]
@@ -9723,9 +11612,18 @@ fn bindgen_test_layout_v4l2_enum_dv_timings() {
         )
     );
 }
+impl Default for v4l2_enum_dv_timings {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_bt_timings_cap - BT.656/BT.1120 timing capabilities\n @min_width:\t\twidth in pixels\n @max_width:\t\twidth in pixels\n @min_height:\t\theight in lines\n @max_height:\t\theight in lines\n @min_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @max_pixelclock:\tPixel clock in HZ. Ex. 74.25MHz->74250000\n @standards:\t\tSupported standards\n @capabilities:\tSupported capabilities\n @reserved:\t\tMust be zeroed"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_bt_timings_cap {
     pub min_width: __u32,
     pub max_width: __u32,
@@ -9896,6 +11794,15 @@ fn bindgen_test_layout_v4l2_dv_timings_cap__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_dv_timings_cap__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_dv_timings_cap() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_dv_timings_cap> = ::std::mem::MaybeUninit::uninit();
@@ -9941,8 +11848,17 @@ fn bindgen_test_layout_v4l2_dv_timings_cap() {
         )
     );
 }
+impl Default for v4l2_dv_timings_cap {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_input {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -10060,7 +11976,7 @@ fn bindgen_test_layout_v4l2_input() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_output {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -10167,7 +12083,7 @@ fn bindgen_test_layout_v4l2_output() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_control {
     pub id: __u32,
     pub value: __s32,
@@ -10224,8 +12140,8 @@ pub union v4l2_ext_control__bindgen_ty_1 {
     pub p_u8: *mut __u8,
     pub p_u16: *mut __u16,
     pub p_u32: *mut __u32,
-    pub p_s32: *mut __u32,
-    pub p_s64: *mut __u32,
+    pub p_s32: *mut __s32,
+    pub p_s64: *mut __s64,
     pub p_area: *mut v4l2_area,
     pub p_h264_sps: *mut v4l2_ctrl_h264_sps,
     pub p_h264_pps: *mut v4l2_ctrl_h264_pps,
@@ -10245,6 +12161,10 @@ pub union v4l2_ext_control__bindgen_ty_1 {
     pub p_hevc_slice_params: *mut v4l2_ctrl_hevc_slice_params,
     pub p_hevc_scaling_matrix: *mut v4l2_ctrl_hevc_scaling_matrix,
     pub p_hevc_decode_params: *mut v4l2_ctrl_hevc_decode_params,
+    pub p_av1_sequence: *mut v4l2_ctrl_av1_sequence,
+    pub p_av1_tile_group_entry: *mut v4l2_ctrl_av1_tile_group_entry,
+    pub p_av1_frame: *mut v4l2_ctrl_av1_frame,
+    pub p_av1_film_grain: *mut v4l2_ctrl_av1_film_grain,
     pub ptr: *mut ::std::os::raw::c_void,
 }
 #[test]
@@ -10533,6 +12453,46 @@ fn bindgen_test_layout_v4l2_ext_control__bindgen_ty_1() {
         )
     );
     assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).p_av1_sequence) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ext_control__bindgen_ty_1),
+            "::",
+            stringify!(p_av1_sequence)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).p_av1_tile_group_entry) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ext_control__bindgen_ty_1),
+            "::",
+            stringify!(p_av1_tile_group_entry)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).p_av1_frame) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ext_control__bindgen_ty_1),
+            "::",
+            stringify!(p_av1_frame)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).p_av1_film_grain) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(v4l2_ext_control__bindgen_ty_1),
+            "::",
+            stringify!(p_av1_film_grain)
+        )
+    );
+    assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).ptr) as usize - ptr as usize },
         0usize,
         concat!(
@@ -10542,6 +12502,15 @@ fn bindgen_test_layout_v4l2_ext_control__bindgen_ty_1() {
             stringify!(ptr)
         )
     );
+}
+impl Default for v4l2_ext_control__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_ext_control() {
@@ -10587,6 +12556,15 @@ fn bindgen_test_layout_v4l2_ext_control() {
             stringify!(reserved2)
         )
     );
+}
+impl Default for v4l2_ext_control {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -10639,6 +12617,15 @@ fn bindgen_test_layout_v4l2_ext_controls__bindgen_ty_1() {
             stringify!(which)
         )
     );
+}
+impl Default for v4l2_ext_controls__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_ext_controls() {
@@ -10705,6 +12692,15 @@ fn bindgen_test_layout_v4l2_ext_controls() {
         )
     );
 }
+impl Default for v4l2_ext_controls {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_INTEGER: v4l2_ctrl_type = 1;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_BOOLEAN: v4l2_ctrl_type = 2;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_MENU: v4l2_ctrl_type = 3;
@@ -10739,9 +12735,13 @@ pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_HEVC_PPS: v4l2_ctrl_type = 625;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS: v4l2_ctrl_type = 626;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_HEVC_SCALING_MATRIX: v4l2_ctrl_type = 627;
 pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_HEVC_DECODE_PARAMS: v4l2_ctrl_type = 628;
+pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_SEQUENCE: v4l2_ctrl_type = 640;
+pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_TILE_GROUP_ENTRY: v4l2_ctrl_type = 641;
+pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_FRAME: v4l2_ctrl_type = 642;
+pub const v4l2_ctrl_type_V4L2_CTRL_TYPE_AV1_FILM_GRAIN: v4l2_ctrl_type = 643;
 pub type v4l2_ctrl_type = ::std::os::raw::c_uint;
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_queryctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -10859,7 +12859,7 @@ fn bindgen_test_layout_v4l2_queryctrl() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_query_ext_ctrl {
     pub id: __u32,
     pub type_: __u32,
@@ -11070,6 +13070,15 @@ fn bindgen_test_layout_v4l2_querymenu__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_querymenu__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_querymenu() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_querymenu> = ::std::mem::MaybeUninit::uninit();
@@ -11115,8 +13124,17 @@ fn bindgen_test_layout_v4l2_querymenu() {
         )
     );
 }
+impl Default for v4l2_querymenu {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_tuner {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11256,7 +13274,7 @@ fn bindgen_test_layout_v4l2_tuner() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_modulator {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11363,7 +13381,7 @@ fn bindgen_test_layout_v4l2_modulator() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency {
     pub tuner: __u32,
     pub type_: __u32,
@@ -11426,7 +13444,7 @@ fn bindgen_test_layout_v4l2_frequency() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_frequency_band {
     pub tuner: __u32,
     pub type_: __u32,
@@ -11533,7 +13551,7 @@ fn bindgen_test_layout_v4l2_frequency_band() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_hw_freq_seek {
     pub tuner: __u32,
     pub type_: __u32,
@@ -11640,7 +13658,7 @@ fn bindgen_test_layout_v4l2_hw_freq_seek() {
     );
 }
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_rds_data {
     pub lsb: __u8,
     pub msb: __u8,
@@ -11692,7 +13710,7 @@ fn bindgen_test_layout_v4l2_rds_data() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audio {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11766,7 +13784,7 @@ fn bindgen_test_layout_v4l2_audio() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_audioout {
     pub index: __u32,
     pub name: [__u8; 32usize],
@@ -11840,7 +13858,7 @@ fn bindgen_test_layout_v4l2_audioout() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_enc_idx_entry {
     pub offset: __u64,
     pub pts: __u64,
@@ -11976,6 +13994,15 @@ fn bindgen_test_layout_v4l2_enc_idx() {
         )
     );
 }
+impl Default for v4l2_enc_idx {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct v4l2_encoder_cmd {
@@ -11989,7 +14016,7 @@ pub union v4l2_encoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_encoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub data: [__u32; 8usize],
 }
@@ -12051,6 +14078,15 @@ fn bindgen_test_layout_v4l2_encoder_cmd__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_encoder_cmd__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_encoder_cmd() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_encoder_cmd> = ::std::mem::MaybeUninit::uninit();
@@ -12086,6 +14122,15 @@ fn bindgen_test_layout_v4l2_encoder_cmd() {
         )
     );
 }
+impl Default for v4l2_encoder_cmd {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct v4l2_decoder_cmd {
@@ -12101,7 +14146,7 @@ pub union v4l2_decoder_cmd__bindgen_ty_1 {
     pub raw: v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1 {
     pub pts: __u64,
 }
@@ -12138,7 +14183,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_1() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2 {
     pub speed: __s32,
     pub format: __u32,
@@ -12186,7 +14231,7 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_2() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_decoder_cmd__bindgen_ty_1__bindgen_ty_3 {
     pub data: [__u32; 16usize],
 }
@@ -12268,6 +14313,15 @@ fn bindgen_test_layout_v4l2_decoder_cmd__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_decoder_cmd__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_decoder_cmd() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_decoder_cmd> = ::std::mem::MaybeUninit::uninit();
@@ -12303,8 +14357,17 @@ fn bindgen_test_layout_v4l2_decoder_cmd() {
         )
     );
 }
+impl Default for v4l2_decoder_cmd {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_vbi_format {
     pub sampling_rate: __u32,
     pub offset: __u32,
@@ -12411,7 +14474,7 @@ fn bindgen_test_layout_v4l2_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_format {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -12475,7 +14538,7 @@ fn bindgen_test_layout_v4l2_sliced_vbi_format() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sliced_vbi_cap {
     pub service_set: __u16,
     pub service_lines: [[__u16; 24usize]; 2usize],
@@ -12611,6 +14674,15 @@ fn bindgen_test_layout_v4l2_sliced_vbi_data() {
         )
     );
 }
+impl Default for v4l2_sliced_vbi_data {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0_line {
@@ -12653,6 +14725,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0_line() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_itv0_line {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_itv0 {
@@ -12694,6 +14775,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_itv0() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_itv0 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_mpeg_vbi_ITV0 {
@@ -12723,6 +14813,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_ITV0() {
             stringify!(line)
         )
     );
+}
+impl Default for v4l2_mpeg_vbi_ITV0 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -12778,6 +14877,15 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_fmt_ivtv__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_mpeg_vbi_fmt_ivtv> =
@@ -12804,9 +14912,18 @@ fn bindgen_test_layout_v4l2_mpeg_vbi_fmt_ivtv() {
         )
     );
 }
+impl Default for v4l2_mpeg_vbi_fmt_ivtv {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_plane_pix_format - additional, per-plane format definition\n @sizeimage:\t\tmaximum size in bytes required for data, for which\n\t\t\tthis plane will be used\n @bytesperline:\tdistance in bytes between the leftmost pixels in two\n\t\t\tadjacent lines\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_plane_pix_format {
     pub sizeimage: __u32,
     pub bytesperline: __u32,
@@ -12922,6 +15039,15 @@ fn bindgen_test_layout_v4l2_pix_format_mplane__bindgen_ty_1() {
             stringify!(hsv_enc)
         )
     );
+}
+impl Default for v4l2_pix_format_mplane__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_pix_format_mplane() {
@@ -13049,9 +15175,18 @@ fn bindgen_test_layout_v4l2_pix_format_mplane() {
         )
     );
 }
+impl Default for v4l2_pix_format_mplane {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[doc = " struct v4l2_sdr_format - SDR format definition\n @pixelformat:\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data\n @reserved:\t\tdrivers and applications must zero this array"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_sdr_format {
     pub pixelformat: __u32,
     pub buffersize: __u32,
@@ -13104,7 +15239,7 @@ fn bindgen_test_layout_v4l2_sdr_format() {
 }
 #[doc = " struct v4l2_meta_format - metadata format definition\n @dataformat:\t\tlittle endian four character code (fourcc)\n @buffersize:\t\tmaximum size in bytes required for data"]
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_meta_format {
     pub dataformat: __u32,
     pub buffersize: __u32,
@@ -13259,6 +15394,15 @@ fn bindgen_test_layout_v4l2_format__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_format__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_format() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_format> = ::std::mem::MaybeUninit::uninit();
@@ -13293,6 +15437,15 @@ fn bindgen_test_layout_v4l2_format() {
             stringify!(fmt)
         )
     );
+}
+impl Default for v4l2_format {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -13353,6 +15506,15 @@ fn bindgen_test_layout_v4l2_streamparm__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_streamparm__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_streamparm() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_streamparm> = ::std::mem::MaybeUninit::uninit();
@@ -13388,8 +15550,17 @@ fn bindgen_test_layout_v4l2_streamparm() {
         )
     );
 }
+impl Default for v4l2_streamparm {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_vsync {
     pub field: __u8,
 }
@@ -13471,6 +15642,15 @@ fn bindgen_test_layout_v4l2_event_ctrl__bindgen_ty_1() {
             stringify!(value64)
         )
     );
+}
+impl Default for v4l2_event_ctrl__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[test]
 fn bindgen_test_layout_v4l2_event_ctrl() {
@@ -13557,8 +15737,17 @@ fn bindgen_test_layout_v4l2_event_ctrl() {
         )
     );
 }
+impl Default for v4l2_event_ctrl {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_frame_sync {
     pub frame_sequence: __u32,
 }
@@ -13589,7 +15778,7 @@ fn bindgen_test_layout_v4l2_event_frame_sync() {
     );
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_src_change {
     pub changes: __u32,
 }
@@ -13621,7 +15810,7 @@ fn bindgen_test_layout_v4l2_event_src_change() {
 }
 #[doc = " struct v4l2_event_motion_det - motion detection event\n @flags:             if V4L2_EVENT_MD_FL_HAVE_FRAME_SEQ is set, then the\n                     frame_sequence field is valid.\n @frame_sequence:    the frame sequence number associated with this event.\n @region_mask:       which regions detected motion."]
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_motion_det {
     pub flags: __u32,
     pub frame_sequence: __u32,
@@ -13770,6 +15959,15 @@ fn bindgen_test_layout_v4l2_event__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_event__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_event() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_event> = ::std::mem::MaybeUninit::uninit();
@@ -13855,8 +16053,17 @@ fn bindgen_test_layout_v4l2_event() {
         )
     );
 }
+impl Default for v4l2_event {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct v4l2_event_subscription {
     pub type_: __u32,
     pub id: __u32,
@@ -13967,6 +16174,15 @@ fn bindgen_test_layout_v4l2_dbg_match__bindgen_ty_1() {
         )
     );
 }
+impl Default for v4l2_dbg_match__bindgen_ty_1 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[test]
 fn bindgen_test_layout_v4l2_dbg_match() {
     const UNINIT: ::std::mem::MaybeUninit<v4l2_dbg_match> = ::std::mem::MaybeUninit::uninit();
@@ -13991,6 +16207,15 @@ fn bindgen_test_layout_v4l2_dbg_match() {
             stringify!(type_)
         )
     );
+}
+impl Default for v4l2_dbg_match {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
@@ -14055,6 +16280,15 @@ fn bindgen_test_layout_v4l2_dbg_register() {
         )
     );
 }
+impl Default for v4l2_dbg_register {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct v4l2_dbg_chip_info {
@@ -14117,6 +16351,15 @@ fn bindgen_test_layout_v4l2_dbg_chip_info() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_dbg_chip_info {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 #[doc = " struct v4l2_create_buffers - VIDIOC_CREATE_BUFS argument\n @index:\ton return, index of the first created buffer\n @count:\tentry: number of requested buffers,\n\t\treturn: number of created buffers\n @memory:\tenum v4l2_memory; buffer memory type\n @format:\tframe format, for which buffers are requested\n @capabilities: capabilities of this buffer type.\n @flags:\tadditional buffer management attributes (ignored unless the\n\t\tqueue has V4L2_BUF_CAP_SUPPORTS_MMAP_CACHE_HINTS capability\n\t\tand configured for MMAP streaming I/O).\n @reserved:\tfuture extensions"]
 #[repr(C)]
@@ -14214,6 +16457,15 @@ fn bindgen_test_layout_v4l2_create_buffers() {
             stringify!(reserved)
         )
     );
+}
+impl Default for v4l2_create_buffers {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
 }
 pub const V4L2_FWHT_FL_IS_INTERLACED: ::std::os::raw::c_ulong = 1;
 pub const V4L2_FWHT_FL_IS_BOTTOM_FIRST: ::std::os::raw::c_ulong = 2;
