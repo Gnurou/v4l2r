@@ -106,6 +106,24 @@ impl Display for QueueType {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct PixelFormat(u32);
 
+impl PixelFormat {
+    pub const fn from_u32(v: u32) -> Self {
+        Self(v)
+    }
+
+    pub const fn to_u32(self) -> u32 {
+        self.0
+    }
+
+    pub const fn from_fourcc(n: &[u8; 4]) -> Self {
+        Self(n[0] as u32 | (n[1] as u32) << 8 | (n[2] as u32) << 16 | (n[3] as u32) << 24)
+    }
+
+    pub const fn to_fourcc(self) -> [u8; 4] {
+        self.0.to_le_bytes()
+    }
+}
+
 /// Converts a Fourcc in 32-bit integer format (like the ones passed in V4L2
 /// structures) into the matching pixel format.
 ///
@@ -120,7 +138,7 @@ pub struct PixelFormat(u32);
 /// ```
 impl From<u32> for PixelFormat {
     fn from(i: u32) -> Self {
-        PixelFormat(i)
+        Self::from_u32(i)
     }
 }
 
@@ -137,7 +155,7 @@ impl From<u32> for PixelFormat {
 /// ```
 impl From<PixelFormat> for u32 {
     fn from(format: PixelFormat) -> Self {
-        format.0
+        format.to_u32()
     }
 }
 
@@ -154,7 +172,7 @@ impl From<PixelFormat> for u32 {
 /// ```
 impl From<&[u8; 4]> for PixelFormat {
     fn from(n: &[u8; 4]) -> Self {
-        PixelFormat(n[0] as u32 | (n[1] as u32) << 8 | (n[2] as u32) << 16 | (n[3] as u32) << 24)
+        Self::from_fourcc(n)
     }
 }
 
@@ -170,7 +188,7 @@ impl From<&[u8; 4]> for PixelFormat {
 /// ```
 impl From<PixelFormat> for [u8; 4] {
     fn from(format: PixelFormat) -> Self {
-        format.0.to_le_bytes()
+        format.to_fourcc()
     }
 }
 
