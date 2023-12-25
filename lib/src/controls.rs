@@ -24,6 +24,7 @@
 //! # use v4l2r::controls::user::Contrast;
 //! # use v4l2r::device::Device;
 //! # use v4l2r::ioctl::s_ext_ctrls;
+//! # use v4l2r::ioctl::CtrlWhich;
 //! #
 //! # let device = Device::open(Path::new("/dev/video0"), Default::default()).unwrap();
 //! #
@@ -45,7 +46,7 @@
 //!     contrast: SafeExtControl::<Contrast>::from_value(128),
 //! };
 //!
-//! s_ext_ctrls(&device, None, &mut controls).unwrap();
+//! s_ext_ctrls(&device, CtrlWhich::Current, &mut controls).unwrap();
 //! assert_eq!(controls.brightness.value(), 128);
 //! assert_eq!(controls.contrast.value(), 128);
 //! ```
