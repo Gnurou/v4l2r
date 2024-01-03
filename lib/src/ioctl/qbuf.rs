@@ -1,5 +1,4 @@
 //! Safe wrapper for the VIDIOC_(D)QBUF and VIDIOC_QUERYBUF ioctls.
-use bitflags::bitflags;
 use nix::errno::Errno;
 use nix::sys::time::{TimeVal, TimeValLike};
 use std::fmt::Debug;
@@ -11,28 +10,13 @@ use thiserror::Error;
 use crate::bindings;
 use crate::bindings::v4l2_buffer;
 use crate::ioctl::is_multi_planar;
+use crate::ioctl::BufferFlags;
 use crate::ioctl::QueryBuf;
 use crate::ioctl::V4l2Buffer;
 use crate::ioctl::V4l2BufferPlanes;
 use crate::memory::Memory;
 use crate::memory::PlaneHandle;
 use crate::QueueType;
-
-bitflags! {
-    /// Flags corresponding to the `flags` field of `struct v4l2_buffer`.
-    /// TODO split into two types, one for the user -> kernel and another for
-    /// the kernel -> user direction to filter invalid flags?
-    #[derive(Clone, Copy, Debug, Default)]
-    pub struct BufferFlags: u32 {
-        const MAPPED = bindings::V4L2_BUF_FLAG_MAPPED;
-        const QUEUED = bindings::V4L2_BUF_FLAG_QUEUED;
-        const DONE = bindings::V4L2_BUF_FLAG_DONE;
-        const ERROR = bindings::V4L2_BUF_FLAG_ERROR;
-
-        const LAST = bindings::V4L2_BUF_FLAG_LAST;
-        const REQUEST_FD = bindings::V4L2_BUF_FLAG_REQUEST_FD;
-    }
-}
 
 #[derive(Debug, Error)]
 pub enum QBufError<Q: QueryBuf> {

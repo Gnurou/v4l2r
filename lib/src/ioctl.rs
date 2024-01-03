@@ -220,7 +220,7 @@ impl<'a> V4l2BufferPlane<'a> {
 }
 
 bitflags! {
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, Default)]
     /// `flags` member of `struct `v4l2_buffer`.
     pub struct BufferFlags: u32 {
         const MAPPED = bindings::V4L2_BUF_FLAG_MAPPED;
