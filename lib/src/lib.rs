@@ -45,23 +45,23 @@ pub enum QueueDirection {
 }
 
 /// Types of queues currently supported by this library.
-#[allow(unused)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, N)]
+#[repr(u32)]
 pub enum QueueType {
-    VideoCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE as isize,
-    VideoOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT as isize,
-    VideoOverlay = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OVERLAY as isize,
-    VbiCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VBI_CAPTURE as isize,
-    VbiOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VBI_OUTPUT as isize,
-    SlicedVbiCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SLICED_VBI_CAPTURE as isize,
-    SlicedVbiOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SLICED_VBI_OUTPUT as isize,
-    VideoOutputOverlay = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY as isize,
-    VideoCaptureMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE as isize,
-    VideoOutputMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE as isize,
-    SdrCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SDR_CAPTURE as isize,
-    SdrOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SDR_OUTPUT as isize,
-    MetaCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_CAPTURE as isize,
-    MetaOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_OUTPUT as isize,
+    VideoCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE,
+    VideoOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT,
+    VideoOverlay = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OVERLAY,
+    VbiCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VBI_CAPTURE,
+    VbiOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VBI_OUTPUT,
+    SlicedVbiCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SLICED_VBI_CAPTURE,
+    SlicedVbiOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SLICED_VBI_OUTPUT,
+    VideoOutputOverlay = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY,
+    VideoCaptureMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+    VideoOutputMplane = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+    SdrCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SDR_CAPTURE,
+    SdrOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_SDR_OUTPUT,
+    MetaCapture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_CAPTURE,
+    MetaOutput = bindings::v4l2_buf_type_V4L2_BUF_TYPE_META_OUTPUT,
 }
 
 impl QueueType {

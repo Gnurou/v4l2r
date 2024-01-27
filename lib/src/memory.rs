@@ -46,11 +46,12 @@ use std::os::unix::io::AsFd;
 
 /// All the supported V4L2 memory types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, N)]
+#[repr(u32)]
 pub enum MemoryType {
-    Mmap = bindings::v4l2_memory_V4L2_MEMORY_MMAP as isize,
-    UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR as isize,
-    Overlay = bindings::v4l2_memory_V4L2_MEMORY_OVERLAY as isize,
-    DmaBuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF as isize,
+    Mmap = bindings::v4l2_memory_V4L2_MEMORY_MMAP,
+    UserPtr = bindings::v4l2_memory_V4L2_MEMORY_USERPTR,
+    Overlay = bindings::v4l2_memory_V4L2_MEMORY_OVERLAY,
+    DmaBuf = bindings::v4l2_memory_V4L2_MEMORY_DMABUF,
 }
 
 /// Trait describing a memory type that can be used to back V4L2 buffers.
