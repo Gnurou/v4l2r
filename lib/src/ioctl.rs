@@ -95,6 +95,7 @@ use std::ffi::FromBytesWithNulError;
 use std::fmt::Debug;
 
 use bitflags::bitflags;
+use enumn::N;
 use nix::errno::Errno;
 
 use crate::bindings;
@@ -242,6 +243,19 @@ bitflags! {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, N)]
+#[repr(u32)]
+pub enum BufferField {
+    Any = bindings::v4l2_field_V4L2_FIELD_ANY,
+    None = bindings::v4l2_field_V4L2_FIELD_NONE,
+    Top = bindings::v4l2_field_V4L2_FIELD_TOP,
+    Interlaced = bindings::v4l2_field_V4L2_FIELD_INTERLACED,
+    SeqTb = bindings::v4l2_field_V4L2_FIELD_SEQ_TB,
+    SeqBt = bindings::v4l2_field_V4L2_FIELD_SEQ_BT,
+    Alternate = bindings::v4l2_field_V4L2_FIELD_ALTERNATE,
+    InterlacedTb = bindings::v4l2_field_V4L2_FIELD_INTERLACED_TB,
+    InterlacedBt = bindings::v4l2_field_V4L2_FIELD_INTERLACED_BT,
+}
 /// A completely owned v4l2_buffer, where the pointer to planes is meaningless and fixed up when
 /// needed.
 ///
