@@ -3,7 +3,7 @@ name = "v4l2r"
 version = "0.0.1"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2018"
-description = "Safe and high-level abstraction over V4L2"
+description = "Safe and flexible abstraction over V4L2"
 repository = "https://github.com/Gnurou/v4l2r"
 categories = ["os"]
 keywords = ["v4l2", "video", "linux"]
@@ -30,4 +30,3 @@ utils = { path = "../utils" }
 #
 # cargo run -- -o ../videodev2_64.rs  -I /path/to/kerneldir/usr/include/
 # cargo run -- -o ../videodev2_32.rs  -I /path/to/kerneldir/usr/include/ -s /usr/i686-linux-gnu/ -t i686-linux-gnu
-
