@@ -1,5 +1,6 @@
 //! Safe wrapper for the VIDIOC_(D)QBUF and VIDIOC_QUERYBUF ioctls.
 use nix::errno::Errno;
+use nix::libc::{suseconds_t, time_t};
 use nix::sys::time::{TimeVal, TimeValLike};
 use std::fmt::Debug;
 use std::mem;
@@ -147,7 +148,7 @@ impl<H: PlaneHandle> Default for QBuffer<H> {
 }
 
 impl<H: PlaneHandle> QBuffer<H> {
-    pub fn set_timestamp(mut self, sec: i64, usec: i64) -> Self {
+    pub fn set_timestamp(mut self, sec: time_t, usec: suseconds_t) -> Self {
         self.timestamp = TimeVal::new(sec, usec);
         self
     }
