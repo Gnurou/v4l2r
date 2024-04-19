@@ -7,7 +7,6 @@ use crate::memory::MemoryType;
 use crate::QueueType;
 use bitflags::bitflags;
 use nix::{self, errno::Errno};
-use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -96,7 +95,7 @@ pub fn reqbufs<O: From<v4l2_requestbuffers>>(
         count,
         type_: queue as u32,
         memory: memory as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_reqbufs(fd.as_raw_fd(), &mut reqbufs) } {
@@ -137,7 +136,7 @@ pub fn create_bufs<F: Into<v4l2_format>, O: From<v4l2_create_buffers>>(
         count,
         memory: memory as u32,
         format: format.into(),
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_create_bufs(fd.as_raw_fd(), &mut create_bufs) } {

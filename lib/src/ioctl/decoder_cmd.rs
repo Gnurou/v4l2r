@@ -1,11 +1,9 @@
 use crate::bindings;
 use crate::bindings::v4l2_decoder_cmd;
 use nix::errno::Errno;
-use std::{
-    convert::{Infallible, TryFrom},
-    mem,
-    os::unix::io::AsRawFd,
-};
+use std::convert::Infallible;
+use std::convert::TryFrom;
+use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
 #[doc(hidden)]
@@ -67,7 +65,7 @@ impl From<DecoderCommand> for v4l2_decoder_cmd {
                 DecoderCommand::Pause => bindings::V4L2_DEC_CMD_PAUSE,
                 DecoderCommand::Resume => bindings::V4L2_DEC_CMD_RESUME,
             },
-            ..unsafe { mem::zeroed() }
+            ..Default::default()
         }
     }
 }

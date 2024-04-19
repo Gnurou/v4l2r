@@ -1,5 +1,4 @@
 use std::convert::{Infallible, TryFrom};
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;
@@ -35,7 +34,7 @@ impl From<GEncIndexError> for Errno {
 
 /// Safe wrapper around the `VIDIOC_G_ENC_INDEX` ioctl.
 pub fn g_enc_index<O: From<v4l2_enc_idx>>(fd: &impl AsRawFd) -> Result<O, GEncIndexError> {
-    let mut enc_idx: v4l2_enc_idx = unsafe { std::mem::zeroed() };
+    let mut enc_idx: v4l2_enc_idx = Default::default();
 
     match unsafe { ioctl::vidioc_g_enc_index(fd.as_raw_fd(), &mut enc_idx) } {
         Ok(_) => Ok(O::from(enc_idx)),
@@ -97,7 +96,7 @@ impl From<&EncoderCommand> for v4l2_encoder_cmd {
                 EncoderCommand::Stop(at_gop) if *at_gop => bindings::V4L2_ENC_CMD_STOP_AT_GOP_END,
                 _ => 0,
             },
-            ..unsafe { mem::zeroed() }
+            ..Default::default()
         }
     }
 }

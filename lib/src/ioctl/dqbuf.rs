@@ -5,7 +5,6 @@ use crate::ioctl::V4l2BufferPlanes;
 use crate::QueueType;
 
 use std::fmt::Debug;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;
@@ -56,7 +55,7 @@ pub type DqBufResult<T, Q> = Result<T, DqBufError<Q>>;
 pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T, T> {
     let mut v4l2_buf = v4l2_buffer {
         type_: queue as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     let dequeued_buffer = if is_multi_planar(queue) {

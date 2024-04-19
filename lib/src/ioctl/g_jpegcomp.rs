@@ -29,7 +29,7 @@ impl From<GJpegCompError> for Errno {
 
 /// Safe wrapper around the `VIDIOC_G_JPEGCOMP` ioctl.
 pub fn g_jpegcomp<O: From<v4l2_jpegcompression>>(fd: &impl AsRawFd) -> Result<O, GJpegCompError> {
-    let mut jpegcomp: v4l2_jpegcompression = unsafe { std::mem::zeroed() };
+    let mut jpegcomp: v4l2_jpegcompression = Default::default();
 
     match unsafe { ioctl::vidioc_g_jpegcomp(fd.as_raw_fd(), &mut jpegcomp) } {
         Ok(_) => Ok(O::from(jpegcomp)),

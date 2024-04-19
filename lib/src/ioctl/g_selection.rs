@@ -1,4 +1,3 @@
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use bitflags::bitflags;
@@ -72,7 +71,7 @@ pub fn g_selection<R: From<v4l2_rect>>(
     let mut sel = v4l2_selection {
         type_: selection as u32,
         target: target as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_selection(fd.as_raw_fd(), &mut sel) } {
@@ -118,7 +117,7 @@ pub fn s_selection<RI: Into<v4l2_rect>, RO: From<v4l2_rect>>(
         target: target as u32,
         flags: flags.bits(),
         r: rect.into(),
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_s_selection(fd.as_raw_fd(), &mut sel) } {

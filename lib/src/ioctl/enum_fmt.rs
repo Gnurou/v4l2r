@@ -7,7 +7,6 @@ use bitflags::bitflags;
 use log::error;
 use nix::errno::Errno;
 use std::fmt;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -90,7 +89,7 @@ pub fn enum_fmt<T: From<v4l2_fmtdesc>>(
     let mut fmtdesc = v4l2_fmtdesc {
         type_: queue as u32,
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
     unsafe { ioctl::vidioc_enum_fmt(fd.as_raw_fd(), &mut fmtdesc) }?;
 

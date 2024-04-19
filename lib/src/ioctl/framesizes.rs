@@ -69,7 +69,7 @@ pub fn enum_frame_sizes<O: From<v4l2_frmsizeenum>>(
     let mut frame_size = v4l2_frmsizeenum {
         index,
         pixel_format: pixel_format.into(),
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enum_framesizes(fd.as_raw_fd(), &mut frame_size) } {

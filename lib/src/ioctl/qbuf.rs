@@ -3,7 +3,6 @@ use nix::errno::Errno;
 use nix::libc::{suseconds_t, time_t};
 use nix::sys::time::{TimeVal, TimeValLike};
 use std::fmt::Debug;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::prelude::RawFd;
 use thiserror::Error;
@@ -97,7 +96,7 @@ impl QBufPlane {
         QBufPlane(bindings::v4l2_plane {
             bytesused: bytes_used as u32,
             data_offset: 0,
-            ..unsafe { mem::zeroed() }
+            ..Default::default()
         })
     }
 
@@ -243,7 +242,7 @@ pub fn qbuf<I: QBuf<O>, O: QueryBuf>(
     let mut v4l2_buf = v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     if is_multi_planar(queue) {
@@ -271,7 +270,7 @@ pub fn prepare_buf<I: QBuf<O>, O: QueryBuf>(
     let mut v4l2_buf = v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     if is_multi_planar(queue) {

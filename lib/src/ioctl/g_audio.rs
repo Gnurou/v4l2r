@@ -1,4 +1,3 @@
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use bitflags::bitflags;
@@ -128,7 +127,7 @@ impl From<GAudioError> for Errno {
 pub fn g_tuner<O: From<v4l2_tuner>>(fd: &impl AsRawFd, index: u32) -> Result<O, GAudioError> {
     let mut tuner = v4l2_tuner {
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_tuner(fd.as_raw_fd(), &mut tuner) } {
@@ -143,7 +142,7 @@ pub fn s_tuner(fd: &impl AsRawFd, index: u32, mode: TunerMode) -> Result<(), GAu
     let tuner = v4l2_tuner {
         index,
         audmode: mode as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_s_tuner(fd.as_raw_fd(), &tuner) } {
@@ -156,7 +155,7 @@ pub fn s_tuner(fd: &impl AsRawFd, index: u32, mode: TunerMode) -> Result<(), GAu
 /// Safe wrapper around the `VIDIOC_G_AUDIO` ioctl.
 pub fn g_audio<O: From<v4l2_audio>>(fd: &impl AsRawFd) -> Result<O, GAudioError> {
     let mut audio = v4l2_audio {
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_audio(fd.as_raw_fd(), &mut audio) } {
@@ -171,7 +170,7 @@ pub fn s_audio(fd: &impl AsRawFd, index: u32, mode: Option<AudioMode>) -> Result
     let audio = v4l2_audio {
         index,
         mode: mode.map(|m| m as u32).unwrap_or(0),
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_s_audio(fd.as_raw_fd(), &audio) } {
@@ -184,7 +183,7 @@ pub fn s_audio(fd: &impl AsRawFd, index: u32, mode: Option<AudioMode>) -> Result
 /// Safe wrapper around the `VIDIOC_G_AUDOUT` ioctl.
 pub fn g_audout<O: From<v4l2_audioout>>(fd: &impl AsRawFd) -> Result<O, GAudioError> {
     let mut audio = v4l2_audioout {
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_audout(fd.as_raw_fd(), &mut audio) } {
@@ -198,7 +197,7 @@ pub fn g_audout<O: From<v4l2_audioout>>(fd: &impl AsRawFd) -> Result<O, GAudioEr
 pub fn s_audout(fd: &impl AsRawFd, index: u32) -> Result<(), GAudioError> {
     let audio = v4l2_audioout {
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_s_audout(fd.as_raw_fd(), &audio) } {
@@ -215,7 +214,7 @@ pub fn g_modulator<O: From<v4l2_modulator>>(
 ) -> Result<O, GAudioError> {
     let mut modulator = v4l2_modulator {
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_modulator(fd.as_raw_fd(), &mut modulator) } {
@@ -234,7 +233,7 @@ pub fn s_modulator(
     let modulator = v4l2_modulator {
         index,
         txsubchans: txsubchans.bits(),
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_s_modulator(fd.as_raw_fd(), &modulator) } {
@@ -251,7 +250,7 @@ pub fn g_frequency<O: From<v4l2_frequency>>(
 ) -> Result<O, GAudioError> {
     let mut frequency = v4l2_frequency {
         tuner,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_frequency(fd.as_raw_fd(), &mut frequency) } {
@@ -272,7 +271,7 @@ pub fn s_frequency(
         tuner,
         type_: type_ as u32,
         frequency,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_s_frequency(fd.as_raw_fd(), &frequency) } {
@@ -286,7 +285,7 @@ pub fn s_frequency(
 pub fn enumaudio<O: From<v4l2_audio>>(fd: &impl AsRawFd, index: u32) -> Result<O, GAudioError> {
     let mut audio = v4l2_audio {
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enumaudio(fd.as_raw_fd(), &mut audio) } {
@@ -300,7 +299,7 @@ pub fn enumaudio<O: From<v4l2_audio>>(fd: &impl AsRawFd, index: u32) -> Result<O
 pub fn enumaudout<O: From<v4l2_audioout>>(fd: &impl AsRawFd, index: u32) -> Result<O, GAudioError> {
     let mut audio = v4l2_audioout {
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enumaudout(fd.as_raw_fd(), &mut audio) } {
@@ -337,7 +336,7 @@ pub fn enum_freq_bands<O: From<v4l2_frequency_band>>(
         tuner,
         type_: type_ as u32,
         index,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enum_freq_bands(fd.as_raw_fd(), &mut freq_band) } {

@@ -2,7 +2,6 @@
 use bitflags::bitflags;
 use nix::errno::Errno;
 use nix::fcntl::OFlag;
-use std::mem;
 use std::os::unix::io::{AsRawFd, FromRawFd};
 use thiserror::Error;
 
@@ -53,7 +52,7 @@ pub fn expbuf<R: FromRawFd>(
         index: index as u32,
         plane: plane as u32,
         flags: flags.bits(),
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     unsafe { ioctl::vidioc_expbuf(fd.as_raw_fd(), &mut v4l2_expbuf) }?;

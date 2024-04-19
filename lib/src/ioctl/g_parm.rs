@@ -43,7 +43,7 @@ pub fn g_parm<O: From<v4l2_streamparm>>(
 ) -> Result<O, GParmError> {
     let mut parm = v4l2_streamparm {
         type_: queue as u32,
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_parm(fd.as_raw_fd(), &mut parm) } {
@@ -127,7 +127,7 @@ impl From<EnumStdError> for Errno {
 pub fn enumstd<O: From<v4l2_standard>>(fd: &impl AsRawFd, index: u32) -> Result<O, EnumStdError> {
     let mut standard = v4l2_standard {
         index,
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enumstd(fd.as_raw_fd(), &mut standard) } {

@@ -128,7 +128,7 @@ where
             v4l2_ext_control {
                 id: T::ID,
                 __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 { value },
-                ..unsafe { std::mem::zeroed() }
+                ..Default::default()
             },
             PhantomData,
         )
@@ -155,7 +155,7 @@ where
             v4l2_ext_control {
                 id: T::ID,
                 __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 { value64 },
-                ..unsafe { std::mem::zeroed() }
+                ..Default::default()
             },
             PhantomData,
         )
@@ -186,7 +186,7 @@ where
                 __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
                     p_fwht_params: Box::into_raw(payload),
                 },
-                ..unsafe { std::mem::zeroed() }
+                ..Default::default()
             },
             PhantomData,
         )
@@ -224,7 +224,7 @@ where
                 __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
                     p_vp8_frame: Box::into_raw(payload),
                 },
-                ..unsafe { std::mem::zeroed() }
+                ..Default::default()
             },
             PhantomData,
         )

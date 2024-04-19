@@ -1,6 +1,5 @@
 use nix::errno::Errno;
 use std::convert::TryFrom;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::io::RawFd;
 use thiserror::Error;
@@ -150,7 +149,7 @@ impl From<GCtrlError> for Errno {
 pub fn g_ctrl(fd: &impl AsRawFd, id: u32) -> Result<i32, GCtrlError> {
     let mut ctrl = v4l2_control {
         id,
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_ctrl(fd.as_raw_fd(), &mut ctrl) } {
@@ -278,8 +277,7 @@ pub fn g_ext_ctrls<I: AsV4l2ControlSlice>(
             0
         },
         controls: controls_slice.as_mut_ptr(),
-        // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     // SAFETY: the 'controls' argument is properly set up above
@@ -308,8 +306,7 @@ pub fn s_ext_ctrls<I: AsV4l2ControlSlice>(
             0
         },
         controls: controls_slice.as_mut_ptr(),
-        // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     // SAFETY: the 'controls' argument is properly set up above
@@ -338,8 +335,7 @@ pub fn try_ext_ctrls<I: AsV4l2ControlSlice>(
             0
         },
         controls: controls_slice.as_mut_ptr(),
-        // SAFETY: ok to zero-fill this struct, the pointer it contains will be assigned to in this function
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     // SAFETY: the 'controls' argument is properly set up above
@@ -378,7 +374,7 @@ pub fn querymenu<O: From<v4l2_querymenu>>(
     let mut querymenu = v4l2_querymenu {
         id,
         index,
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_querymenu(fd.as_raw_fd(), &mut querymenu) } {

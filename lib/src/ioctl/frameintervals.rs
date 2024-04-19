@@ -72,7 +72,7 @@ pub fn enum_frame_intervals<O: From<v4l2_frmivalenum>>(
         pixel_format: pixel_format.into(),
         width,
         height,
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enum_frameintervals(fd.as_raw_fd(), &mut frame_interval) } {

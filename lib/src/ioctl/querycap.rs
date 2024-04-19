@@ -5,7 +5,6 @@ use crate::bindings::v4l2_capability;
 use bitflags::bitflags;
 use nix::errno::Errno;
 use std::fmt;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -128,7 +127,7 @@ impl From<QueryCapError> for Errno {
 
 /// Safe wrapper around the `VIDIOC_QUERYCAP` ioctl.
 pub fn querycap<T: From<v4l2_capability>>(fd: &impl AsRawFd) -> Result<T, QueryCapError> {
-    let mut qcap: v4l2_capability = unsafe { mem::zeroed() };
+    let mut qcap: v4l2_capability = Default::default();
 
     match unsafe { ioctl::vidioc_querycap(fd.as_raw_fd(), &mut qcap) } {
         Ok(_) => Ok(T::from(qcap)),

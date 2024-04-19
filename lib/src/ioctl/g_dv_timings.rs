@@ -70,7 +70,7 @@ pub fn s_dv_timings<I: Into<v4l2_dv_timings>, O: From<v4l2_dv_timings>>(
 /// Safe wrapper around the `VIDIOC_G_DV_TIMINGS` ioctl.
 pub fn g_dv_timings<O: From<v4l2_dv_timings>>(fd: &impl AsRawFd) -> Result<O, GDvTimingsError> {
     let mut timings = v4l2_dv_timings {
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_dv_timings(fd.as_raw_fd(), &mut timings) } {
@@ -109,7 +109,7 @@ pub fn enum_dv_timings<O: From<v4l2_dv_timings>>(
 ) -> Result<O, EnumDvTimingsError> {
     let mut timings = v4l2_enum_dv_timings {
         index,
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enum_dv_timings(fd.as_raw_fd(), &mut timings) } {
@@ -148,7 +148,7 @@ pub fn query_dv_timings<O: From<v4l2_dv_timings>>(
     fd: &impl AsRawFd,
 ) -> Result<O, QueryDvTimingsError> {
     let mut timings = v4l2_dv_timings {
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_query_dv_timings(fd.as_raw_fd(), &mut timings) } {
@@ -179,7 +179,7 @@ pub fn dv_timings_cap<O: From<v4l2_dv_timings_cap>>(
     fd: &impl AsRawFd,
 ) -> Result<O, DvTimingsCapError> {
     let mut caps = v4l2_dv_timings_cap {
-        ..unsafe { std::mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_dv_timings_cap(fd.as_raw_fd(), &mut caps) } {

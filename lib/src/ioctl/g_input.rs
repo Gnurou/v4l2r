@@ -1,5 +1,4 @@
 use std::ffi::c_int;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;
@@ -48,7 +47,7 @@ pub fn enuminput<R: From<v4l2_input>>(
 ) -> Result<R, SelectionError> {
     let mut input = v4l2_input {
         index: index as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enuminput(fd.as_raw_fd(), &mut input) } {
@@ -85,7 +84,7 @@ pub fn enumoutput<R: From<v4l2_output>>(
 ) -> Result<R, SelectionError> {
     let mut output = v4l2_output {
         index: index as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_enumoutput(fd.as_raw_fd(), &mut output) } {

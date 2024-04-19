@@ -1,5 +1,4 @@
 //! Safe wrapper for the `VIDIOC_QUERYCTRL` and `VIDIOC_QUERY_EXT_CTRL` ioctls.
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use bitflags::bitflags;
@@ -77,11 +76,9 @@ pub fn queryctrl<T: From<v4l2_queryctrl>>(
     id: CtrlId,
     flags: QueryCtrlFlags,
 ) -> Result<T, QueryCtrlError> {
-    let mut qctrl: v4l2_queryctrl = unsafe {
-        v4l2_queryctrl {
-            id: id.0 | flags.bits(),
-            ..mem::zeroed()
-        }
+    let mut qctrl: v4l2_queryctrl = v4l2_queryctrl {
+        id: id.0 | flags.bits(),
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_queryctrl(fd.as_raw_fd(), &mut qctrl) } {
@@ -96,11 +93,9 @@ pub fn query_ext_ctrl<T: From<v4l2_query_ext_ctrl>>(
     id: CtrlId,
     flags: QueryCtrlFlags,
 ) -> Result<T, QueryCtrlError> {
-    let mut qctrl: v4l2_query_ext_ctrl = unsafe {
-        v4l2_query_ext_ctrl {
-            id: id.0 | flags.bits(),
-            ..mem::zeroed()
-        }
+    let mut qctrl: v4l2_query_ext_ctrl = v4l2_query_ext_ctrl {
+        id: id.0 | flags.bits(),
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_query_ext_ctrl(fd.as_raw_fd(), &mut qctrl) } {

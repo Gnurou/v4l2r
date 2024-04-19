@@ -1,11 +1,9 @@
 //! Safe wrapper for the `VIDIOC_SUBSCRIBE_EVENT` and `VIDIOC_UNSUBSCRIBE_EVENT
 //! ioctls.
 
+use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::os::unix::io::AsRawFd;
-use std::{
-    convert::{TryFrom, TryInto},
-    mem,
-};
 
 use bitflags::bitflags;
 use nix::errno::Errno;
@@ -112,7 +110,7 @@ fn build_v4l2_event_subscription(
             _ => 0,
         },
         flags: flags.bits(),
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     }
 }
 
@@ -163,7 +161,7 @@ pub fn unsubscribe_event(fd: &impl AsRawFd, event: EventType) -> Result<(), Subs
 pub fn unsubscribe_all_events(fd: &impl AsRawFd) -> Result<(), SubscribeEventError> {
     let subscription = v4l2_event_subscription {
         type_: bindings::V4L2_EVENT_ALL,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     unsafe { ioctl::vidioc_unsubscribe_event(fd.as_raw_fd(), &subscription) }?;
@@ -200,8 +198,7 @@ impl From<DqEventError> for Errno {
 }
 
 pub fn dqevent<O: TryFrom<v4l2_event>>(fd: &impl AsRawFd) -> Result<O, DqEventError> {
-    // Safe because this struct is expected to be initialized to 0.
-    let mut event: v4l2_event = unsafe { mem::zeroed() };
+    let mut event: v4l2_event = Default::default();
 
     match unsafe { ioctl::vidioc_dqevent(fd.as_raw_fd(), &mut event) } {
         Ok(_) => Ok(event

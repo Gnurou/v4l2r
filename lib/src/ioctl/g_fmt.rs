@@ -2,7 +2,6 @@
 use nix::errno::Errno;
 use std::convert::{From, Into, TryFrom, TryInto};
 use std::default::Default;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -33,7 +32,7 @@ impl TryFrom<(QueueType, &Format)> for v4l2_format {
                                 pixelformat: format.pixelformat.into(),
                                 num_planes: format.plane_fmt.len() as u8,
                                 plane_fmt: Default::default(),
-                                ..unsafe { mem::zeroed() }
+                                ..Default::default()
                             };
 
                             for (plane, v4l2_plane) in
@@ -67,7 +66,7 @@ impl TryFrom<(QueueType, &Format)> for v4l2_format {
                             pixelformat: format.pixelformat.into(),
                             bytesperline,
                             sizeimage,
-                            ..unsafe { mem::zeroed() }
+                            ..Default::default()
                         }
                     },
                 },
@@ -118,7 +117,7 @@ impl From<GFmtError> for Errno {
 pub fn g_fmt<O: TryFrom<v4l2_format>>(fd: &impl AsRawFd, queue: QueueType) -> Result<O, GFmtError> {
     let mut fmt = v4l2_format {
         type_: queue as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     match unsafe { ioctl::vidioc_g_fmt(fd.as_raw_fd(), &mut fmt) } {

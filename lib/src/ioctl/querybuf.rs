@@ -1,5 +1,4 @@
 use std::convert::Infallible;
-use std::mem;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;
@@ -163,7 +162,7 @@ pub fn querybuf<T: QueryBuf>(
     let mut v4l2_buf = v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
-        ..unsafe { mem::zeroed() }
+        ..Default::default()
     };
 
     if is_multi_planar(queue) {
