@@ -9,7 +9,6 @@ use std::{
     collections::BTreeMap,
     fs::File,
     io::{self, Read, Write},
-    mem,
     sync::atomic::{AtomicUsize, Ordering},
     sync::Arc,
     task::Wake,
@@ -46,8 +45,12 @@ pub struct PollEvents {
 impl PollEvents {
     fn new() -> Self {
         PollEvents {
-            // Safe because that's the rightful initial state for epoll_event.
-            events: unsafe { mem::zeroed() },
+            events: [
+                EpollEvent::empty(),
+                EpollEvent::empty(),
+                EpollEvent::empty(),
+                EpollEvent::empty(),
+            ],
             nb_events: 0,
             cur_event: 0,
         }
