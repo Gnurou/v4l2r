@@ -59,9 +59,10 @@ impl QueryBuf for V4l2Buffer {
         if QueueType::n(v4l2_buf.type_).is_none() {
             return Err(V4l2BufferFromError::UnknownQueueType(v4l2_buf.type_));
         }
-        if MemoryType::n(v4l2_buf.memory).is_none() {
-            return Err(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory));
-        }
+        let mem = match MemoryType::n(v4l2_buf.memory) {
+            Some(m) => m,
+            None => return Err(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory)),
+        };
 
         Ok(Self {
             buffer: v4l2_buf,
@@ -72,10 +73,22 @@ impl QueryBuf for V4l2Buffer {
                     bytesused: v4l2_buf.bytesused,
                     length: v4l2_buf.length,
                     data_offset: 0,
+                    m: match mem {
+                        MemoryType::Mmap => bindings::v4l2_plane__bindgen_ty_1 {
+                            // Safe because the buffer's memory type is MMAP.
+                            mem_offset: unsafe { v4l2_buf.m.offset },
+                        },
+                        MemoryType::UserPtr => bindings::v4l2_plane__bindgen_ty_1 {
+                            // Safe because the buffer's memory type is USERPTR.
+                            userptr: unsafe { v4l2_buf.m.userptr },
+                        },
+                        MemoryType::DmaBuf => bindings::v4l2_plane__bindgen_ty_1 {
+                            // Safe because the buffer's memory type is DMABUF.
+                            fd: unsafe { v4l2_buf.m.fd },
+                        },
+                        _ => Default::default(),
+                    },
                     reserved: Default::default(),
-                    // Safe because both unions have the same members and
-                    // layout in single-plane mode.
-                    m: unsafe { std::mem::transmute(v4l2_buf.m) },
                 };
 
                 pdata

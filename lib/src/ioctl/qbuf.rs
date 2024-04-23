@@ -15,6 +15,7 @@ use crate::ioctl::QueryBuf;
 use crate::ioctl::V4l2Buffer;
 use crate::ioctl::V4l2BufferPlanes;
 use crate::memory::Memory;
+use crate::memory::MemoryType;
 use crate::memory::PlaneHandle;
 use crate::QueueType;
 
@@ -177,8 +178,24 @@ impl<H: PlaneHandle, Q: QueryBuf> QBuf<Q> for QBuffer<H> {
         if plane.0.data_offset != 0 {
             return Err(QBufError::DataOffsetNotSupported);
         }
+
+        v4l2_buf.length = plane.0.length;
         v4l2_buf.bytesused = plane.0.bytesused;
-        H::fill_v4l2_splane_buffer(&plane.0, v4l2_buf);
+        v4l2_buf.m = match H::Memory::MEMORY_TYPE {
+            MemoryType::Mmap => bindings::v4l2_buffer__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be MMAP.
+                offset: unsafe { plane.0.m.mem_offset },
+            },
+            MemoryType::UserPtr => bindings::v4l2_buffer__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be USERPTR.
+                userptr: unsafe { plane.0.m.userptr },
+            },
+            MemoryType::DmaBuf => bindings::v4l2_buffer__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be DMABUF.
+                fd: unsafe { plane.0.m.fd },
+            },
+            _ => Default::default(),
+        };
 
         Ok(())
     }
