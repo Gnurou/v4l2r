@@ -339,7 +339,7 @@ impl<T: Into<PixelFormat>> From<(T, (usize, usize))> for Format {
 }
 
 /// A more elegant representation for `v4l2_rect`.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Rect {
     pub left: i32,
     pub top: i32,
