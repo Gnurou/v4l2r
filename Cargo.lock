@@ -804,7 +804,7 @@ dependencies = [
 
 [[package]]
 name = "v4l2r"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "bitflags 2.4.0",
