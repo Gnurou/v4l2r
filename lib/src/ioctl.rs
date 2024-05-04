@@ -311,16 +311,8 @@ impl V4l2Buffer {
         self.buffer.sequence
     }
 
-    pub fn is_multi_planar(&self) -> bool {
-        matches!(
-            self.buffer.type_,
-            bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
-                | bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-        )
-    }
-
     pub fn num_planes(&self) -> usize {
-        if self.is_multi_planar() {
+        if self.queue_type().is_multiplanar() {
             self.buffer.length as usize
         } else {
             1
