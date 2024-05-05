@@ -37,7 +37,7 @@ pub use mmap::*;
 pub use userptr::*;
 
 use crate::{
-    bindings,
+    bindings::{self, v4l2_buffer__bindgen_ty_1, v4l2_plane__bindgen_ty_1},
     ioctl::{PlaneMapping, QueryBufPlane},
 };
 use enumn::N;
@@ -126,4 +126,103 @@ pub trait PrimitiveBufferHandles: BufferHandles {
 impl<P: PlaneHandle> PrimitiveBufferHandles for Vec<P> {
     type HandleType = P;
     const MEMORY_TYPE: Self::SupportedMemoryType = P::Memory::MEMORY_TYPE;
+}
+
+/// Conversion from `v4l2_buffer`'s backing information to `v4l2_plane`'s.
+impl From<(&v4l2_buffer__bindgen_ty_1, MemoryType)> for v4l2_plane__bindgen_ty_1 {
+    fn from((m, memory): (&v4l2_buffer__bindgen_ty_1, MemoryType)) -> Self {
+        match memory {
+            MemoryType::Mmap => v4l2_plane__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be MMAP.
+                mem_offset: unsafe { m.offset },
+            },
+            MemoryType::UserPtr => v4l2_plane__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be USERPTR.
+                userptr: unsafe { m.userptr },
+            },
+            MemoryType::DmaBuf => v4l2_plane__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be DMABUF.
+                fd: unsafe { m.fd },
+            },
+            MemoryType::Overlay => Default::default(),
+        }
+    }
+}
+
+/// Conversion from `v4l2_plane`'s backing information to `v4l2_buffer`'s.
+impl From<(&v4l2_plane__bindgen_ty_1, MemoryType)> for v4l2_buffer__bindgen_ty_1 {
+    fn from((m, memory): (&v4l2_plane__bindgen_ty_1, MemoryType)) -> Self {
+        match memory {
+            MemoryType::Mmap => v4l2_buffer__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be MMAP.
+                offset: unsafe { m.mem_offset },
+            },
+            MemoryType::UserPtr => v4l2_buffer__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be USERPTR.
+                userptr: unsafe { m.userptr },
+            },
+            MemoryType::DmaBuf => v4l2_buffer__bindgen_ty_1 {
+                // Safe because the buffer type is determined to be DMABUF.
+                fd: unsafe { m.fd },
+            },
+            MemoryType::Overlay => Default::default(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::bindings::v4l2_buffer__bindgen_ty_1;
+    use crate::bindings::v4l2_plane__bindgen_ty_1;
+    use crate::memory::MemoryType;
+
+    #[test]
+    // Purpose of this test is dubious as the members are overlapping anyway.
+    fn plane_m_to_buffer_m() {
+        let plane_m = v4l2_plane__bindgen_ty_1 {
+            mem_offset: 0xfeedc0fe,
+        };
+        assert_eq!(
+            unsafe { v4l2_buffer__bindgen_ty_1::from((&plane_m, MemoryType::Mmap)).offset },
+            0xfeedc0fe
+        );
+
+        let plane_m = v4l2_plane__bindgen_ty_1 {
+            userptr: 0xfeedc0fe,
+        };
+        assert_eq!(
+            unsafe { v4l2_buffer__bindgen_ty_1::from((&plane_m, MemoryType::UserPtr)).userptr },
+            0xfeedc0fe
+        );
+
+        let plane_m = v4l2_plane__bindgen_ty_1 { fd: 0x76543210 };
+        assert_eq!(
+            unsafe { v4l2_buffer__bindgen_ty_1::from((&plane_m, MemoryType::DmaBuf)).fd },
+            0x76543210
+        );
+    }
+
+    #[test]
+    // Purpose of this test is dubious as the members are overlapping anyway.
+    fn buffer_m_to_plane_m() {
+        let buffer_m = v4l2_buffer__bindgen_ty_1 { offset: 0xfeedc0fe };
+        assert_eq!(
+            unsafe { v4l2_plane__bindgen_ty_1::from((&buffer_m, MemoryType::Mmap)).mem_offset },
+            0xfeedc0fe
+        );
+
+        let buffer_m = v4l2_buffer__bindgen_ty_1 {
+            userptr: 0xfeedc0fe,
+        };
+        assert_eq!(
+            unsafe { v4l2_plane__bindgen_ty_1::from((&buffer_m, MemoryType::UserPtr)).userptr },
+            0xfeedc0fe
+        );
+
+        let buffer_m = v4l2_buffer__bindgen_ty_1 { fd: 0x76543210 };
+        assert_eq!(
+            unsafe { v4l2_plane__bindgen_ty_1::from((&buffer_m, MemoryType::DmaBuf)).fd },
+            0x76543210
+        );
+    }
 }
