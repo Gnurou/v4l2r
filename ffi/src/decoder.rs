@@ -225,7 +225,7 @@ fn frame_decoded_cb(
         event_cb(
             cb_data,
             &mut v4l2r_decoder_event::FrameDecoded(v4l2r_decoder_frame_decoded_event {
-                buffer: v4l2_data.as_raw_v4l2_buffer(),
+                buffer: v4l2_data.v4l2_buffer() as *const bindings::v4l2_buffer,
                 frame,
             }),
         );
@@ -331,7 +331,7 @@ fn v4l2r_decoder_new_safe(
                     CompletedInputBuffer::Dequeued(dqbuf) => {
                         debug!("Input buffer {} done", dqbuf.data.index());
                         // TODO check return value?
-                        input_done_cb(cb_data.0, dqbuf.data.as_raw_v4l2_buffer());
+                        input_done_cb(cb_data.0, dqbuf.data.v4l2_buffer() as *const bindings::v4l2_buffer);
                     }
                     // Just drop canceled buffers for now - the client will remove
                     // them on its side as well.

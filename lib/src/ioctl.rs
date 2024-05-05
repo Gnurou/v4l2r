@@ -341,12 +341,6 @@ impl V4l2Buffer {
         }
     }
 
-    /// Returns the raw v4l2_buffer as a pointer. Useful to pass to unsafe
-    /// non-Rust code.
-    pub fn as_raw_v4l2_buffer(&self) -> *const bindings::v4l2_buffer {
-        &self.buffer
-    }
-
     /// Returns a reference to the internal `v4l2_buffer`. All pointers in this
     /// structure are invalid.
     pub fn v4l2_buffer(&self) -> &bindings::v4l2_buffer {
