@@ -215,7 +215,7 @@ fn main() {
     let poll_count_writer = Arc::clone(&poll_count_reader);
     let mut frame_counter = 0usize;
     let output_ready_cb = move |cap_dqbuf: DqBuffer<Capture, Vec<MmapHandle>>| {
-        let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
+        let bytes_used = *cap_dqbuf.data.get_first_plane().bytesused as usize;
         // Ignore zero-sized buffers.
         if bytes_used == 0 {
             return;

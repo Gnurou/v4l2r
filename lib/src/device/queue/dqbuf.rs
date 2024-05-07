@@ -86,12 +86,12 @@ where
         // We can only obtain a mapping if this buffer has not been deleted.
         let buffer_info = self.buffer_info.upgrade()?;
         let plane = buffer_info.features.planes.get(plane_index)?;
-        let plane_data = self.data.get_plane(plane_index)?;
+        let plane_data = self.data.planes_iter().nth(plane_index)?;
         // If the buffer info was alive, then the device must also be.
         let device = self.device.upgrade()?;
 
-        let start = plane_data.data_offset() as usize;
-        let end = start + plane_data.bytesused() as usize;
+        let start = *plane_data.data_offset.unwrap_or(&0) as usize;
+        let end = start + *plane_data.bytesused as usize;
 
         Some(P::HandleType::map(device.as_ref(), plane)?.restrict(start, end))
     }

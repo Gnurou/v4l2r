@@ -7,6 +7,31 @@ pub struct UserPtr;
 
 impl Memory for UserPtr {
     const MEMORY_TYPE: MemoryType = MemoryType::UserPtr;
+    type RawBacking = core::ffi::c_ulong;
+
+    unsafe fn get_plane_buffer_backing(
+        m: &bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &Self::RawBacking {
+        &m.userptr
+    }
+
+    unsafe fn get_single_planar_buffer_backing(
+        m: &bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &Self::RawBacking {
+        &m.userptr
+    }
+
+    unsafe fn get_plane_buffer_backing_mut(
+        m: &mut bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &mut Self::RawBacking {
+        &mut m.userptr
+    }
+
+    unsafe fn get_single_planar_buffer_backing_mut(
+        m: &mut bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &mut Self::RawBacking {
+        &mut m.userptr
+    }
 }
 
 impl Imported for UserPtr {}

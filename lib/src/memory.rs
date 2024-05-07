@@ -58,6 +58,47 @@ pub enum MemoryType {
 pub trait Memory: 'static {
     /// The memory type represented.
     const MEMORY_TYPE: MemoryType;
+    /// The final type of the memory backing information in `struct v4l2_buffer` or `struct
+    /// v4l2_plane`.
+    type RawBacking;
+
+    /// Returns a reference to the memory backing information for `m` that is relevant for this
+    /// memory type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `m` indeed belongs to a buffer of this memory type.
+    unsafe fn get_plane_buffer_backing(m: &bindings::v4l2_plane__bindgen_ty_1)
+        -> &Self::RawBacking;
+
+    /// Returns a reference to the memory backing information for `m` that is relevant for this memory type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `m` indeed belongs to a buffer of this memory type.
+    unsafe fn get_single_planar_buffer_backing(
+        m: &bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &Self::RawBacking;
+
+    /// Returns a mutable reference to the memory backing information for `m` that is relevant for
+    /// this memory type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `m` indeed belongs to a buffer of this memory type.
+    unsafe fn get_plane_buffer_backing_mut(
+        m: &mut bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &mut Self::RawBacking;
+
+    /// Returns a mutable reference to the memory backing information for `m` that is relevant for
+    /// this memory type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `m` indeed belongs to a buffer of this memory type.
+    unsafe fn get_single_planar_buffer_backing_mut(
+        m: &mut bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &mut Self::RawBacking;
 }
 
 /// Trait for memory types that provide their own memory, i.e. MMAP.

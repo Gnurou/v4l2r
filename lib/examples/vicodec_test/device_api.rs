@@ -241,7 +241,7 @@ pub fn run<F: FnMut(&[u8])>(
             .try_dequeue()
             .expect("Failed to dequeue capture buffer");
         let cap_index = cap_dqbuf.data.index() as usize;
-        let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
+        let bytes_used = *cap_dqbuf.data.get_first_plane().bytesused as usize;
 
         total_size = total_size.wrapping_add(bytes_used);
         let elapsed = start_time.elapsed();

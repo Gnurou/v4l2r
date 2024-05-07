@@ -9,6 +9,31 @@ pub struct Mmap;
 
 impl Memory for Mmap {
     const MEMORY_TYPE: MemoryType = MemoryType::Mmap;
+    type RawBacking = u32;
+
+    unsafe fn get_plane_buffer_backing(
+        m: &bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &Self::RawBacking {
+        &m.mem_offset
+    }
+
+    unsafe fn get_single_planar_buffer_backing(
+        m: &bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &Self::RawBacking {
+        &m.offset
+    }
+
+    unsafe fn get_plane_buffer_backing_mut(
+        m: &mut bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &mut Self::RawBacking {
+        &mut m.mem_offset
+    }
+
+    unsafe fn get_single_planar_buffer_backing_mut(
+        m: &mut bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &mut Self::RawBacking {
+        &mut m.offset
+    }
 }
 
 impl SelfBacked for Mmap {}

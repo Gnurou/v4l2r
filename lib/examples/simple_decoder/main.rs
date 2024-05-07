@@ -109,7 +109,7 @@ fn main() {
     let start_time = std::time::Instant::now();
     let mut frame_counter = 0usize;
     let mut output_ready_cb = move |cap_dqbuf: DqBuffer<Capture, Vec<MmapHandle>>| {
-        let bytes_used = cap_dqbuf.data.get_first_plane().bytesused() as usize;
+        let bytes_used = *cap_dqbuf.data.get_first_plane().bytesused as usize;
         // Ignore zero-sized buffers.
         if bytes_used == 0 {
             return;

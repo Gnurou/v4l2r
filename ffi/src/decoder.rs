@@ -197,14 +197,14 @@ fn frame_decoded_cb(
         dqbuf.data.index(),
         dqbuf.data.flags(),
     );
-    let v4l2_data = dqbuf.data.clone();
+    let mut v4l2_data = dqbuf.data.clone();
     // Drop the DQBuffer early so the C callback can reuse the V4L2
     // buffer if it needs to.
     drop(dqbuf);
 
     // Immediately recycle empty frames. We will pass the corresponding
     // event to the client.
-    if v4l2_data.get_first_plane().bytesused() == 0 {
+    if *v4l2_data.get_first_plane().bytesused == 0 {
         debug!(
             "Immediately recycling zero-sized frame {} {}",
             frame.id,
@@ -225,7 +225,7 @@ fn frame_decoded_cb(
         event_cb(
             cb_data,
             &mut v4l2r_decoder_event::FrameDecoded(v4l2r_decoder_frame_decoded_event {
-                buffer: v4l2_data.v4l2_buffer() as *const bindings::v4l2_buffer,
+                buffer: v4l2_data.as_mut_ptr() as *const _,
                 frame,
             }),
         );
@@ -328,10 +328,10 @@ fn v4l2r_decoder_new_safe(
         Box::new(
             move |buf: CompletedInputBuffer<Vec<DmaBufHandle<DmaBufFd>>>| {
                 match buf {
-                    CompletedInputBuffer::Dequeued(dqbuf) => {
+                    CompletedInputBuffer::Dequeued(mut dqbuf) => {
                         debug!("Input buffer {} done", dqbuf.data.index());
                         // TODO check return value?
-                        input_done_cb(cb_data.0, dqbuf.data.v4l2_buffer() as *const bindings::v4l2_buffer);
+                        input_done_cb(cb_data.0, dqbuf.data.as_mut_ptr() as *const _);
                     }
                     // Just drop canceled buffers for now - the client will remove
                     // them on its side as well.

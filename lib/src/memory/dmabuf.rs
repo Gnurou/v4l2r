@@ -3,6 +3,7 @@ use log::warn;
 
 use super::*;
 use crate::{bindings, ioctl};
+use std::os::fd::RawFd;
 use std::os::unix::io::{AsFd, AsRawFd};
 
 pub struct DmaBuf;
@@ -11,6 +12,31 @@ pub type DmaBufferHandles<T> = Vec<DmaBufHandle<T>>;
 
 impl Memory for DmaBuf {
     const MEMORY_TYPE: MemoryType = MemoryType::DmaBuf;
+    type RawBacking = RawFd;
+
+    unsafe fn get_plane_buffer_backing(
+        m: &bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &Self::RawBacking {
+        &m.fd
+    }
+
+    unsafe fn get_single_planar_buffer_backing(
+        m: &bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &Self::RawBacking {
+        &m.fd
+    }
+
+    unsafe fn get_plane_buffer_backing_mut(
+        m: &mut bindings::v4l2_plane__bindgen_ty_1,
+    ) -> &mut Self::RawBacking {
+        &mut m.fd
+    }
+
+    unsafe fn get_single_planar_buffer_backing_mut(
+        m: &mut bindings::v4l2_buffer__bindgen_ty_1,
+    ) -> &mut Self::RawBacking {
+        &mut m.fd
+    }
 }
 
 impl Imported for DmaBuf {}
