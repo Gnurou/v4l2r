@@ -219,9 +219,7 @@ fn main() {
         let v4l2_buffer = match decoder.get_buffer() {
             Ok(buffer) => buffer,
             // If we got interrupted while waiting for a buffer, just exit normally.
-            Err(GetBufferError::PollError(PollError::EPollWait(e)))
-                if e == nix::errno::Errno::EINTR =>
-            {
+            Err(GetBufferError::PollError(PollError::EPollWait(nix::errno::Errno::EINTR))) => {
                 break 'mainloop
             }
             Err(e) => panic!("{}", e),
