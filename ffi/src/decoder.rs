@@ -271,7 +271,7 @@ fn v4l2r_decoder_new_safe(
         input_buffer_size
     );
 
-    let decoder = match decoder.set_output_format(|f| {
+    let format_builder = |f: FormatBuilder| {
         let pixel_format = input_format_fourcc.into();
         let format = match f
             .set_pixelformat(pixel_format)
@@ -295,7 +295,8 @@ fn v4l2r_decoder_new_safe(
             format.plane_fmt[0].sizeimage
         );
         Ok(())
-    }) {
+    };
+    let decoder = match decoder.set_output_format(format_builder) {
         Ok(decoder) => decoder,
         Err(e) => {
             error!("Error while setting output format: {}", e);
@@ -324,6 +325,16 @@ fn v4l2r_decoder_new_safe(
     let mut decoder_box = Box::new(MaybeUninit::<v4l2r_decoder>::uninit());
     let decoder_ptr = SendablePtr(decoder_box.as_mut_ptr());
 
+    let event_handler = move |event: DecoderEvent<Arc<v4l2r_video_frame_provider>>| {
+        let decoder = unsafe { decoder_ptr.0.as_mut().unwrap() };
+
+        match event {
+            DecoderEvent::FrameDecoded(dqbuf) => {
+                frame_decoded_cb(decoder, dqbuf, event_cb, cb_data.0)
+            }
+            DecoderEvent::EndOfStream => event_cb(cb_data.0, &mut v4l2r_decoder_event::EndOfStream),
+        };
+    };
     let decoder = match decoder.start(
         Box::new(
             move |buf: CompletedInputBuffer<Vec<DmaBufHandle<DmaBufFd>>>| {
@@ -341,16 +352,7 @@ fn v4l2r_decoder_new_safe(
                 }
             },
         ) as Box<dyn InputDoneCallback<Vec<DmaBufHandle<DmaBufFd>>>>,
-        Box::new(move |event: DecoderEvent<Arc<v4l2r_video_frame_provider>>| {
-            let decoder = unsafe { decoder_ptr.0.as_mut().unwrap() };
-
-            match event {
-                DecoderEvent::FrameDecoded(dqbuf) => frame_decoded_cb(decoder, dqbuf, event_cb, cb_data.0),
-                DecoderEvent::EndOfStream =>
-                    event_cb(cb_data.0,
-                        &mut v4l2r_decoder_event::EndOfStream)
-            };
-        }) as Box<dyn DecoderEventCallback<Arc<v4l2r_video_frame_provider>>>,
+        Box::new(event_handler) as Box<dyn DecoderEventCallback<Arc<v4l2r_video_frame_provider>>>,
         Box::new(
             move |f: FormatBuilder,
                   visible_rect: Rect,
