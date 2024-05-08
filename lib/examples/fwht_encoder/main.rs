@@ -267,11 +267,7 @@ fn main() {
         let v4l2_buffer = match encoder.get_buffer() {
             Ok(buffer) => buffer,
             // If we got interrupted while waiting for a buffer, just exit normally.
-            Err(GetBufferError::PollError(PollError::EPollWait(e)))
-                if e == nix::errno::Errno::EINTR =>
-            {
-                break
-            }
+            Err(GetBufferError::PollError(PollError::EPollWait(nix::errno::Errno::EINTR))) => break,
             Err(e) => panic!("{}", e),
         };
         let bytes_used = frame_gen.frame_size();
