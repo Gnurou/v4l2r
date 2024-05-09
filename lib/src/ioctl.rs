@@ -385,6 +385,12 @@ impl V4l2Buffer {
         self.planes_iter().next().unwrap()
     }
 
+    /// Returns the first plane of the buffer. This method is guaranteed to
+    /// succeed because every buffer has at least one plane.
+    pub fn get_first_plane_mut(&mut self) -> V4l2PlaneMutAccessor {
+        self.planes_iter_mut().next().unwrap()
+    }
+
     /// Returns a non-mutable reference to the internal `v4l2_buffer`.
     ///
     /// The returned value is not suitable for passing to C functions or ioctls (which anyway
