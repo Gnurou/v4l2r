@@ -300,6 +300,7 @@ bitflags! {
         const TIMESTAMP_COPY = bindings::V4L2_BUF_FLAG_TIMESTAMP_COPY;
         const TSTAMP_SRC_EOF = bindings::V4L2_BUF_FLAG_TSTAMP_SRC_EOF;
         const TSTAMP_SRC_SOE = bindings::V4L2_BUF_FLAG_TSTAMP_SRC_SOE;
+        const REQUEST_FD = bindings::V4L2_BUF_FLAG_REQUEST_FD;
     }
 }
 
