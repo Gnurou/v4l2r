@@ -335,12 +335,24 @@ impl V4l2Buffer {
         MemoryType::n(self.buffer.memory).unwrap()
     }
 
+    /// Returns the currently set flags for this buffer.
     pub fn flags(&self) -> BufferFlags {
         BufferFlags::from_bits_truncate(self.buffer.flags)
     }
 
+    /// Sets the flags of this buffer.
     pub fn set_flags(&mut self, flags: BufferFlags) {
         self.buffer.flags = flags.bits();
+    }
+
+    /// Add `flags` to the set of flags for this buffer.
+    pub fn add_flags(&mut self, flags: BufferFlags) {
+        self.set_flags(self.flags() | flags);
+    }
+
+    /// Remove `flags` from the set of flags for this buffer.
+    pub fn clear_flags(&mut self, flags: BufferFlags) {
+        self.set_flags(self.flags() - flags);
     }
 
     pub fn field(&self) -> BufferField {
