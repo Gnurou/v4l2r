@@ -429,8 +429,13 @@ impl V4l2Buffer {
     /// If this buffer is multi-planar then the `planes` pointer will be updated so the returned
     /// data is valid if passed to a C function or an ioctl.
     ///
-    /// Beware however that as a consequence the returned pointer is only valid as long as the
-    /// `V4l2Buffer` is not moved anywhere. Use with extreme caution.
+    /// Beware that as a consequence the returned pointer is only valid as long as the `V4l2Buffer`
+    /// is not moved anywhere.
+    ///
+    /// Also, any unsafe code called on this pointer must maintain the invariants listed in
+    /// [`V4l2Buffer`]'s documentation.
+    ///
+    /// Use with extreme caution.
     pub fn as_mut_ptr(&mut self) -> *mut bindings::v4l2_buffer {
         if self.queue_type().is_multiplanar() && self.buffer.length > 0 {
             self.buffer.m.planes = self.planes.as_mut_ptr();
