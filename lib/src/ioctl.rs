@@ -343,6 +343,14 @@ impl V4l2Buffer {
         self.buffer.flags = flags.bits();
     }
 
+    pub fn field(&self) -> BufferField {
+        BufferField::n(self.buffer.field).unwrap()
+    }
+
+    pub fn set_field(&mut self, field: BufferField) {
+        self.buffer.field = field as u32;
+    }
+
     pub fn is_last(&self) -> bool {
         self.flags().contains(BufferFlags::LAST)
     }
