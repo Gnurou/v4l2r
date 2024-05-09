@@ -112,6 +112,12 @@ impl<H: PlaneHandle> QBuffer<H> {
         self.timestamp = TimeVal::new(sec, usec);
         self
     }
+
+    pub fn set_request(mut self, fd: RawFd) -> Self {
+        self.request = Some(fd);
+        self.flags |= BufferFlags::REQUEST_FD;
+        self
+    }
 }
 
 impl<H: PlaneHandle> From<QBuffer<H>> for UncheckedV4l2Buffer {
