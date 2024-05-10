@@ -1,4 +1,9 @@
 # Rust bindings for V4L2
+[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Build Status](https://github.com/Gnurou/v4l2r/actions/workflows/rust.yml/badge.svg)](https://github.com/Gnurou/v4l2r/actions)
+[![Crates.io](https://img.shields.io/crates/v/v4l2r.svg)](https://crates.io/crates/v4l2r)
+[![dependency status](https://deps.rs/repo/github/Gnurou/v4l2r/status.svg)](https://deps.rs/repo/github/Gnurou/v4l2r)
+[![Documentation](https://docs.rs/v4l2r/badge.svg)](https://docs.rs/v4l2r/)
 
 This is a work-in-progress library to implement safe Rust bindings and high-level
 interfaces for V4L2.
