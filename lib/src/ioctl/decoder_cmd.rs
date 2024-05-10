@@ -1,3 +1,5 @@
+//! Safe wrapper for the `VIDIOC_(TRY_)DECODER_CMD` ioctls.
+
 use crate::bindings;
 use crate::bindings::v4l2_decoder_cmd;
 use bitflags::bitflags;
@@ -223,12 +225,11 @@ pub fn decoder_cmd<I: Into<v4l2_decoder_cmd>, O: TryFrom<v4l2_decoder_cmd>>(
 ) -> Result<O, DecoderCmdError> {
     let mut dec_cmd = command.into();
 
-    match unsafe { ioctl::vidioc_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) } {
-        Ok(_) => Ok(
-            O::try_from(dec_cmd).map_err(|_| DecoderCmdError::FromV4L2CommandConversionError)?
-        ),
-        Err(e) => Err(e.into()),
-    }
+    unsafe { ioctl::vidioc_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) }
+        .map_err(Into::into)
+        .and_then(|_| {
+            O::try_from(dec_cmd).map_err(|_| DecoderCmdError::FromV4L2CommandConversionError)
+        })
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_DECODER_CMD` ioctl.
@@ -238,12 +239,11 @@ pub fn try_decoder_cmd<I: Into<v4l2_decoder_cmd>, O: TryFrom<v4l2_decoder_cmd>>(
 ) -> Result<O, DecoderCmdError> {
     let mut dec_cmd = command.into();
 
-    match unsafe { ioctl::vidioc_try_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) } {
-        Ok(_) => Ok(
-            O::try_from(dec_cmd).map_err(|_| DecoderCmdError::FromV4L2CommandConversionError)?
-        ),
-        Err(e) => Err(e.into()),
-    }
+    unsafe { ioctl::vidioc_try_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) }
+        .map_err(Into::into)
+        .and_then(|_| {
+            O::try_from(dec_cmd).map_err(|_| DecoderCmdError::FromV4L2CommandConversionError)
+        })
 }
 
 #[cfg(test)]
