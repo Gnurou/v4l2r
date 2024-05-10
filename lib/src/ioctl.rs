@@ -128,38 +128,6 @@ fn string_from_cstr(c_str: &[u8]) -> Result<String, FromBytesWithNulError> {
         .into_owned())
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_string_from_cstr() {
-        use super::string_from_cstr;
-
-        // Nul-terminated slice.
-        assert_eq!(string_from_cstr(b"Hello\0"), Ok(String::from("Hello")));
-
-        // Slice with nul in the middle and not nul-terminated.
-        assert_eq!(string_from_cstr(b"Hi\0lo"), Ok(String::from("Hi")));
-
-        // Slice with nul in the middle and nul-terminated.
-        assert_eq!(string_from_cstr(b"Hi\0lo\0"), Ok(String::from("Hi")));
-
-        // Slice starting with nul.
-        assert_eq!(string_from_cstr(b"\0ello"), Ok(String::from("")));
-
-        // Slice without nul.
-        match string_from_cstr(b"Hello") {
-            Err(_) => {}
-            Ok(_) => panic!(),
-        };
-
-        // Empty slice.
-        match string_from_cstr(b"") {
-            Err(_) => {}
-            Ok(_) => panic!(),
-        };
-    }
-}
-
 /// Returns whether the given queue type can handle multi-planar formats.
 fn is_multi_planar(queue: QueueType) -> bool {
     matches!(
@@ -816,4 +784,36 @@ pub enum V4l2PlanesWithBackingMut<
     UserPtr(U),
     DmaBuf(D),
     Overlay,
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_string_from_cstr() {
+        use super::string_from_cstr;
+
+        // Nul-terminated slice.
+        assert_eq!(string_from_cstr(b"Hello\0"), Ok(String::from("Hello")));
+
+        // Slice with nul in the middle and not nul-terminated.
+        assert_eq!(string_from_cstr(b"Hi\0lo"), Ok(String::from("Hi")));
+
+        // Slice with nul in the middle and nul-terminated.
+        assert_eq!(string_from_cstr(b"Hi\0lo\0"), Ok(String::from("Hi")));
+
+        // Slice starting with nul.
+        assert_eq!(string_from_cstr(b"\0ello"), Ok(String::from("")));
+
+        // Slice without nul.
+        match string_from_cstr(b"Hello") {
+            Err(_) => {}
+            Ok(_) => panic!(),
+        };
+
+        // Empty slice.
+        match string_from_cstr(b"") {
+            Err(_) => {}
+            Ok(_) => panic!(),
+        };
+    }
 }
