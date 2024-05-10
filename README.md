@@ -1,4 +1,4 @@
-# Rust bindings for V4L2 [![Build Status](https://travis-ci.com/Gnurou/v4l2_rust.svg?branch=master)](https://travis-ci.com/Gnurou/v4l2_rust)
+# Rust bindings for V4L2
 
 This is a work-in-progress library to implement safe Rust bindings and high-level
 interfaces for V4L2.
