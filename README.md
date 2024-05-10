@@ -5,27 +5,27 @@ interfaces for V4L2.
 
 Currently the following is implemented:
 
-* Safe low-level abstractions to manage `OUTPUT` and `CAPTURE` queues, as well as
+- Safe low-level abstractions to manage `OUTPUT` and `CAPTURE` queues, as well as
   buffers allocation/queueing/dequeuing for `MMAP`, `USERPTR` and `DMABUF` memory
   types,
-* High-level abstraction of the [stateful video decoder
+- High-level abstraction of the [stateful video decoder
   interface](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-decoder.html),
-* High-level abstraction of the [stateful video encoder
+- High-level abstraction of the [stateful video encoder
   interface](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/dev-encoder.html),
-* C FFI for using the video decoder interface from C programs.
+- C FFI for using the video decoder interface from C programs.
 
 The library provides several levels of abstraction over V4L2:
 
-* At the lowest level is a very thin layer over the V4L2 ioctls, that stays as
+- At the lowest level is a very thin layer over the V4L2 ioctls, that stays as
   close as possible to the actual kernel API while adding extra safety and
   removing some of the historical baggage like the difference in format for
   single-planar and multi-planar queues.
 
-* A higher-level abstraction exposes devices, queues, and other V4L2 concepts as
+- A higher-level abstraction exposes devices, queues, and other V4L2 concepts as
   strongly typed objects. The goal here is to provide an nice-to-use interface
   that remains generic enough to be used for any kind of V4L2 device.
 
-* Finally, more specialized abstractions can be used by applications for
+- Finally, more specialized abstractions can be used by applications for
   performing specific tasks, like decoding a video using hardware acceleration.
   For these abstractions, a C FFI is usually provided so their use is not
   limited to Rust.
@@ -33,8 +33,7 @@ The library provides several levels of abstraction over V4L2:
 Dependencies shall be kept to a minimum: this library talks directly to the
 kernel using ioctls, and only depends on a few small, well-established crates.
 
-Project Layout
---------------
+## Project Layout
 
 `lib` contains the Rust library (`v4l2r`), including the thin `ioctl`
 abstraction, the more usable `device` abstraction, and task-specific modules for
@@ -44,8 +43,8 @@ e.g. video decoding and encoding.
 library other projects can link against. A `v4l2r.h` header file with the public
 API is generated upon build.
 
-How to use
-----------
+## How to use
+
 Check `lib/examples/vicodec_test/device_api.rs` for a short example of how to
 use the `device`-level interface, or `lib/examples/vicodec_test/ioctl_api.rs`
 for the same example using the lower-level `ioctl` API. Both examples encode
@@ -79,10 +78,12 @@ streams. For instance, to decode the FWHT stream we just created above:
 
     cargo run --example simple_decoder -- test_encoder.fwht /dev/video1 --save test_decoder.bgr
 
-`test_decoder.bgr` can be checked with e.g. [YUView](https://github.com/IENT/YUView). The format
-will be 640x480 BGR, as reported by the decoding program.
+`test_decoder.bgr` can be checked with e.g.
+[YUView](https://github.com/IENT/YUView). The format will be 640x480 BGR, as
+reported by the decoding program.
 
-Finally, `ffi/examples/c_fwht_decode/` contains a C program demonstrating how to use the C FFI to
-decode a FWHT stream. See the `Makefile` in that directory for build and use instructions. The
-program is purely for demonstration purposes of the C FII: it is hardcoded to decode the
-`sample.fwht` file in the same directory and doesn't support any other output.
+Finally, `ffi/examples/c_fwht_decode/` contains a C program demonstrating how
+to use the C FFI to decode a FWHT stream. See the `Makefile` in that directory
+for build and use instructions. The program is purely for demonstration
+purposes of the C FII: it is hardcoded to decode the `sample.fwht` file in the
+same directory and doesn't support any other output.
