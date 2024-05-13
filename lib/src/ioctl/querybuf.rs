@@ -1,4 +1,5 @@
 use std::convert::Infallible;
+use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;
@@ -6,65 +7,9 @@ use thiserror::Error;
 
 use crate::bindings::v4l2_buffer;
 use crate::ioctl::BufferFlags;
-use crate::ioctl::V4l2Buffer;
+use crate::ioctl::UncheckedV4l2Buffer;
 use crate::ioctl::V4l2BufferPlanes;
-use crate::memory::MemoryType;
 use crate::QueueType;
-
-/// Implementors can receive the result from the `querybuf` ioctl.
-pub trait QueryBuf: Sized {
-    type Error: std::fmt::Display;
-
-    /// Try to retrieve the data from `v4l2_buf`. If `v4l2_planes` is `None`,
-    /// then the buffer is single-planar. If it has data, the buffer is
-    /// multi-planar and the array of `struct v4l2_plane` shall be used to
-    /// retrieve the plane data.
-    fn try_from_v4l2_buffer(
-        v4l2_buf: v4l2_buffer,
-        v4l2_planes: Option<V4l2BufferPlanes>,
-    ) -> Result<Self, Self::Error>;
-}
-
-/// For cases where we are not interested in the result of `qbuf`
-impl QueryBuf for () {
-    type Error = Infallible;
-
-    fn try_from_v4l2_buffer(
-        _v4l2_buf: v4l2_buffer,
-        _v4l2_planes: Option<V4l2BufferPlanes>,
-    ) -> Result<Self, Self::Error> {
-        Ok(())
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum V4l2BufferFromError {
-    #[error("unknown queue type {0}")]
-    UnknownQueueType(u32),
-    #[error("unknown memory type {0}")]
-    UnknownMemoryType(u32),
-}
-
-impl QueryBuf for V4l2Buffer {
-    type Error = V4l2BufferFromError;
-
-    /// Do some consistency checks to ensure methods of `V4l2Buffer` that do an `unwrap` can never
-    /// fail.
-    fn try_from_v4l2_buffer(
-        v4l2_buf: v4l2_buffer,
-        v4l2_planes: Option<V4l2BufferPlanes>,
-    ) -> Result<Self, Self::Error> {
-        QueueType::n(v4l2_buf.type_)
-            .ok_or(V4l2BufferFromError::UnknownQueueType(v4l2_buf.type_))?;
-        MemoryType::n(v4l2_buf.memory)
-            .ok_or(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory))?;
-
-        Ok(Self {
-            buffer: v4l2_buf,
-            planes: v4l2_planes.unwrap_or_default(),
-        })
-    }
-}
 
 #[derive(Debug)]
 pub struct QueryBufPlane {
@@ -82,14 +27,12 @@ pub struct QueryBuffer {
     pub planes: Vec<QueryBufPlane>,
 }
 
-impl QueryBuf for QueryBuffer {
+impl TryFrom<UncheckedV4l2Buffer> for QueryBuffer {
     type Error = Infallible;
 
-    fn try_from_v4l2_buffer(
-        v4l2_buf: v4l2_buffer,
-        v4l2_planes: Option<V4l2BufferPlanes>,
-    ) -> Result<Self, Self::Error> {
-        let planes = match v4l2_planes {
+    fn try_from(buffer: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
+        let v4l2_buf = buffer.0;
+        let planes = match buffer.1 {
             None => vec![QueryBufPlane {
                 mem_offset: unsafe { v4l2_buf.m.offset },
                 length: v4l2_buf.length,
@@ -119,14 +62,14 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum QueryBufError<Q: QueryBuf> {
-    #[error("error while converting from v4l2_buffer: {0}")]
+pub enum QueryBufError<Q: TryFrom<UncheckedV4l2Buffer>> {
+    #[error("error while converting from v4l2_buffer")]
     ConversionError(Q::Error),
     #[error("ioctl error: {0}")]
     IoctlError(#[from] Errno),
 }
 
-impl<Q: QueryBuf> From<QueryBufError<Q>> for Errno {
+impl<Q: TryFrom<UncheckedV4l2Buffer>> From<QueryBufError<Q>> for Errno {
     fn from(err: QueryBufError<Q>) -> Self {
         match err {
             QueryBufError::ConversionError(_) => Errno::EINVAL,
@@ -136,7 +79,7 @@ impl<Q: QueryBuf> From<QueryBufError<Q>> for Errno {
 }
 
 /// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.
-pub fn querybuf<T: QueryBuf>(
+pub fn querybuf<T: TryFrom<UncheckedV4l2Buffer>>(
     fd: &impl AsRawFd,
     queue: QueueType,
     index: usize,
@@ -153,10 +96,11 @@ pub fn querybuf<T: QueryBuf>(
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::try_from_v4l2_buffer(v4l2_buf, Some(plane_data))
+        Ok(T::try_from(UncheckedV4l2Buffer(v4l2_buf, Some(plane_data)))
             .map_err(QueryBufError::ConversionError)?)
     } else {
         unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::try_from_v4l2_buffer(v4l2_buf, None).map_err(QueryBufError::ConversionError)?)
+        Ok(T::try_from(UncheckedV4l2Buffer(v4l2_buf, None))
+            .map_err(QueryBufError::ConversionError)?)
     }
 }

@@ -1,8 +1,9 @@
 use crate::bindings::v4l2_buffer;
-use crate::ioctl::QueryBuf;
+use crate::ioctl::UncheckedV4l2Buffer;
 use crate::ioctl::V4l2BufferPlanes;
 use crate::QueueType;
 
+use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::os::unix::io::AsRawFd;
 
@@ -16,8 +17,8 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum DqBufError<Q: QueryBuf> {
-    #[error("error while converting from v4l2_buffer: {0}")]
+pub enum DqBufError<Q: TryFrom<UncheckedV4l2Buffer>> {
+    #[error("error while converting from v4l2_buffer")]
     ConversionError(Q::Error),
     #[error("end-of-stream reached")]
     Eos,
@@ -27,7 +28,7 @@ pub enum DqBufError<Q: QueryBuf> {
     IoctlError(Errno),
 }
 
-impl<Q: QueryBuf> From<Errno> for DqBufError<Q> {
+impl<Q: TryFrom<UncheckedV4l2Buffer>> From<Errno> for DqBufError<Q> {
     fn from(error: Errno) -> Self {
         match error {
             Errno::EAGAIN => Self::NotReady,
@@ -37,7 +38,7 @@ impl<Q: QueryBuf> From<Errno> for DqBufError<Q> {
     }
 }
 
-impl<Q: QueryBuf> From<DqBufError<Q>> for Errno {
+impl<Q: TryFrom<UncheckedV4l2Buffer>> From<DqBufError<Q>> for Errno {
     fn from(err: DqBufError<Q>) -> Self {
         match err {
             DqBufError::ConversionError(_) => Errno::EINVAL,
@@ -51,7 +52,10 @@ impl<Q: QueryBuf> From<DqBufError<Q>> for Errno {
 pub type DqBufResult<T, Q> = Result<T, DqBufError<Q>>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T, T> {
+pub fn dqbuf<T: TryFrom<UncheckedV4l2Buffer>>(
+    fd: &impl AsRawFd,
+    queue: QueueType,
+) -> DqBufResult<T, T> {
     let mut v4l2_buf = v4l2_buffer {
         type_: queue as u32,
         ..Default::default()
@@ -63,10 +67,11 @@ pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T,
         v4l2_buf.length = plane_data.len() as u32;
 
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::try_from_v4l2_buffer(v4l2_buf, Some(plane_data)).map_err(DqBufError::ConversionError)?
+        T::try_from(UncheckedV4l2Buffer(v4l2_buf, Some(plane_data)))
+            .map_err(DqBufError::ConversionError)?
     } else {
         unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::try_from_v4l2_buffer(v4l2_buf, None).map_err(DqBufError::ConversionError)?
+        T::try_from(UncheckedV4l2Buffer(v4l2_buf, None)).map_err(DqBufError::ConversionError)?
     };
 
     Ok(dequeued_buffer)
