@@ -93,6 +93,8 @@ pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
 
+use std::convert::Infallible;
+use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::FromBytesWithNulError;
 use std::fmt::Debug;
@@ -102,6 +104,7 @@ use std::ops::DerefMut;
 use bitflags::bitflags;
 use enumn::N;
 use nix::errno::Errno;
+use thiserror::Error;
 
 use crate::bindings;
 use crate::memory::DmaBuf;
@@ -139,6 +142,21 @@ where
 {
     fn into_errno(self) -> i32 {
         self.into() as i32
+    }
+}
+
+/// A fully owned V4L2 buffer obtained from some untrusted place, probably an ioctl.
+///
+/// Its only valid purpose it to be moved around and converted into something safer like
+/// [`V4l2Buffer`].
+pub struct UncheckedV4l2Buffer(pub bindings::v4l2_buffer, pub Option<V4l2BufferPlanes>);
+
+/// For cases where we are not interested in the result of `qbuf`
+impl TryFrom<UncheckedV4l2Buffer> for () {
+    type Error = Infallible;
+
+    fn try_from(_: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
+        Ok(())
     }
 }
 
@@ -776,6 +794,34 @@ pub enum V4l2PlanesWithBackingMut<
     UserPtr(U),
     DmaBuf(D),
     Overlay,
+}
+
+#[derive(Debug, Error)]
+pub enum V4l2BufferFromError {
+    #[error("unknown queue type {0}")]
+    UnknownQueueType(u32),
+    #[error("unknown memory type {0}")]
+    UnknownMemoryType(u32),
+}
+
+impl TryFrom<UncheckedV4l2Buffer> for V4l2Buffer {
+    type Error = V4l2BufferFromError;
+
+    /// Do some consistency checks to ensure methods of `V4l2Buffer` that do an `unwrap` can never
+    /// fail.
+    fn try_from(buffer: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
+        let v4l2_buf = buffer.0;
+        let v4l2_planes = buffer.1;
+        QueueType::n(v4l2_buf.type_)
+            .ok_or(V4l2BufferFromError::UnknownQueueType(v4l2_buf.type_))?;
+        MemoryType::n(v4l2_buf.memory)
+            .ok_or(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory))?;
+
+        Ok(Self {
+            buffer: v4l2_buf,
+            planes: v4l2_planes.unwrap_or_default(),
+        })
+    }
 }
 
 #[cfg(test)]
