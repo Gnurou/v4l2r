@@ -4,7 +4,6 @@ use std::os::unix::io::AsRawFd;
 use nix::errno::Errno;
 use thiserror::Error;
 
-use crate::bindings;
 use crate::bindings::v4l2_buffer;
 use crate::ioctl::BufferFlags;
 use crate::ioctl::V4l2Buffer;
@@ -57,26 +56,12 @@ impl QueryBuf for V4l2Buffer {
     ) -> Result<Self, Self::Error> {
         QueueType::n(v4l2_buf.type_)
             .ok_or(V4l2BufferFromError::UnknownQueueType(v4l2_buf.type_))?;
-        let memory = match MemoryType::n(v4l2_buf.memory) {
-            Some(m) => m,
-            None => return Err(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory)),
-        };
+        MemoryType::n(v4l2_buf.memory)
+            .ok_or(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory))?;
 
         Ok(Self {
             buffer: v4l2_buf,
-            planes: v4l2_planes.unwrap_or_else(|| {
-                let mut pdata: V4l2BufferPlanes = Default::default();
-                // Duplicate information for the first plane so our methods can work.
-                pdata[0] = bindings::v4l2_plane {
-                    bytesused: v4l2_buf.bytesused,
-                    length: v4l2_buf.length,
-                    data_offset: 0,
-                    m: (&v4l2_buf.m, memory).into(),
-                    reserved: Default::default(),
-                };
-
-                pdata
-            }),
+            planes: v4l2_planes.unwrap_or_default(),
         })
     }
 }
