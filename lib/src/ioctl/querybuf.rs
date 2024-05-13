@@ -66,14 +66,26 @@ mod ioctl {
 
 #[derive(Debug, Error)]
 pub enum QueryBufIoctlError {
-    #[error("ioctl error: {0}")]
-    IoctlError(#[from] Errno),
+    #[error("unsupported queue or out-of-bounds index")]
+    InvalidInput,
+    #[error("unexpected ioctl error: {0}")]
+    Other(Errno),
+}
+
+impl From<Errno> for QueryBufIoctlError {
+    fn from(err: Errno) -> Self {
+        match err {
+            Errno::EINVAL => QueryBufIoctlError::InvalidInput,
+            e => QueryBufIoctlError::Other(e),
+        }
+    }
 }
 
 impl From<QueryBufIoctlError> for Errno {
     fn from(err: QueryBufIoctlError) -> Self {
         match err {
-            QueryBufIoctlError::IoctlError(e) => e,
+            QueryBufIoctlError::InvalidInput => Errno::EINVAL,
+            QueryBufIoctlError::Other(e) => e,
         }
     }
 }
