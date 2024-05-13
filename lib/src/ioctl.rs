@@ -128,14 +128,6 @@ fn string_from_cstr(c_str: &[u8]) -> Result<String, FromBytesWithNulError> {
         .into_owned())
 }
 
-/// Returns whether the given queue type can handle multi-planar formats.
-fn is_multi_planar(queue: QueueType) -> bool {
-    matches!(
-        queue,
-        QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane
-    )
-}
-
 /// Extension trait for allowing easy conversion of ioctl errors into their originating error code.
 pub trait IntoErrno {
     fn into_errno(self) -> i32;

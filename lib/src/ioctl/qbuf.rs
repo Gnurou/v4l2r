@@ -9,7 +9,6 @@ use thiserror::Error;
 
 use crate::bindings;
 use crate::bindings::v4l2_buffer;
-use crate::ioctl::is_multi_planar;
 use crate::ioctl::BufferFlags;
 use crate::ioctl::QueryBuf;
 use crate::ioctl::V4l2Buffer;
@@ -247,7 +246,7 @@ pub fn qbuf<I: QBuf<O>, O: QueryBuf>(
         ..Default::default()
     };
 
-    if is_multi_planar(queue) {
+    if queue.is_multiplanar() {
         let mut plane_data: V4l2BufferPlanes = Default::default();
         buf_data.fill_mplane_v4l2_buffer(&mut v4l2_buf, &mut plane_data)?;
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
@@ -275,7 +274,7 @@ pub fn prepare_buf<I: QBuf<O>, O: QueryBuf>(
         ..Default::default()
     };
 
-    if is_multi_planar(queue) {
+    if queue.is_multiplanar() {
         let mut plane_data: V4l2BufferPlanes = Default::default();
         buf_data.fill_mplane_v4l2_buffer(&mut v4l2_buf, &mut plane_data)?;
         v4l2_buf.m.planes = plane_data.as_mut_ptr();

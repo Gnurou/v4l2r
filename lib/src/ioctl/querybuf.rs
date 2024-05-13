@@ -6,7 +6,6 @@ use thiserror::Error;
 
 use crate::bindings;
 use crate::bindings::v4l2_buffer;
-use crate::ioctl::is_multi_planar;
 use crate::ioctl::BufferFlags;
 use crate::ioctl::V4l2Buffer;
 use crate::ioctl::V4l2BufferPlanes;
@@ -163,7 +162,7 @@ pub fn querybuf<T: QueryBuf>(
         ..Default::default()
     };
 
-    if is_multi_planar(queue) {
+    if queue.is_multiplanar() {
         let mut plane_data: V4l2BufferPlanes = Default::default();
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
         v4l2_buf.length = plane_data.len() as u32;

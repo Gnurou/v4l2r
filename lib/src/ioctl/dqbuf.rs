@@ -1,5 +1,4 @@
 use crate::bindings::v4l2_buffer;
-use crate::ioctl::is_multi_planar;
 use crate::ioctl::QueryBuf;
 use crate::ioctl::V4l2BufferPlanes;
 use crate::QueueType;
@@ -58,7 +57,7 @@ pub fn dqbuf<T: QueryBuf>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<T,
         ..Default::default()
     };
 
-    let dequeued_buffer = if is_multi_planar(queue) {
+    let dequeued_buffer = if queue.is_multiplanar() {
         let mut plane_data: V4l2BufferPlanes = Default::default();
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
         v4l2_buf.length = plane_data.len() as u32;
