@@ -145,6 +145,53 @@ where
     }
 }
 
+/// Error type for a "run ioctl and try to convert to safer type" operation.
+///
+/// [`IoctlError`] means that the ioctl itself has failed, while [`ConversionError`] indicates that
+/// the output of the ioctl could not be converted to the desired output type for the ioctl
+#[derive(Debug, Error)]
+pub enum IoctlConvertError<IE: Debug, CE: Debug> {
+    #[error("error during ioctl: {0}")]
+    IoctlError(#[from] IE),
+    #[error("error while converting ioctl result: {0}")]
+    ConversionError(CE),
+}
+
+impl<IE, CE> IntoErrno for IoctlConvertError<IE, CE>
+where
+    IE: Debug + Into<Errno>,
+    CE: Debug,
+{
+    fn into_errno(self) -> i32 {
+        match self {
+            IoctlConvertError::IoctlError(e) => e.into_errno(),
+            IoctlConvertError::ConversionError(_) => Errno::EINVAL as i32,
+        }
+    }
+}
+
+// We need a bound here, otherwise we cannot use `O::Error`.
+#[allow(type_alias_bounds)]
+pub type IoctlConvertResult<O, IE, CE> = Result<O, IoctlConvertError<IE, CE>>;
+
+/// Tries to convert the raw output of an ioctl to a safer type.
+///
+/// Ioctl wrappers always return a raw C type that most of the case is potentially invalid: for
+/// instance C enums might have invalid values.
+///
+/// This function takes a raw ioctl result and, if successful, attempts to convert its output to a
+/// safer type using [`TryFrom`]. If either the ioctl or the conversion fails, then the appropriate
+/// variant of [`IoctlConvertError`] is returned.
+fn ioctl_and_convert<I, O, IE>(res: Result<I, IE>) -> IoctlConvertResult<O, IE, O::Error>
+where
+    IE: std::fmt::Debug,
+    O: TryFrom<I>,
+    O::Error: std::fmt::Debug,
+{
+    res.map_err(IoctlConvertError::IoctlError)
+        .and_then(|o| O::try_from(o).map_err(IoctlConvertError::ConversionError))
+}
+
 /// A fully owned V4L2 buffer obtained from some untrusted place, probably an ioctl.
 ///
 /// Its only valid purpose it to be moved around and converted into something safer like

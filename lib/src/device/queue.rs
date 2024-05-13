@@ -8,7 +8,7 @@ pub mod qbuf;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::ioctl::V4l2Buffer;
+use crate::ioctl::{QueryBufError, V4l2Buffer};
 use crate::{bindings, memory::*};
 use crate::{
     ioctl::{
@@ -29,7 +29,7 @@ use qbuf::{
     *,
 };
 
-use std::convert::TryFrom;
+use std::convert::{Infallible, TryFrom};
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::{Arc, Weak};
 use thiserror::Error;
@@ -207,7 +207,7 @@ pub enum RequestBuffersError {
     #[error("error while requesting buffers")]
     ReqbufsError(#[from] ioctl::ReqbufsError),
     #[error("error while querying buffer")]
-    QueryBufferError(#[from] ioctl::QueryBufError<QueryBuffer>),
+    QueryBufferError(#[from] QueryBufError<Infallible>),
 }
 
 impl<D: Direction> Queue<D, QueueInit> {

@@ -6,7 +6,10 @@ use nix::errno::Errno;
 use thiserror::Error;
 
 use crate::bindings::v4l2_buffer;
+use crate::ioctl::ioctl_and_convert;
 use crate::ioctl::BufferFlags;
+use crate::ioctl::IoctlConvertError;
+use crate::ioctl::IoctlConvertResult;
 use crate::ioctl::UncheckedV4l2Buffer;
 use crate::ioctl::V4l2BufferPlanes;
 use crate::QueueType;
@@ -62,45 +65,45 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum QueryBufError<Q: TryFrom<UncheckedV4l2Buffer>> {
-    #[error("error while converting from v4l2_buffer")]
-    ConversionError(Q::Error),
+pub enum QueryBufIoctlError {
     #[error("ioctl error: {0}")]
     IoctlError(#[from] Errno),
 }
 
-impl<Q: TryFrom<UncheckedV4l2Buffer>> From<QueryBufError<Q>> for Errno {
-    fn from(err: QueryBufError<Q>) -> Self {
+impl From<QueryBufIoctlError> for Errno {
+    fn from(err: QueryBufIoctlError) -> Self {
         match err {
-            QueryBufError::ConversionError(_) => Errno::EINVAL,
-            QueryBufError::IoctlError(e) => e,
+            QueryBufIoctlError::IoctlError(e) => e,
         }
     }
 }
 
+pub type QueryBufError<CE> = IoctlConvertError<QueryBufIoctlError, CE>;
+pub type QueryBufResult<O, CE> = IoctlConvertResult<O, QueryBufIoctlError, CE>;
+
 /// Safe wrapper around the `VIDIOC_QUERYBUF` ioctl.
-pub fn querybuf<T: TryFrom<UncheckedV4l2Buffer>>(
-    fd: &impl AsRawFd,
-    queue: QueueType,
-    index: usize,
-) -> Result<T, QueryBufError<T>> {
+pub fn querybuf<O>(fd: &impl AsRawFd, queue: QueueType, index: usize) -> QueryBufResult<O, O::Error>
+where
+    O: TryFrom<UncheckedV4l2Buffer>,
+    O::Error: std::fmt::Debug,
+{
     let mut v4l2_buf = v4l2_buffer {
         index: index as u32,
         type_: queue as u32,
         ..Default::default()
     };
 
-    if queue.is_multiplanar() {
+    ioctl_and_convert(if queue.is_multiplanar() {
         let mut plane_data: V4l2BufferPlanes = Default::default();
         v4l2_buf.m.planes = plane_data.as_mut_ptr();
         v4l2_buf.length = plane_data.len() as u32;
 
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::try_from(UncheckedV4l2Buffer(v4l2_buf, Some(plane_data)))
-            .map_err(QueryBufError::ConversionError)?)
+        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }
+            .map(|_| UncheckedV4l2Buffer(v4l2_buf, Some(plane_data)))
+            .map_err(Into::into)
     } else {
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        Ok(T::try_from(UncheckedV4l2Buffer(v4l2_buf, None))
-            .map_err(QueryBufError::ConversionError)?)
-    }
+        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }
+            .map(|_| UncheckedV4l2Buffer(v4l2_buf, None))
+            .map_err(Into::into)
+    })
 }
