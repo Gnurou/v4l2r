@@ -1,7 +1,5 @@
-use ioctl::DqBufResult;
-
 use super::queue::{direction::Direction, Queue, QueueInit};
-use crate::ioctl::{self, V4l2Buffer};
+use crate::ioctl::{self, DqBufResult, V4l2BufferFromError};
 use std::fmt::Debug;
 
 /// Trait for trying to dequeue a readable buffer from a queue.
@@ -14,7 +12,7 @@ pub trait TryDequeue {
     /// It can be moved into a `Rc` or `Arc` and passed across threads.
     ///
     /// The data in the `DQBuffer` is read-only.
-    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued, V4l2Buffer>;
+    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued, V4l2BufferFromError>;
 }
 
 /// Trait for streaming a queue on and off.

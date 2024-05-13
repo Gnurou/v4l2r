@@ -1,6 +1,8 @@
 use crate::bindings::v4l2_buffer;
+use crate::ioctl::ioctl_and_convert;
+use crate::ioctl::IoctlConvertError;
+use crate::ioctl::IoctlConvertResult;
 use crate::ioctl::UncheckedV4l2Buffer;
-use crate::ioctl::V4l2BufferPlanes;
 use crate::QueueType;
 
 use std::convert::TryFrom;
@@ -17,9 +19,7 @@ mod ioctl {
 }
 
 #[derive(Debug, Error)]
-pub enum DqBufError<Q: TryFrom<UncheckedV4l2Buffer>> {
-    #[error("error while converting from v4l2_buffer")]
-    ConversionError(Q::Error),
+pub enum DqBufIoctlError {
     #[error("end-of-stream reached")]
     Eos,
     #[error("no buffer ready for dequeue")]
@@ -28,7 +28,7 @@ pub enum DqBufError<Q: TryFrom<UncheckedV4l2Buffer>> {
     IoctlError(Errno),
 }
 
-impl<Q: TryFrom<UncheckedV4l2Buffer>> From<Errno> for DqBufError<Q> {
+impl From<Errno> for DqBufIoctlError {
     fn from(error: Errno) -> Self {
         match error {
             Errno::EAGAIN => Self::NotReady,
@@ -38,41 +38,42 @@ impl<Q: TryFrom<UncheckedV4l2Buffer>> From<Errno> for DqBufError<Q> {
     }
 }
 
-impl<Q: TryFrom<UncheckedV4l2Buffer>> From<DqBufError<Q>> for Errno {
-    fn from(err: DqBufError<Q>) -> Self {
+impl From<DqBufIoctlError> for Errno {
+    fn from(err: DqBufIoctlError) -> Self {
         match err {
-            DqBufError::ConversionError(_) => Errno::EINVAL,
-            DqBufError::Eos => Errno::EPIPE,
-            DqBufError::NotReady => Errno::EAGAIN,
-            DqBufError::IoctlError(e) => e,
+            DqBufIoctlError::Eos => Errno::EPIPE,
+            DqBufIoctlError::NotReady => Errno::EAGAIN,
+            DqBufIoctlError::IoctlError(e) => e,
         }
     }
 }
 
-pub type DqBufResult<T, Q> = Result<T, DqBufError<Q>>;
+pub type DqBufError<CE> = IoctlConvertError<DqBufIoctlError, CE>;
+pub type DqBufResult<O, CE> = IoctlConvertResult<O, DqBufIoctlError, CE>;
 
 /// Safe wrapper around the `VIDIOC_DQBUF` ioctl.
-pub fn dqbuf<T: TryFrom<UncheckedV4l2Buffer>>(
-    fd: &impl AsRawFd,
-    queue: QueueType,
-) -> DqBufResult<T, T> {
-    let mut v4l2_buf = v4l2_buffer {
-        type_: queue as u32,
-        ..Default::default()
-    };
+pub fn dqbuf<O>(fd: &impl AsRawFd, queue: QueueType) -> DqBufResult<O, O::Error>
+where
+    O: TryFrom<UncheckedV4l2Buffer>,
+    O::Error: std::fmt::Debug,
+{
+    let mut v4l2_buf = UncheckedV4l2Buffer(
+        v4l2_buffer {
+            type_: queue as u32,
+            ..Default::default()
+        },
+        Default::default(),
+    );
 
-    let dequeued_buffer = if queue.is_multiplanar() {
-        let mut plane_data: V4l2BufferPlanes = Default::default();
-        v4l2_buf.m.planes = plane_data.as_mut_ptr();
-        v4l2_buf.length = plane_data.len() as u32;
+    if queue.is_multiplanar() {
+        let planes = v4l2_buf.1.get_or_insert(Default::default());
+        v4l2_buf.0.m.planes = planes.as_mut_ptr();
+        v4l2_buf.0.length = planes.len() as u32;
+    }
 
-        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::try_from(UncheckedV4l2Buffer(v4l2_buf, Some(plane_data)))
-            .map_err(DqBufError::ConversionError)?
-    } else {
-        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf) }?;
-        T::try_from(UncheckedV4l2Buffer(v4l2_buf, None)).map_err(DqBufError::ConversionError)?
-    };
-
-    Ok(dequeued_buffer)
+    ioctl_and_convert(
+        unsafe { ioctl::vidioc_dqbuf(fd.as_raw_fd(), &mut v4l2_buf.0) }
+            .map(|_| v4l2_buf)
+            .map_err(Into::into),
+    )
 }

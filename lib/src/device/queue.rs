@@ -8,12 +8,12 @@ pub mod qbuf;
 use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::ioctl::{QueryBufError, V4l2Buffer};
+use crate::ioctl::{DqBufResult, QueryBufError, V4l2BufferFromError};
 use crate::{bindings, memory::*};
 use crate::{
     ioctl::{
-        self, DqBufResult, GFmtError, QueryBuffer, ReqbufsError, SFmtError, SelectionTarget,
-        SelectionType, StreamOffError, StreamOnError, TryFmtError,
+        self, GFmtError, QueryBuffer, ReqbufsError, SFmtError, SelectionTarget, SelectionType,
+        StreamOffError, StreamOnError, TryFmtError,
     },
     PlaneLayout, Rect,
 };
@@ -485,7 +485,7 @@ impl<D: Direction, P: BufferHandles> Stream for Queue<D, BuffersAllocated<P>> {
 impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>> {
     type Dequeued = DqBuffer<D, P>;
 
-    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued, V4l2Buffer> {
+    fn try_dequeue(&self) -> DqBufResult<Self::Dequeued, V4l2BufferFromError> {
         let dqbuf: ioctl::V4l2Buffer = ioctl::dqbuf(&self.inner, self.inner.type_)?;
 
         let id = dqbuf.index() as usize;

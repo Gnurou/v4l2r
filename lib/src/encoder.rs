@@ -7,18 +7,20 @@ use crate::{
             direction::{Capture, Output},
             dqbuf::DqBuffer,
             handles_provider::HandlesProvider,
-            qbuf::OutputQueueableProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
                 get_indexed::GetCaptureBufferByIndex,
-                CaptureQueueable,
+                CaptureQueueable, OutputQueueableProvider,
             },
             BuffersAllocated, CanceledBuffer, CreateQueueError, FormatBuilder, Queue, QueueInit,
             RequestBuffersError,
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },
-    ioctl::{self, DqBufError, EncoderCommand, FormatFlags, GFmtError, V4l2Buffer},
+    ioctl::{
+        self, DqBufError, DqBufIoctlError, EncoderCommand, FormatFlags, GFmtError,
+        V4l2BufferFromError,
+    },
     memory::{BufferHandles, PrimitiveBufferHandles},
     Format,
 };
@@ -313,7 +315,7 @@ pub enum CompletedOutputBuffer<OP: BufferHandles> {
 #[derive(Debug, Error)]
 pub enum GetBufferError {
     #[error("error while dequeueing buffer")]
-    DequeueError(#[from] DqBufError<V4l2Buffer>),
+    DequeueError(#[from] DqBufError<V4l2BufferFromError>),
     #[error("error during poll")]
     PollError(#[from] PollError),
     #[error("error while obtaining buffer")]
@@ -376,7 +378,7 @@ where
     }
 
     /// Attempts to dequeue and release output buffers that the driver is done with.
-    fn dequeue_output_buffers(&self) -> Result<(), DqBufError<V4l2Buffer>> {
+    fn dequeue_output_buffers(&self) -> Result<(), DqBufError<V4l2BufferFromError>> {
         let output_queue = &self.state.output_queue;
 
         while output_queue.num_queued_buffers() > 0 {
@@ -384,7 +386,7 @@ where
                 Ok(buf) => {
                     (self.state.input_done_cb)(CompletedOutputBuffer::Dequeued(buf));
                 }
-                Err(DqBufError::NotReady) => break,
+                Err(DqBufError::IoctlError(DqBufIoctlError::NotReady)) => break,
                 // TODO buffers with the error flag set should not result in
                 // a fatal error!
                 Err(e) => return Err(e),
