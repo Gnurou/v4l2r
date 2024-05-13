@@ -11,7 +11,6 @@ use crate::ioctl::BufferFlags;
 use crate::ioctl::IoctlConvertError;
 use crate::ioctl::IoctlConvertResult;
 use crate::ioctl::UncheckedV4l2Buffer;
-use crate::ioctl::V4l2BufferPlanes;
 use crate::QueueType;
 
 #[derive(Debug)]
@@ -99,23 +98,23 @@ where
     O: TryFrom<UncheckedV4l2Buffer>,
     O::Error: std::fmt::Debug,
 {
-    let mut v4l2_buf = v4l2_buffer {
-        index: index as u32,
-        type_: queue as u32,
-        ..Default::default()
-    };
+    let mut v4l2_buf = UncheckedV4l2Buffer(
+        v4l2_buffer {
+            index: index as u32,
+            type_: queue as u32,
+            ..Default::default()
+        },
+        Default::default(),
+    );
+    if queue.is_multiplanar() {
+        let planes = v4l2_buf.1.get_or_insert(Default::default());
+        v4l2_buf.0.m.planes = planes.as_mut_ptr();
+        v4l2_buf.0.length = planes.len() as u32;
+    }
 
-    ioctl_and_convert(if queue.is_multiplanar() {
-        let mut plane_data: V4l2BufferPlanes = Default::default();
-        v4l2_buf.m.planes = plane_data.as_mut_ptr();
-        v4l2_buf.length = plane_data.len() as u32;
-
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }
-            .map(|_| UncheckedV4l2Buffer(v4l2_buf, Some(plane_data)))
-            .map_err(Into::into)
-    } else {
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf) }
-            .map(|_| UncheckedV4l2Buffer(v4l2_buf, None))
-            .map_err(Into::into)
-    })
+    ioctl_and_convert(
+        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf.0) }
+            .map(|_| v4l2_buf)
+            .map_err(Into::into),
+    )
 }
