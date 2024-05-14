@@ -65,6 +65,12 @@ use std::marker::PhantomData;
 
 use crate::bindings;
 use crate::bindings::v4l2_ctrl_fwht_params;
+use crate::bindings::v4l2_ctrl_h264_decode_params;
+use crate::bindings::v4l2_ctrl_h264_pps;
+use crate::bindings::v4l2_ctrl_h264_pred_weights;
+use crate::bindings::v4l2_ctrl_h264_scaling_matrix;
+use crate::bindings::v4l2_ctrl_h264_slice_params;
+use crate::bindings::v4l2_ctrl_h264_sps;
 use crate::bindings::v4l2_ctrl_vp8_frame;
 use crate::bindings::v4l2_ext_control;
 use crate::bindings::v4l2_ext_control__bindgen_ty_1;
@@ -207,6 +213,258 @@ where
 
     pub fn flags(&self) -> Option<FwhtFlags> {
         FwhtFlags::from_bits(self.fwht_params().flags)
+    }
+}
+
+impl<T> From<v4l2_ctrl_h264_sps> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_sps>,
+{
+    fn from(params: v4l2_ctrl_h264_sps) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_h264_sps: Box::into_raw(payload),
+                },
+                ..unsafe { std::mem::zeroed() }
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_sps>,
+{
+    pub fn h264_sps(&self) -> &v4l2_ctrl_h264_sps {
+        unsafe { self.0.__bindgen_anon_1.p_h264_sps.as_ref().unwrap() }
+    }
+
+    pub fn h264_sps_mut(&mut self) -> &mut v4l2_ctrl_h264_sps {
+        unsafe { self.0.__bindgen_anon_1.p_h264_sps.as_mut().unwrap() }
+    }
+}
+
+impl<T> From<v4l2_ctrl_h264_pps> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_pps>,
+{
+    fn from(params: v4l2_ctrl_h264_pps) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_h264_pps: Box::into_raw(payload),
+                },
+                ..unsafe { std::mem::zeroed() }
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_pps>,
+{
+    pub fn h264_pps(&self) -> &v4l2_ctrl_h264_pps {
+        unsafe { self.0.__bindgen_anon_1.p_h264_pps.as_ref().unwrap() }
+    }
+
+    pub fn h264_pps_mut(&mut self) -> &mut v4l2_ctrl_h264_pps {
+        unsafe { self.0.__bindgen_anon_1.p_h264_pps.as_mut().unwrap() }
+    }
+}
+
+impl<T> From<v4l2_ctrl_h264_scaling_matrix> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_scaling_matrix>,
+{
+    fn from(params: v4l2_ctrl_h264_scaling_matrix) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_h264_scaling_matrix: Box::into_raw(payload),
+                },
+                ..unsafe { std::mem::zeroed() }
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_scaling_matrix>,
+{
+    pub fn h264_scaling_matrix(&self) -> &v4l2_ctrl_h264_scaling_matrix {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_scaling_matrix
+                .as_ref()
+                .unwrap()
+        }
+    }
+
+    pub fn h264_scaling_matrix_mut(&mut self) -> &mut v4l2_ctrl_h264_scaling_matrix {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_scaling_matrix
+                .as_mut()
+                .unwrap()
+        }
+    }
+}
+
+impl<T> From<v4l2_ctrl_h264_pred_weights> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_pred_weights>,
+{
+    fn from(params: v4l2_ctrl_h264_pred_weights) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_h264_pred_weights: Box::into_raw(payload),
+                },
+                ..unsafe { std::mem::zeroed() }
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_pred_weights>,
+{
+    pub fn h264_pred_weights(&self) -> &v4l2_ctrl_h264_pred_weights {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_pred_weights
+                .as_ref()
+                .unwrap()
+        }
+    }
+
+    pub fn h264_pred_weights_mut(&mut self) -> &mut v4l2_ctrl_h264_pred_weights {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_pred_weights
+                .as_mut()
+                .unwrap()
+        }
+    }
+}
+
+impl<T> From<v4l2_ctrl_h264_slice_params> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_slice_params>,
+{
+    fn from(params: v4l2_ctrl_h264_slice_params) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_h264_slice_params: Box::into_raw(payload),
+                },
+                ..unsafe { std::mem::zeroed() }
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_slice_params>,
+{
+    pub fn h264_slice_params(&self) -> &v4l2_ctrl_h264_slice_params {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_slice_params
+                .as_ref()
+                .unwrap()
+        }
+    }
+
+    pub fn h264_slice_params_mut(&mut self) -> &mut v4l2_ctrl_h264_slice_params {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_slice_params
+                .as_mut()
+                .unwrap()
+        }
+    }
+}
+
+impl<T> From<v4l2_ctrl_h264_decode_params> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_decode_params>,
+{
+    fn from(params: v4l2_ctrl_h264_decode_params) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_h264_decode_params: Box::into_raw(payload),
+                },
+                ..unsafe { std::mem::zeroed() }
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_h264_decode_params>,
+{
+    pub fn h264_decode_params(&self) -> &v4l2_ctrl_h264_decode_params {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_decode_params
+                .as_ref()
+                .unwrap()
+        }
+    }
+
+    pub fn h264_decode_params_mut(&mut self) -> &mut v4l2_ctrl_h264_decode_params {
+        unsafe {
+            self.0
+                .__bindgen_anon_1
+                .p_h264_decode_params
+                .as_mut()
+                .unwrap()
+        }
     }
 }
 
