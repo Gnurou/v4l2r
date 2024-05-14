@@ -4,6 +4,12 @@ use bitflags::bitflags;
 
 use crate::bindings;
 use crate::bindings::v4l2_ctrl_fwht_params;
+use crate::bindings::v4l2_ctrl_h264_decode_params;
+use crate::bindings::v4l2_ctrl_h264_pps;
+use crate::bindings::v4l2_ctrl_h264_pred_weights;
+use crate::bindings::v4l2_ctrl_h264_scaling_matrix;
+use crate::bindings::v4l2_ctrl_h264_slice_params;
+use crate::bindings::v4l2_ctrl_h264_sps;
 use crate::bindings::v4l2_ctrl_vp8_frame;
 use crate::controls::ExtControlTrait;
 
@@ -23,6 +29,54 @@ bitflags! {
         const ALPHA_UNCOMPRESSED = bindings::V4L2_FWHT_FL_ALPHA_IS_UNCOMPRESSED as u32;
         const I_FRAME = bindings::V4L2_FWHT_FL_I_FRAME as u32;
     }
+}
+
+pub struct H264DecodeMode;
+impl ExtControlTrait for H264DecodeMode {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_DECODE_MODE;
+    type PAYLOAD = i32;
+}
+
+pub struct H264StartCode;
+impl ExtControlTrait for H264StartCode {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_START_CODE;
+    type PAYLOAD = i32;
+}
+
+pub struct H264Sps;
+impl ExtControlTrait for H264Sps {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_SPS;
+    type PAYLOAD = v4l2_ctrl_h264_sps;
+}
+
+pub struct H264Pps;
+impl ExtControlTrait for H264Pps {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_PPS;
+    type PAYLOAD = v4l2_ctrl_h264_pps;
+}
+
+pub struct H264ScalingMatrix;
+impl ExtControlTrait for H264ScalingMatrix {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_SCALING_MATRIX;
+    type PAYLOAD = v4l2_ctrl_h264_scaling_matrix;
+}
+
+pub struct H264PredWeights;
+impl ExtControlTrait for H264PredWeights {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_PRED_WEIGHTS;
+    type PAYLOAD = v4l2_ctrl_h264_pred_weights;
+}
+
+pub struct H264SliceParams;
+impl ExtControlTrait for H264SliceParams {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_SLICE_PARAMS;
+    type PAYLOAD = v4l2_ctrl_h264_slice_params;
+}
+
+pub struct H264DecodeParams;
+impl ExtControlTrait for H264DecodeParams {
+    const ID: u32 = bindings::V4L2_CID_STATELESS_H264_DECODE_PARAMS;
+    type PAYLOAD = v4l2_ctrl_h264_decode_params;
 }
 
 pub struct FwhtParams;
