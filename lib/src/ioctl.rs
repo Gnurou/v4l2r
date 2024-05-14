@@ -192,11 +192,41 @@ where
         .and_then(|o| O::try_from(o).map_err(IoctlConvertError::ConversionError))
 }
 
-/// A fully owned V4L2 buffer obtained from some untrusted place, probably an ioctl.
+/// A fully owned V4L2 buffer obtained from some untrusted place (typically an ioctl), or created
+/// with the purpose of receiving the result of an ioctl.
 ///
-/// Its only valid purpose it to be moved around and converted into something safer like
-/// [`V4l2Buffer`].
+/// For any serious use it should be converted into something safer like [`V4l2Buffer`].
 pub struct UncheckedV4l2Buffer(pub bindings::v4l2_buffer, pub Option<V4l2BufferPlanes>);
+
+impl UncheckedV4l2Buffer {
+    /// Returns a new buffer with the queue type set to `queue` and its index to `index`.
+    ///
+    /// If `queue` is multiplanar, then the number of planes will be set to `VIDEO_MAX_PLANES` so
+    /// the buffer can receive the result of ioctl that write into a `v4l2_buffer` such as
+    /// `VIDIOC_QUERYBUF` or `VIDIOC_DQBUF`. [`as_mut`] can be called in order to obtain a
+    /// reference to the buffer with its `planes` pointer properly set.
+    pub fn new_for_querybuf(queue: QueueType, index: Option<u32>) -> Self {
+        let multiplanar = queue.is_multiplanar();
+
+        UncheckedV4l2Buffer(
+            bindings::v4l2_buffer {
+                index: index.unwrap_or_default(),
+                type_: queue as u32,
+                length: if multiplanar {
+                    bindings::VIDEO_MAX_PLANES
+                } else {
+                    Default::default()
+                },
+                ..Default::default()
+            },
+            if multiplanar {
+                Some(Default::default())
+            } else {
+                None
+            },
+        )
+    }
+}
 
 /// For cases where we are not interested in the result of `qbuf`
 impl TryFrom<UncheckedV4l2Buffer> for () {
@@ -204,6 +234,24 @@ impl TryFrom<UncheckedV4l2Buffer> for () {
 
     fn try_from(_: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
         Ok(())
+    }
+}
+
+/// Returns a mutable pointer to the buffer after making sure its plane pointer is valid, if the
+/// buffer is multiplanar.
+///
+/// This should be used to make sure the buffer is not going to move as long as the reference is
+/// alive.
+impl AsMut<bindings::v4l2_buffer> for UncheckedV4l2Buffer {
+    fn as_mut(&mut self) -> &mut bindings::v4l2_buffer {
+        match (QueueType::n(self.0.type_), &mut self.1) {
+            (Some(queue), Some(planes)) if queue.is_multiplanar() => {
+                self.0.m.planes = planes.as_mut_ptr()
+            }
+            _ => (),
+        }
+
+        &mut self.0
     }
 }
 
@@ -873,6 +921,10 @@ impl TryFrom<UncheckedV4l2Buffer> for V4l2Buffer {
 
 #[cfg(test)]
 mod tests {
+    use crate::{bindings, QueueType};
+
+    use super::UncheckedV4l2Buffer;
+
     #[test]
     fn test_string_from_cstr() {
         use super::string_from_cstr;
@@ -900,5 +952,27 @@ mod tests {
             Err(_) => {}
             Ok(_) => panic!(),
         };
+    }
+
+    #[test]
+    fn test_unchecked_v4l2_buffer() {
+        // Single-planar.
+        let mut v4l2_buf = UncheckedV4l2Buffer::new_for_querybuf(QueueType::VideoCapture, Some(2));
+        assert_eq!(v4l2_buf.0.type_, QueueType::VideoCapture as u32);
+        assert_eq!(v4l2_buf.0.index, 2);
+        assert_eq!(v4l2_buf.0.length, 0);
+        assert!(v4l2_buf.1.is_none());
+        assert_eq!(unsafe { v4l2_buf.as_mut().m.planes }, std::ptr::null_mut());
+
+        // Multi-planar.
+        let mut v4l2_buf =
+            UncheckedV4l2Buffer::new_for_querybuf(QueueType::VideoCaptureMplane, None);
+        assert_eq!(v4l2_buf.0.type_, QueueType::VideoCaptureMplane as u32);
+        assert_eq!(v4l2_buf.0.index, 0);
+        assert_eq!(v4l2_buf.0.length, bindings::VIDEO_MAX_PLANES);
+        assert!(v4l2_buf.1.is_some());
+        let planes_ptr = v4l2_buf.1.as_mut().map(|p| p.as_mut_ptr()).unwrap();
+        let v4l2_buf_ref = v4l2_buf.as_mut();
+        assert_eq!(unsafe { v4l2_buf_ref.m.planes }, planes_ptr);
     }
 }

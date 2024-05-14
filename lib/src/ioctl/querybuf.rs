@@ -5,7 +5,6 @@ use std::os::unix::io::AsRawFd;
 use nix::errno::Errno;
 use thiserror::Error;
 
-use crate::bindings::v4l2_buffer;
 use crate::ioctl::ioctl_and_convert;
 use crate::ioctl::BufferFlags;
 use crate::ioctl::IoctlConvertError;
@@ -98,22 +97,10 @@ where
     O: TryFrom<UncheckedV4l2Buffer>,
     O::Error: std::fmt::Debug,
 {
-    let mut v4l2_buf = UncheckedV4l2Buffer(
-        v4l2_buffer {
-            index: index as u32,
-            type_: queue as u32,
-            ..Default::default()
-        },
-        Default::default(),
-    );
-    if queue.is_multiplanar() {
-        let planes = v4l2_buf.1.get_or_insert(Default::default());
-        v4l2_buf.0.m.planes = planes.as_mut_ptr();
-        v4l2_buf.0.length = planes.len() as u32;
-    }
+    let mut v4l2_buf = UncheckedV4l2Buffer::new_for_querybuf(queue, Some(index as u32));
 
     ioctl_and_convert(
-        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), &mut v4l2_buf.0) }
+        unsafe { ioctl::vidioc_querybuf(fd.as_raw_fd(), v4l2_buf.as_mut()) }
             .map(|_| v4l2_buf)
             .map_err(Into::into),
     )
