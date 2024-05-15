@@ -296,6 +296,16 @@ pub enum BufferField {
     InterlacedBt = bindings::v4l2_field_V4L2_FIELD_INTERLACED_BT,
 }
 
+#[derive(Debug, Error)]
+pub enum V4l2BufferResizePlanesError {
+    #[error("zero planes requested")]
+    ZeroPlanesRequested,
+    #[error("buffer is single planar and can only accomodate one plane")]
+    SinglePlanar,
+    #[error("more than VIDEO_MAX_PLANES have been requested")]
+    TooManyPlanes,
+}
+
 /// Safe-ish representation of a `struct v4l2_buffer`. It owns its own planes array and can only be
 /// constructed from valid data.
 ///
@@ -306,6 +316,7 @@ pub enum BufferField {
 /// * The memory backing (MMAP offset/user pointer/DMABUF) can only be read and set according to
 ///   the memory type of the buffer. I.e. it is impossible to mistakenly set `fd` unless the
 ///   buffer's memory type is `DMABUF`.
+/// * Single-planar buffers can only have exactly one and only one plane.
 ///
 /// Planes management is a bit complicated due to the existence of the single-planar and a
 /// multi-planar buffer representations. There are situations where one wants to access plane
@@ -424,6 +435,30 @@ impl V4l2Buffer {
             self.buffer.length as usize
         } else {
             1
+        }
+    }
+
+    /// Sets the number of planes for this buffer to `num_planes`, which must be between `1` and
+    /// `VIDEO_MAX_PLANES`.
+    ///
+    /// This method only makes sense for multi-planar buffers. For single-planar buffers, any
+    /// `num_planes` value different from `1` will return an error.
+    pub fn set_num_planes(&mut self, num_planes: usize) -> Result<(), V4l2BufferResizePlanesError> {
+        match (num_planes, self.queue().is_multiplanar()) {
+            (0, _) => Err(V4l2BufferResizePlanesError::ZeroPlanesRequested),
+            (n, _) if n > bindings::VIDEO_MAX_PLANES as usize => {
+                Err(V4l2BufferResizePlanesError::TooManyPlanes)
+            }
+            (1, false) => Ok(()),
+            (_, false) => Err(V4l2BufferResizePlanesError::SinglePlanar),
+            (num_planes, true) => {
+                // If we are sizing down, clear the planes we are removing.
+                for plane in &mut self.planes[num_planes..self.buffer.length as usize] {
+                    *plane = Default::default();
+                }
+                self.buffer.length = num_planes as u32;
+                Ok(())
+            }
         }
     }
 
