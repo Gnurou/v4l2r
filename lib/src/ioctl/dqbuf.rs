@@ -23,8 +23,8 @@ pub enum DqBufIoctlError {
     Eos,
     #[error("no buffer ready for dequeue")]
     NotReady,
-    #[error("ioctl error: {0}")]
-    IoctlError(Errno),
+    #[error("unexpected ioctl error: {0}")]
+    Other(Errno),
 }
 
 impl From<Errno> for DqBufIoctlError {
@@ -32,7 +32,7 @@ impl From<Errno> for DqBufIoctlError {
         match error {
             Errno::EAGAIN => Self::NotReady,
             Errno::EPIPE => Self::Eos,
-            error => Self::IoctlError(error),
+            error => Self::Other(error),
         }
     }
 }
@@ -42,7 +42,7 @@ impl From<DqBufIoctlError> for Errno {
         match err {
             DqBufIoctlError::Eos => Errno::EPIPE,
             DqBufIoctlError::NotReady => Errno::EAGAIN,
-            DqBufIoctlError::IoctlError(e) => e,
+            DqBufIoctlError::Other(e) => e,
         }
     }
 }

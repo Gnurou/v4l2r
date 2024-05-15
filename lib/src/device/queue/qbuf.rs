@@ -1,8 +1,9 @@
 //! Provides types related to queuing buffers on a `Queue` object.
 use super::{buffer::BufferInfo, Capture, Direction, Output};
 use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
-use crate::ioctl;
+use crate::ioctl::{self, QBufIoctlError, QBufResult};
 use crate::memory::*;
+use std::convert::Infallible;
 use std::{
     fmt::{self, Debug},
     sync::Arc,
@@ -19,7 +20,7 @@ pub mod get_indexed;
 #[derive(Error)]
 #[error("{}", self.error)]
 pub struct QueueError<P: BufferHandles> {
-    pub error: ioctl::QBufError<()>,
+    pub error: ioctl::QBufError<Infallible>,
     pub plane_handles: P,
 }
 
@@ -199,10 +200,8 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
     fn queue_with_handles(self, handles: Q) -> QueueResult<(), Q> {
         if handles.len() != self.num_expected_planes() {
             return Err(QueueError {
-                error: ioctl::QBufError::NumPlanesMismatch(
-                    handles.len(),
-                    self.num_expected_planes(),
-                ),
+                error: QBufIoctlError::NumPlanesMismatch(handles.len(), self.num_expected_planes())
+                    .into(),
                 plane_handles: handles,
             });
         }
@@ -229,10 +228,8 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
     fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q> {
         if handles.len() != self.num_expected_planes() {
             return Err(QueueError {
-                error: ioctl::QBufError::NumPlanesMismatch(
-                    handles.len(),
-                    self.num_expected_planes(),
-                ),
+                error: QBufIoctlError::NumPlanesMismatch(handles.len(), self.num_expected_planes())
+                    .into(),
                 plane_handles: handles,
             });
         }
@@ -240,10 +237,11 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
         // TODO make specific error for bytes_used?
         if bytes_used.len() != self.num_expected_planes() {
             return Err(QueueError {
-                error: ioctl::QBufError::NumPlanesMismatch(
+                error: QBufIoctlError::NumPlanesMismatch(
                     bytes_used.len(),
                     self.num_expected_planes(),
-                ),
+                )
+                .into(),
                 plane_handles: handles,
             });
         }
@@ -272,7 +270,7 @@ impl<P: PrimitiveBufferHandles + Default, Q: BufferHandles + From<P>> QBuffer<'_
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
 {
-    pub fn queue(self) -> Result<(), ioctl::QBufError<()>> {
+    pub fn queue(self) -> QBufResult<(), Infallible> {
         let planes: Vec<_> = (0..self.num_expected_planes())
             .map(|_| ioctl::QBufPlane::new(0))
             .collect();
@@ -290,13 +288,14 @@ impl<P: PrimitiveBufferHandles + Default, Q: BufferHandles + From<P>> QBuffer<'_
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
 {
-    pub fn queue(self, bytes_used: &[usize]) -> Result<(), ioctl::QBufError<()>> {
+    pub fn queue(self, bytes_used: &[usize]) -> QBufResult<(), Infallible> {
         // TODO make specific error for bytes_used?
         if bytes_used.len() != self.num_expected_planes() {
-            return Err(ioctl::QBufError::NumPlanesMismatch(
+            return Err(QBufIoctlError::NumPlanesMismatch(
                 bytes_used.len(),
                 self.num_expected_planes(),
-            ));
+            )
+            .into());
         }
 
         let planes: Vec<_> = bytes_used
