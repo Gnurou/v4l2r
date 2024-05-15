@@ -113,18 +113,12 @@ impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QB
         planes: Vec<ioctl::QBufPlane>,
         plane_handles: R,
     ) -> QueueResult<(), R> {
-        let qbuffer = ioctl::QBuffer::<P::HandleType> {
-            planes,
-            timestamp: self.timestamp,
-            ..Default::default()
-        };
+        let mut qbuffer =
+            ioctl::QBuffer::<P::HandleType>::new(self.queue.inner.type_, self.index as u32);
+        qbuffer.planes = planes;
+        qbuffer.timestamp = self.timestamp;
 
-        match ioctl::qbuf(
-            &self.queue.inner,
-            self.queue.inner.type_,
-            self.index,
-            qbuffer,
-        ) {
+        match ioctl::qbuf(&self.queue.inner, qbuffer) {
             Ok(()) => (),
             Err(error) => {
                 return Err(QueueError {

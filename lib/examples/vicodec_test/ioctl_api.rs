@@ -207,12 +207,11 @@ pub fn run<F: FnMut(&[u8])>(
                     .next_frame(&mut mapping)
                     .expect("Failed to generate frame");
 
-                let out_qbuf = QBuffer::<MmapHandle> {
-                    planes: vec![QBufPlane::new(frame_gen.frame_size())],
-                    ..Default::default()
-                };
+                let mut out_qbuf =
+                    QBuffer::<MmapHandle>::new(output_queue, output_buffer_index as u32);
+                out_qbuf.planes = vec![QBufPlane::new(frame_gen.frame_size())];
 
-                qbuf::<_, ()>(&fd, output_queue, output_buffer_index, out_qbuf)
+                qbuf::<_, ()>(&fd, out_qbuf)
             }
             MemoryType::UserPtr => {
                 let output_buffer = &mut output_buffers[output_buffer_index];
@@ -221,26 +220,25 @@ pub fn run<F: FnMut(&[u8])>(
                     .next_frame(&mut output_buffer.0)
                     .expect("Failed to generate frame");
 
-                let out_qbuf = QBuffer::<UserPtrHandle<Vec<u8>>> {
-                    planes: vec![QBufPlane::new_from_handle(
-                        output_buffer,
-                        output_buffer.0.len(),
-                    )],
-                    ..Default::default()
-                };
+                let mut out_qbuf = QBuffer::<UserPtrHandle<Vec<u8>>>::new(
+                    output_queue,
+                    output_buffer_index as u32,
+                );
+                out_qbuf.planes = vec![QBufPlane::new_from_handle(
+                    output_buffer,
+                    output_buffer.0.len(),
+                )];
 
-                qbuf::<_, ()>(&fd, output_queue, output_buffer_index, out_qbuf)
+                qbuf::<_, ()>(&fd, out_qbuf)
             }
             _ => unreachable!(),
         }
         .expect("Error queueing output buffer");
 
-        let cap_qbuf = QBuffer::<MmapHandle> {
-            planes: vec![QBufPlane::new(0)],
-            ..Default::default()
-        };
-        qbuf::<_, ()>(&fd, capture_queue, capture_buffer_index, cap_qbuf)
-            .expect("Error queueing capture buffer");
+        let mut cap_qbuf = QBuffer::<MmapHandle>::new(capture_queue, capture_buffer_index as u32);
+        cap_qbuf.planes = vec![QBufPlane::new(0)];
+
+        qbuf::<_, ()>(&fd, cap_qbuf).expect("Error queueing capture buffer");
 
         // Now dequeue the work that we just scheduled.
 
