@@ -1,7 +1,5 @@
 //! Safe wrapper for the `VIDIOC_(TRY_)DECODER_CMD` ioctls.
 
-use crate::bindings;
-use crate::bindings::v4l2_decoder_cmd;
 use bitflags::bitflags;
 use nix::errno::Errno;
 use std::convert::Infallible;
@@ -9,12 +7,11 @@ use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
-#[doc(hidden)]
-mod ioctl {
-    use crate::bindings::v4l2_decoder_cmd;
-    nix::ioctl_readwrite!(vidioc_decoder_cmd, b'V', 96, v4l2_decoder_cmd);
-    nix::ioctl_readwrite!(vidioc_try_decoder_cmd, b'V', 97, v4l2_decoder_cmd);
-}
+use crate::bindings;
+use crate::bindings::v4l2_decoder_cmd;
+use crate::ioctl::ioctl_and_convert;
+use crate::ioctl::IoctlConvertError;
+use crate::ioctl::IoctlConvertResult;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -186,64 +183,75 @@ impl TryFrom<v4l2_decoder_cmd> for () {
 }
 
 #[derive(Debug, Error)]
-pub enum DecoderCmdError {
-    #[error("error while converting from v4l2_decoder_cmd")]
-    FromV4L2CommandConversionError,
+pub enum DecoderCmdIoctlError {
     #[error("drain already in progress")]
     DrainInProgress,
     #[error("command not supported by device")]
     UnsupportedCommand,
-    #[error("ioctl error: {0}")]
-    IoctlError(Errno),
+    #[error("unexpected ioctl error: {0}")]
+    Other(Errno),
 }
 
-impl From<DecoderCmdError> for Errno {
-    fn from(err: DecoderCmdError) -> Self {
+impl From<DecoderCmdIoctlError> for Errno {
+    fn from(err: DecoderCmdIoctlError) -> Self {
         match err {
-            DecoderCmdError::FromV4L2CommandConversionError => Errno::EINVAL,
-            DecoderCmdError::DrainInProgress => Errno::EBUSY,
-            DecoderCmdError::UnsupportedCommand => Errno::EINVAL,
-            DecoderCmdError::IoctlError(e) => e,
+            DecoderCmdIoctlError::DrainInProgress => Errno::EBUSY,
+            DecoderCmdIoctlError::UnsupportedCommand => Errno::EINVAL,
+            DecoderCmdIoctlError::Other(e) => e,
         }
     }
 }
 
-impl From<Errno> for DecoderCmdError {
+impl From<Errno> for DecoderCmdIoctlError {
     fn from(error: Errno) -> Self {
         match error {
-            Errno::EBUSY => DecoderCmdError::DrainInProgress,
-            Errno::EINVAL => DecoderCmdError::UnsupportedCommand,
-            e => DecoderCmdError::IoctlError(e),
+            Errno::EBUSY => DecoderCmdIoctlError::DrainInProgress,
+            Errno::EINVAL => DecoderCmdIoctlError::UnsupportedCommand,
+            e => DecoderCmdIoctlError::Other(e),
         }
     }
 }
 
+#[doc(hidden)]
+mod ioctl {
+    use crate::bindings::v4l2_decoder_cmd;
+    nix::ioctl_readwrite!(vidioc_decoder_cmd, b'V', 96, v4l2_decoder_cmd);
+    nix::ioctl_readwrite!(vidioc_try_decoder_cmd, b'V', 97, v4l2_decoder_cmd);
+}
+
+pub type DecoderCmdError<CE> = IoctlConvertError<DecoderCmdIoctlError, CE>;
+pub type DecoderCmdResult<O, CE> = IoctlConvertResult<O, DecoderCmdIoctlError, CE>;
+
 /// Safe wrapper around the `VIDIOC_DECODER_CMD` ioctl.
-pub fn decoder_cmd<I: Into<v4l2_decoder_cmd>, O: TryFrom<v4l2_decoder_cmd>>(
-    fd: &impl AsRawFd,
-    command: I,
-) -> Result<O, DecoderCmdError> {
+pub fn decoder_cmd<I, O>(fd: &impl AsRawFd, command: I) -> DecoderCmdResult<O, O::Error>
+where
+    I: Into<v4l2_decoder_cmd>,
+    O: TryFrom<v4l2_decoder_cmd>,
+    O::Error: std::fmt::Debug,
+{
     let mut dec_cmd = command.into();
 
-    unsafe { ioctl::vidioc_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) }
-        .map_err(Into::into)
-        .and_then(|_| {
-            O::try_from(dec_cmd).map_err(|_| DecoderCmdError::FromV4L2CommandConversionError)
-        })
+    ioctl_and_convert(
+        unsafe { ioctl::vidioc_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) }
+            .map(|_| dec_cmd)
+            .map_err(Into::into),
+    )
 }
 
 /// Safe wrapper around the `VIDIOC_TRY_DECODER_CMD` ioctl.
-pub fn try_decoder_cmd<I: Into<v4l2_decoder_cmd>, O: TryFrom<v4l2_decoder_cmd>>(
-    fd: &impl AsRawFd,
-    command: I,
-) -> Result<O, DecoderCmdError> {
+pub fn try_decoder_cmd<I, O>(fd: &impl AsRawFd, command: I) -> DecoderCmdResult<O, O::Error>
+where
+    I: Into<v4l2_decoder_cmd>,
+    O: TryFrom<v4l2_decoder_cmd>,
+    O::Error: std::fmt::Debug,
+{
     let mut dec_cmd = command.into();
 
-    unsafe { ioctl::vidioc_try_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) }
-        .map_err(Into::into)
-        .and_then(|_| {
-            O::try_from(dec_cmd).map_err(|_| DecoderCmdError::FromV4L2CommandConversionError)
-        })
+    ioctl_and_convert(
+        unsafe { ioctl::vidioc_try_decoder_cmd(fd.as_raw_fd(), &mut dec_cmd) }
+            .map(|_| dec_cmd)
+            .map_err(Into::into),
+    )
 }
 
 #[cfg(test)]
