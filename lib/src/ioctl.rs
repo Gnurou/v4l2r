@@ -259,46 +259,6 @@ impl AsMut<bindings::v4l2_buffer> for UncheckedV4l2Buffer {
 /// with the multi-planar API.
 type V4l2BufferPlanes = [bindings::v4l2_plane; bindings::VIDEO_MAX_PLANES as usize];
 
-/// Information about a single plane of a V4L2 buffer.
-#[repr(transparent)]
-pub struct V4l2BufferPlane(bindings::v4l2_plane);
-
-impl Debug for V4l2BufferPlane {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("V4l2BufferPlane")
-            .field("length", &self.length())
-            .field("bytesused", &self.bytesused())
-            .field("data_offset", &self.data_offset())
-            .finish()
-    }
-}
-
-impl V4l2BufferPlane {
-    pub fn length(&self) -> u32 {
-        self.0.length
-    }
-
-    pub fn set_length(&mut self, length: u32) {
-        self.0.length = length;
-    }
-
-    pub fn bytesused(&self) -> u32 {
-        self.0.bytesused
-    }
-
-    pub fn set_bytesused(&mut self, bytesused: u32) {
-        self.0.bytesused = bytesused;
-    }
-
-    pub fn data_offset(&self) -> u32 {
-        self.0.data_offset
-    }
-
-    pub fn set_data_offset(&mut self, data_offset: u32) {
-        self.0.data_offset = data_offset;
-    }
-}
-
 bitflags! {
     #[derive(Clone, Copy, Debug, Default)]
     /// `flags` member of `struct `v4l2_buffer`.
