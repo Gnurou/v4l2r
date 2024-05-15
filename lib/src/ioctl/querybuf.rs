@@ -20,7 +20,13 @@ pub struct QueryBufPlane {
     pub length: u32,
 }
 
-/// Contains all the information that makes sense when using `querybuf`.
+/// Contains information about a buffer's layout, as obtained from [`crate::ioctl::querybuf`].
+///
+/// It is a subset of [`crate::ioctl::V4l2Buffer`], only more convenient on occasion because its
+/// conversion from an unchecked v4l2_buffer cannot fail.
+///
+/// Single-planar buffers have one entry in [`planes`] representing the layout of their unique
+/// plane.
 #[derive(Debug)]
 pub struct QueryBuffer {
     pub index: usize,
