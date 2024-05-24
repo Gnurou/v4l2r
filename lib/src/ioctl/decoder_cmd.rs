@@ -149,22 +149,18 @@ impl TryFrom<v4l2_decoder_cmd> for DecoderCmd {
                 // SAFETY: safe because we confirmed we are dealing with a START command.
                 let params = unsafe { cmd.__bindgen_anon_1.start };
                 DecoderCmd::Start {
-                    flags: StartCmdFlags::from_bits(cmd.flags)
-                        .ok_or(BuildDecoderCmdError::InvalidStartFlags(cmd.flags))?,
+                    flags: StartCmdFlags::from_bits_truncate(cmd.flags),
                     speed: params.speed,
-                    format: DecoderStartCmdFormat::n(params.format)
-                        .ok_or(BuildDecoderCmdError::InvalidStartFormat(params.format))?,
+                    format: DecoderStartCmdFormat::n(params.format).unwrap_or_default(),
                 }
             }
             bindings::V4L2_DEC_CMD_STOP => DecoderCmd::Stop {
-                flags: StopCmdFlags::from_bits(cmd.flags)
-                    .ok_or(BuildDecoderCmdError::InvalidStopFlags(cmd.flags))?,
+                flags: StopCmdFlags::from_bits_truncate(cmd.flags),
                 // SAFETY: safe because we confirmed we are dealing with a STOP command.
                 pts: unsafe { cmd.__bindgen_anon_1.stop.pts },
             },
             bindings::V4L2_DEC_CMD_PAUSE => DecoderCmd::Pause {
-                flags: PauseCmdFlags::from_bits(cmd.flags)
-                    .ok_or(BuildDecoderCmdError::InvalidPauseFlags(cmd.flags))?,
+                flags: PauseCmdFlags::from_bits_truncate(cmd.flags),
             },
             bindings::V4L2_DEC_CMD_RESUME => DecoderCmd::Resume,
             code => return Err(BuildDecoderCmdError::InvalidCommandCode(code)),
