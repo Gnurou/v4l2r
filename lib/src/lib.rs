@@ -44,6 +44,18 @@ pub enum QueueDirection {
     Capture,
 }
 
+/// Possible classes for this queue.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum QueueClass {
+    Video,
+    Vbi,
+    SlicedVbi,
+    VideoOverlay,
+    VideoMplane,
+    Sdr,
+    Meta,
+}
+
 /// Types of queues currently supported by this library.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, N)]
 #[repr(u32)]
@@ -65,6 +77,26 @@ pub enum QueueType {
 }
 
 impl QueueType {
+    /// Returns the queue corresponding to the passed `direction` and `class`.
+    pub fn from_dir_and_class(direction: QueueDirection, class: QueueClass) -> Self {
+        match (direction, class) {
+            (QueueDirection::Capture, QueueClass::Video) => Self::VideoCapture,
+            (QueueDirection::Output, QueueClass::Video) => Self::VideoOutput,
+            (QueueDirection::Capture, QueueClass::VideoOverlay) => Self::VideoOverlay,
+            (QueueDirection::Output, QueueClass::VideoOverlay) => Self::VideoOutputOverlay,
+            (QueueDirection::Capture, QueueClass::Vbi) => Self::VbiCapture,
+            (QueueDirection::Output, QueueClass::Vbi) => Self::VbiOutput,
+            (QueueDirection::Capture, QueueClass::SlicedVbi) => Self::SlicedVbiCapture,
+            (QueueDirection::Output, QueueClass::SlicedVbi) => Self::SlicedVbiOutput,
+            (QueueDirection::Capture, QueueClass::VideoMplane) => Self::VideoCaptureMplane,
+            (QueueDirection::Output, QueueClass::VideoMplane) => Self::VideoOutputMplane,
+            (QueueDirection::Capture, QueueClass::Sdr) => Self::SdrCapture,
+            (QueueDirection::Output, QueueClass::Sdr) => Self::SdrOutput,
+            (QueueDirection::Capture, QueueClass::Meta) => Self::MetaCapture,
+            (QueueDirection::Output, QueueClass::Meta) => Self::MetaOutput,
+        }
+    }
+
     /// Returns whether the queue type is multiplanar.
     pub fn is_multiplanar(&self) -> bool {
         matches!(
@@ -91,6 +123,18 @@ impl QueueType {
             | QueueType::VideoCaptureMplane
             | QueueType::SdrCapture
             | QueueType::MetaCapture => QueueDirection::Capture,
+        }
+    }
+
+    pub fn class(&self) -> QueueClass {
+        match self {
+            QueueType::VideoCapture | QueueType::VideoOutput => QueueClass::Video,
+            QueueType::VideoOverlay | QueueType::VideoOutputOverlay => QueueClass::VideoOverlay,
+            QueueType::VbiCapture | QueueType::VbiOutput => QueueClass::Vbi,
+            QueueType::SlicedVbiCapture | QueueType::SlicedVbiOutput => QueueClass::SlicedVbi,
+            QueueType::VideoCaptureMplane | QueueType::VideoOutputMplane => QueueClass::VideoMplane,
+            QueueType::SdrCapture | QueueType::SdrOutput => QueueClass::Sdr,
+            QueueType::MetaCapture | QueueType::MetaOutput => QueueClass::Meta,
         }
     }
 }
