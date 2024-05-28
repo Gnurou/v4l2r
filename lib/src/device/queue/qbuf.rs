@@ -203,13 +203,13 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
         // TODO BufferHandles should have a method returning the actual MEMORY_TYPE implemented? So we can check
         // that it matches with P.
 
-        let mut planes: Vec<_> = (0..self.num_expected_planes())
-            .map(|_| ioctl::QBufPlane::new(0))
+        let planes: Vec<_> = (0..self.num_expected_planes())
+            .map(|i| {
+                let mut plane = ioctl::QBufPlane::new(0);
+                handles.fill_v4l2_plane(i, &mut plane.0);
+                plane
+            })
             .collect();
-        for (index, plane) in planes.iter_mut().enumerate() {
-            // TODO take the QBufPlane as argument if possible?
-            handles.fill_v4l2_plane(index, &mut plane.0);
-        }
 
         self.queue_bound_planes(planes, handles)
     }
@@ -243,14 +243,15 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
         // TODO BufferHandles should have a method returning the actual MEMORY_TYPE implemented? So we can check
         // that it matches with P.
 
-        let mut planes: Vec<_> = bytes_used
+        let planes: Vec<_> = bytes_used
             .iter()
-            .map(|size| ioctl::QBufPlane::new(*size))
+            .enumerate()
+            .map(|(i, size)| {
+                let mut plane = ioctl::QBufPlane::new(*size);
+                handles.fill_v4l2_plane(i, &mut plane.0);
+                plane
+            })
             .collect();
-        for (index, plane) in planes.iter_mut().enumerate() {
-            // TODO take the QBufPlane as argument if possible?
-            handles.fill_v4l2_plane(index, &mut plane.0);
-        }
 
         self.queue_bound_planes(planes, handles)
     }
