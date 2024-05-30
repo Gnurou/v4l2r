@@ -237,6 +237,21 @@ impl TryFrom<UncheckedV4l2Buffer> for () {
     }
 }
 
+impl From<V4l2Buffer> for UncheckedV4l2Buffer {
+    fn from(buffer: V4l2Buffer) -> Self {
+        let is_multiplanar = buffer.queue().is_multiplanar();
+
+        Self(
+            buffer.buffer,
+            if is_multiplanar {
+                Some(buffer.planes)
+            } else {
+                None
+            },
+        )
+    }
+}
+
 /// Returns a mutable pointer to the buffer after making sure its plane pointer is valid, if the
 /// buffer is multiplanar.
 ///
