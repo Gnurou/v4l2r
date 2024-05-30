@@ -442,8 +442,9 @@ impl Display for Rect {
 
 /// Equivalent of `enum v4l2_colorspace`.
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, N)]
 pub enum Colorspace {
+    #[default]
     Default = bindings::v4l2_colorspace_V4L2_COLORSPACE_DEFAULT,
     Smpte170M = bindings::v4l2_colorspace_V4L2_COLORSPACE_SMPTE170M,
     Smpte240M = bindings::v4l2_colorspace_V4L2_COLORSPACE_SMPTE240M,
@@ -461,8 +462,9 @@ pub enum Colorspace {
 
 /// Equivalent of `enum v4l2_xfer_func`.
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, N)]
 pub enum XferFunc {
+    #[default]
     Default = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_DEFAULT,
     F709 = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_709,
     Srgb = bindings::v4l2_xfer_func_V4L2_XFER_FUNC_SRGB,
@@ -475,8 +477,9 @@ pub enum XferFunc {
 
 /// Equivalent of `enum v4l2_ycbcr_encoding`.
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, N)]
 pub enum YCbCrEncoding {
+    #[default]
     Default = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_DEFAULT,
     E601 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_601,
     E709 = bindings::v4l2_ycbcr_encoding_V4L2_YCBCR_ENC_709,
@@ -490,8 +493,9 @@ pub enum YCbCrEncoding {
 
 /// Equivalent of `enum v4l2_quantization`.
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, N)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, N)]
 pub enum Quantization {
+    #[default]
     Default = bindings::v4l2_quantization_V4L2_QUANTIZATION_DEFAULT,
     FullRange = bindings::v4l2_quantization_V4L2_QUANTIZATION_FULL_RANGE,
     LimRange = bindings::v4l2_quantization_V4L2_QUANTIZATION_LIM_RANGE,

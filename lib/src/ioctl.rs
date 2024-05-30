@@ -112,7 +112,13 @@ use crate::memory::Memory;
 use crate::memory::MemoryType;
 use crate::memory::Mmap;
 use crate::memory::UserPtr;
+use crate::Colorspace;
+use crate::PixelFormat;
+use crate::Quantization;
+use crate::QueueDirection;
 use crate::QueueType;
+use crate::XferFunc;
+use crate::YCbCrEncoding;
 
 /// Utility function for sub-modules.
 /// Constructs an owned String instance from a slice containing a nul-terminated
@@ -297,9 +303,10 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, N)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, N)]
 #[repr(u32)]
 pub enum BufferField {
+    #[default]
     Any = bindings::v4l2_field_V4L2_FIELD_ANY,
     None = bindings::v4l2_field_V4L2_FIELD_NONE,
     Top = bindings::v4l2_field_V4L2_FIELD_TOP,
@@ -926,6 +933,147 @@ impl TryFrom<UncheckedV4l2Buffer> for V4l2Buffer {
             buffer: v4l2_buf,
             planes: v4l2_planes.unwrap_or_default(),
         })
+    }
+}
+
+/// Representation of a validated multi-planar `struct v4l2_format`. It provides accessors returning proper
+/// types instead of `u32`s.
+#[derive(Clone)]
+#[repr(transparent)]
+pub struct V4l2MplaneFormat(bindings::v4l2_format);
+
+impl AsRef<bindings::v4l2_format> for V4l2MplaneFormat {
+    fn as_ref(&self) -> &bindings::v4l2_format {
+        &self.0
+    }
+}
+
+impl AsRef<bindings::v4l2_pix_format_mplane> for V4l2MplaneFormat {
+    fn as_ref(&self) -> &bindings::v4l2_pix_format_mplane {
+        // SAFETY: safe because we verify that the format is pixel multiplanar at construction
+        // time.
+        unsafe { &self.0.fmt.pix_mp }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum V4l2MplaneFormatFromError {
+    #[error("format is not multi-planar")]
+    NotMultiPlanar,
+    #[error("invalid field type {0}")]
+    InvalidField(u32),
+    #[error("invalid colorspace {0}")]
+    InvalidColorSpace(u32),
+    #[error("invalid number of planes {0}")]
+    InvalidPlanesNumber(u8),
+    #[error("invalid YCbCr encoding {0}")]
+    InvalidYCbCr(u8),
+    #[error("invalid quantization {0}")]
+    InvalidQuantization(u8),
+    #[error("invalid Xfer func {0}")]
+    InvalidXferFunc(u8),
+}
+
+/// Turn a `struct v4l2_format` into its validated version, returning an error if any of the fields
+/// cannot be validated.
+impl TryFrom<bindings::v4l2_format> for V4l2MplaneFormat {
+    type Error = V4l2MplaneFormatFromError;
+
+    fn try_from(format: bindings::v4l2_format) -> Result<Self, Self::Error> {
+        if !matches!(
+            QueueType::n(format.type_),
+            Some(QueueType::VideoCaptureMplane) | Some(QueueType::VideoOutputMplane)
+        ) {
+            return Err(V4l2MplaneFormatFromError::NotMultiPlanar);
+        }
+        let pix_mp = unsafe { &format.fmt.pix_mp };
+
+        if pix_mp.num_planes == 0 || pix_mp.num_planes > bindings::VIDEO_MAX_PLANES as u8 {
+            return Err(V4l2MplaneFormatFromError::InvalidPlanesNumber(
+                pix_mp.num_planes,
+            ));
+        }
+
+        let _ = BufferField::n(pix_mp.field)
+            .ok_or(V4l2MplaneFormatFromError::InvalidField(pix_mp.field))?;
+        let _ = Colorspace::n(pix_mp.colorspace).ok_or(
+            V4l2MplaneFormatFromError::InvalidColorSpace(pix_mp.colorspace),
+        )?;
+        let ycbcr_enc = unsafe { pix_mp.__bindgen_anon_1.ycbcr_enc };
+        let _ = YCbCrEncoding::n(ycbcr_enc as u32)
+            .ok_or(V4l2MplaneFormatFromError::InvalidYCbCr(ycbcr_enc));
+
+        let _ = Quantization::n(pix_mp.quantization as u32).ok_or(
+            V4l2MplaneFormatFromError::InvalidQuantization(pix_mp.quantization),
+        )?;
+        let _ = XferFunc::n(pix_mp.xfer_func as u32)
+            .ok_or(V4l2MplaneFormatFromError::InvalidXferFunc(pix_mp.xfer_func))?;
+
+        Ok(Self(format))
+    }
+}
+
+/// Turn a `struct v4l2_pix_format_mplane` into its validated version, turning any field that can
+/// not be validated into its default value.
+impl From<(QueueDirection, bindings::v4l2_pix_format_mplane)> for V4l2MplaneFormat {
+    fn from((direction, mut pix_mp): (QueueDirection, bindings::v4l2_pix_format_mplane)) -> Self {
+        pix_mp.field = BufferField::n(pix_mp.field).unwrap_or_default() as u32;
+        pix_mp.colorspace = Colorspace::n(pix_mp.colorspace).unwrap_or_default() as u32;
+        let ycbcr_enc = unsafe { pix_mp.__bindgen_anon_1.ycbcr_enc };
+        pix_mp.__bindgen_anon_1.ycbcr_enc =
+            YCbCrEncoding::n(ycbcr_enc as u32).unwrap_or_default() as u8;
+        pix_mp.quantization = Quantization::n(pix_mp.quantization as u32).unwrap_or_default() as u8;
+        pix_mp.xfer_func = XferFunc::n(pix_mp.xfer_func as u32).unwrap_or_default() as u8;
+
+        Self(bindings::v4l2_format {
+            type_: QueueType::from_dir_and_class(direction, crate::QueueClass::VideoMplane) as u32,
+            fmt: bindings::v4l2_format__bindgen_ty_1 { pix_mp },
+        })
+    }
+}
+
+impl V4l2MplaneFormat {
+    /// Returns the direction of the MPLANE queue this format applies to.
+    pub fn direction(&self) -> QueueDirection {
+        QueueType::n(self.0.type_).unwrap().direction()
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        (pix_mp.width, pix_mp.height)
+    }
+
+    pub fn pixelformat(&self) -> PixelFormat {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        PixelFormat::from_u32(pix_mp.pixelformat)
+    }
+
+    pub fn field(&self) -> BufferField {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        // Safe because we checked the boundaries at construction time.
+        BufferField::n(pix_mp.field).unwrap()
+    }
+
+    pub fn colorspace(&self) -> Colorspace {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        // Safe because we checked the boundaries at construction time.
+        Colorspace::n(pix_mp.colorspace).unwrap()
+    }
+
+    pub fn ycbcr_enc(&self) -> YCbCrEncoding {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        // Safe because we checked the boundaries at construction time.
+        YCbCrEncoding::n(unsafe { pix_mp.__bindgen_anon_1.ycbcr_enc as u32 }).unwrap()
+    }
+
+    pub fn quantization(&self) -> Quantization {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        Quantization::n(pix_mp.quantization as u32).unwrap()
+    }
+
+    pub fn xfer_func(&self) -> XferFunc {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        XferFunc::n(pix_mp.xfer_func as u32).unwrap()
     }
 }
 
