@@ -9,8 +9,11 @@ use std::{
     collections::BTreeMap,
     fs::File,
     io::{self, Read, Write},
-    sync::atomic::{AtomicUsize, Ordering},
-    sync::Arc,
+    os::fd::{AsFd, BorrowedFd},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
     task::Wake,
 };
 
@@ -341,6 +344,12 @@ impl Poller {
         }
 
         Ok(events)
+    }
+}
+
+impl AsFd for Poller {
+    fn as_fd(&self) -> BorrowedFd {
+        self.epoll.0.as_fd()
     }
 }
 
