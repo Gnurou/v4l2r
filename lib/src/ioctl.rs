@@ -359,9 +359,10 @@ pub struct V4l2Buffer {
     planes: V4l2BufferPlanes,
 }
 
-/// V4l2Buffer is safe to send across threads. `v4l2_buffer` is !Send because it
-/// contains a pointer, but we are making sure to use it safely here.
+/// V4l2Buffer is safe to send across threads. `v4l2_buffer` is !Send & !Sync
+/// because it contains a pointer, but we are making sure to use it safely here.
 unsafe impl Send for V4l2Buffer {}
+unsafe impl Sync for V4l2Buffer {}
 
 impl Debug for V4l2Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
