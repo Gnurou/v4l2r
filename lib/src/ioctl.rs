@@ -1076,6 +1076,11 @@ impl V4l2MplaneFormat {
         let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
         XferFunc::n(pix_mp.xfer_func as u32).unwrap()
     }
+
+    pub fn planes(&self) -> &[bindings::v4l2_plane_pix_format] {
+        let pix_mp: &bindings::v4l2_pix_format_mplane = self.as_ref();
+        &pix_mp.plane_fmt[0..pix_mp.num_planes.min(bindings::VIDEO_MAX_PLANES as u8) as usize]
+    }
 }
 
 #[cfg(test)]
