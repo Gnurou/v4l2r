@@ -1,6 +1,7 @@
 //! Definition of CODEC class controls.
 
 use bitflags::bitflags;
+use enumn::N;
 
 use crate::bindings;
 use crate::bindings::v4l2_ctrl_fwht_params;
@@ -69,4 +70,295 @@ pub struct Vp8Frame;
 impl ExtControlTrait for Vp8Frame {
     const ID: u32 = bindings::V4L2_CID_STATELESS_VP8_FRAME;
     type PAYLOAD = v4l2_ctrl_vp8_frame;
+}
+
+/// Safe wrapper over [`v4l2r::bindings::V4L2_CID_MPEG_VIDEO_HEADER_MODE`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoHeaderMode {
+    Separate = bindings::v4l2_mpeg_video_header_mode_V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE as i32,
+    JoinedWith1stFrame =
+        bindings::v4l2_mpeg_video_header_mode_V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME
+            as i32,
+}
+
+impl ExtControlTrait for VideoHeaderMode {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_HEADER_MODE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoHeaderMode> for i32 {
+    fn from(value: VideoHeaderMode) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_BITRATE`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoBitrate(pub i32);
+
+impl ExtControlTrait for VideoBitrate {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_BITRATE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoBitrate> for i32 {
+    fn from(value: VideoBitrate) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_BITRATE_PEAK`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoBitratePeak(pub i32);
+
+impl ExtControlTrait for VideoBitratePeak {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_BITRATE_PEAK;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoBitratePeak> for i32 {
+    fn from(value: VideoBitratePeak) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_CONSTANT_QUALITY`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoConstantQuality(pub i32);
+
+impl ExtControlTrait for VideoConstantQuality {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_CONSTANT_QUALITY;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoConstantQuality> for i32 {
+    fn from(value: VideoConstantQuality) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_BITRATE_MODE`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoBitrateMode {
+    VariableBitrate =
+        bindings::v4l2_mpeg_video_bitrate_mode_V4L2_MPEG_VIDEO_BITRATE_MODE_VBR as i32,
+    ConstantBitrate =
+        bindings::v4l2_mpeg_video_bitrate_mode_V4L2_MPEG_VIDEO_BITRATE_MODE_CBR as i32,
+    ConstantQuality = bindings::v4l2_mpeg_video_bitrate_mode_V4L2_MPEG_VIDEO_BITRATE_MODE_CQ as i32,
+}
+
+impl ExtControlTrait for VideoBitrateMode {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_BITRATE_MODE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoBitrateMode> for i32 {
+    fn from(value: VideoBitrateMode) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoForceKeyFrame;
+
+impl ExtControlTrait for VideoForceKeyFrame {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_FORCE_KEY_FRAME;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoForceKeyFrame> for i32 {
+    fn from(_value: VideoForceKeyFrame) -> Self {
+        1
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_GOP_SIZE`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoGopSize(pub i32);
+
+impl ExtControlTrait for VideoGopSize {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_GOP_SIZE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoGopSize> for i32 {
+    fn from(value: VideoGopSize) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_B_FRAMES`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoBFrames(pub i32);
+
+impl ExtControlTrait for VideoBFrames {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_B_FRAMES;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoBFrames> for i32 {
+    fn from(value: VideoBFrames) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_H264_MIN_QP`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoH264MinQp(pub i32);
+
+impl ExtControlTrait for VideoH264MinQp {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_H264_MIN_QP;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoH264MinQp> for i32 {
+    fn from(value: VideoH264MinQp) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_H264_MAX_QP`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoH264MaxQp(pub i32);
+
+impl ExtControlTrait for VideoH264MaxQp {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_H264_MAX_QP;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoH264MaxQp> for i32 {
+    fn from(value: VideoH264MaxQp) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_H264_I_PERIOD`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoH264IPeriod(pub i32);
+
+impl ExtControlTrait for VideoH264IPeriod {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_H264_I_PERIOD;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoH264IPeriod> for i32 {
+    fn from(value: VideoH264IPeriod) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_H264_LEVEL`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoH264Level {
+    L1_0 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_1_0 as i32,
+    L1B = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_1B as i32,
+    L1_1 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_1_1 as i32,
+    L1_2 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_1_2 as i32,
+    L1_3 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_1_3 as i32,
+    L2_0 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_2_0 as i32,
+    L2_1 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_2_1 as i32,
+    L2_2 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_2_2 as i32,
+    L3_0 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_3_0 as i32,
+    L3_1 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_3_1 as i32,
+    L3_2 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_3_2 as i32,
+    L4_0 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_4_0 as i32,
+    L4_1 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_4_1 as i32,
+    L4_2 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_4_2 as i32,
+    L5_0 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_5_0 as i32,
+    L5_1 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_5_1 as i32,
+    L5_2 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_5_2 as i32,
+    L6_0 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_6_0 as i32,
+    L6_1 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_6_1 as i32,
+    L6_2 = bindings::v4l2_mpeg_video_h264_level_V4L2_MPEG_VIDEO_H264_LEVEL_6_2 as i32,
+}
+
+impl ExtControlTrait for VideoH264Level {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_H264_LEVEL;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoH264Level> for i32 {
+    fn from(value: VideoH264Level) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_H264_PROFILE`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoH264Profile {
+    Baseline = bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE as i32,
+    ConstrainedBaseline =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE
+            as i32,
+    Main = bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_MAIN as i32,
+    Extended = bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED as i32,
+    High = bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH as i32,
+    High10 = bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_10 as i32,
+    High422 = bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422 as i32,
+    High444Predictive =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_444_PREDICTIVE
+            as i32,
+    High10Intra =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_10_INTRA as i32,
+    High422Intra =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422_INTRA as i32,
+    High444Intra =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_444_INTRA as i32,
+    Cavlc444Intra =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_CAVLC_444_INTRA as i32,
+    ScalableBaseline =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_SCALABLE_BASELINE
+            as i32,
+    ScalableHigh =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_SCALABLE_HIGH as i32,
+    ScalableHighIntra =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_SCALABLE_HIGH_INTRA
+            as i32,
+    StereoHigh =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_STEREO_HIGH as i32,
+    MultiviewHigh =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_MULTIVIEW_HIGH as i32,
+    ConstrainedHigh =
+        bindings::v4l2_mpeg_video_h264_profile_V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_HIGH as i32,
+}
+
+impl ExtControlTrait for VideoH264Profile {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_H264_PROFILE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoH264Profile> for i32 {
+    fn from(value: VideoH264Profile) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_PREPEND_SPSPPS_TO_IDR`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoPrependSpsPpsToIdr(pub bool);
+
+impl ExtControlTrait for VideoPrependSpsPpsToIdr {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_PREPEND_SPSPPS_TO_IDR;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoPrependSpsPpsToIdr> for i32 {
+    fn from(value: VideoPrependSpsPpsToIdr) -> Self {
+        value.0 as i32
+    }
 }
