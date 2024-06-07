@@ -416,3 +416,161 @@ impl From<VideoPrependSpsPpsToIdr> for i32 {
         value.0 as i32
     }
 }
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_HEVC_MIN_QP`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoHEVCMinQp(pub i32);
+
+impl ExtControlTrait for VideoHEVCMinQp {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_HEVC_MIN_QP;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoHEVCMinQp> for i32 {
+    fn from(value: VideoHEVCMinQp) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_HEVC_MAX_QP`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoHEVCMaxQp(pub i32);
+
+impl ExtControlTrait for VideoHEVCMaxQp {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_HEVC_MAX_QP;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoHEVCMaxQp> for i32 {
+    fn from(value: VideoHEVCMaxQp) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_HEVC_LEVEL`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoHEVCLevel {
+    L1_0 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_1 as i32,
+    L2_0 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_2 as i32,
+    L2_1 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_2_1 as i32,
+    L3_0 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_3 as i32,
+    L3_1 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_3_1 as i32,
+    L4_0 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_4 as i32,
+    L4_1 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_4_1 as i32,
+    L5_0 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_5 as i32,
+    L5_1 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1 as i32,
+    L5_2 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_5_2 as i32,
+    L6_0 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_6 as i32,
+    L6_1 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1 as i32,
+    L6_2 = bindings::v4l2_mpeg_video_hevc_level_V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2 as i32,
+}
+
+impl ExtControlTrait for VideoHEVCLevel {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_HEVC_LEVEL;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoHEVCLevel> for i32 {
+    fn from(value: VideoHEVCLevel) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_HEVC_PROFILE`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoHEVCProfile {
+    Main = bindings::v4l2_mpeg_video_hevc_profile_V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN as i32,
+    Main10 = bindings::v4l2_mpeg_video_hevc_profile_V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10 as i32,
+    MainStill =
+        bindings::v4l2_mpeg_video_hevc_profile_V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_STILL_PICTURE
+            as i32,
+}
+
+impl ExtControlTrait for VideoHEVCProfile {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_HEVC_PROFILE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoHEVCProfile> for i32 {
+    fn from(value: VideoHEVCProfile) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_VP8_PROFILE`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoVP8Profile {
+    Profile0 = bindings::v4l2_mpeg_video_vp8_profile_V4L2_MPEG_VIDEO_VP8_PROFILE_0 as i32,
+    Profile1 = bindings::v4l2_mpeg_video_vp8_profile_V4L2_MPEG_VIDEO_VP8_PROFILE_1 as i32,
+    Profile2 = bindings::v4l2_mpeg_video_vp8_profile_V4L2_MPEG_VIDEO_VP8_PROFILE_2 as i32,
+    Profile3 = bindings::v4l2_mpeg_video_vp8_profile_V4L2_MPEG_VIDEO_VP8_PROFILE_3 as i32,
+}
+
+impl ExtControlTrait for VideoVP8Profile {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_VP8_PROFILE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoVP8Profile> for i32 {
+    fn from(value: VideoVP8Profile) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_VP9_PROFILE`]
+#[repr(i32)]
+#[derive(N, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VideoVP9Profile {
+    Profile0 = bindings::v4l2_mpeg_video_vp9_profile_V4L2_MPEG_VIDEO_VP9_PROFILE_0 as i32,
+    Profile1 = bindings::v4l2_mpeg_video_vp9_profile_V4L2_MPEG_VIDEO_VP9_PROFILE_1 as i32,
+    Profile2 = bindings::v4l2_mpeg_video_vp9_profile_V4L2_MPEG_VIDEO_VP9_PROFILE_2 as i32,
+    Profile3 = bindings::v4l2_mpeg_video_vp9_profile_V4L2_MPEG_VIDEO_VP9_PROFILE_3 as i32,
+}
+
+impl ExtControlTrait for VideoVP9Profile {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_VP9_PROFILE;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoVP9Profile> for i32 {
+    fn from(value: VideoVP9Profile) -> Self {
+        value as i32
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_VPX_MIN_QP`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoVPXMinQp(pub i32);
+
+impl ExtControlTrait for VideoVPXMinQp {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_VPX_MIN_QP;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoVPXMinQp> for i32 {
+    fn from(value: VideoVPXMinQp) -> Self {
+        value.0
+    }
+}
+
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_VPX_MAX_QP`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoVPXMaxQp(pub i32);
+
+impl ExtControlTrait for VideoVPXMaxQp {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_VPX_MAX_QP;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoVPXMaxQp> for i32 {
+    fn from(value: VideoVPXMaxQp) -> Self {
+        value.0
+    }
+}
