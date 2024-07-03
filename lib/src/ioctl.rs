@@ -11,10 +11,10 @@
 //! Consequently, each ioctl proxy function is designed as follows:
 //!
 //! * A function that takes the relevant input as parameters and not the entire input/output
-//! structure. This lifts any ambiguity as to which parts of the structure userspace is supposed to
-//! fill.
+//!   structure. This lifts any ambiguity as to which parts of the structure userspace is supposed to
+//!   fill.
 //! * Safe variants of V4L2 structures used in ioctls that can be build from their C counterparts
-//! (and vice-versa) and include a validation step, to be used as return values.
+//!   (and vice-versa) and include a validation step, to be used as return values.
 //!
 //! For instance, the `VIDIOC_G_FMT` ioctl takes a `struct v4l2_format` as argument, but only the
 //! its `type` field is set by user-space - the rest of the structure is to be filled by the
