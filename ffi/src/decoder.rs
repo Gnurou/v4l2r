@@ -335,7 +335,8 @@ fn v4l2r_decoder_new_safe(
             DecoderEvent::EndOfStream => event_cb(cb_data.0, &mut v4l2r_decoder_event::EndOfStream),
         };
     };
-    let decoder = match decoder.start(
+
+    let res = decoder.start(
         Box::new(
             move |buf: CompletedInputBuffer<Vec<DmaBufHandle<DmaBufFd>>>| {
                 match buf {
@@ -369,7 +370,9 @@ fn v4l2r_decoder_new_safe(
                 )
             },
         ) as Box<dyn FormatChangedCallback<Arc<v4l2r_video_frame_provider>>>,
-    ) {
+    );
+
+    let decoder = match res {
         Ok(decoder) => decoder,
         Err(e) => {
             error!("Cannot start decoder: {}", e);
