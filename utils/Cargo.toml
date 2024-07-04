@@ -11,4 +11,4 @@ v4l2r = { path = "../lib" }
 thiserror = "1.0"
 anyhow = "1.0"
 log = "0.4.14"
-dma-heap = "0.2.1"
+nix = { version = "0.28", features = ["fs"] }
