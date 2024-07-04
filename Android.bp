@@ -7,14 +7,16 @@ rust_library {
     crate_name: "v4l2r",
     vendor_available: true,
     srcs: ["lib/src/lib.rs"],
-    edition: "2018",
+    edition: "2021",
     rustlibs: [
-        "libanyhow",
-        "libbitflags",
-        "liblibc",
-        "liblog_rust",
         "libnix",
+        "libbitflags",
         "libthiserror",
+        "libanyhow",
+        "liblog_rust",
+    ],
+    proc_macros: [
+        "libenumn",
     ],
 }
 
@@ -24,13 +26,14 @@ rust_ffi_static {
     crate_name: "v4l2r_ffi",
     vendor_available: true,
     srcs: ["ffi/src/lib.rs"],
-    edition: "2018",
+    edition: "2021",
     features: ["android"],
     rustlibs: [
-        "libandroid_logger",
+        "libnix",
         "libanyhow",
         "liblog_rust",
-        "libnix",
+        "libenv_logger",
+        "libandroid_logger",
         "libv4l2r",
     ],
     include_dirs: [
