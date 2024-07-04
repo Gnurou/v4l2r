@@ -326,6 +326,10 @@ fn v4l2r_decoder_new_safe(
     let decoder_ptr = SendablePtr(decoder_box.as_mut_ptr());
 
     let event_handler = move |event: DecoderEvent<Arc<v4l2r_video_frame_provider>>| {
+        // Make Rust 2021 happy.
+        let decoder_ptr = decoder_ptr;
+        let cb_data = cb_data;
+
         let decoder = unsafe { decoder_ptr.0.as_mut().unwrap() };
 
         match event {
@@ -359,6 +363,10 @@ fn v4l2r_decoder_new_safe(
                   visible_rect: Rect,
                   min_num_buffers: usize|
                   -> anyhow::Result<FormatChangedReply<Arc<v4l2r_video_frame_provider>>> {
+                // Make Rust 2021 happy.
+                let decoder_ptr = decoder_ptr;
+                let cb_data = cb_data;
+
                 set_capture_format_cb(
                     f,
                     output_format,

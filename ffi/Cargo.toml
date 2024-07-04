@@ -2,7 +2,7 @@
 name = "v4l2r-ffi"
 version = "0.0.1"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "FFI bindings for the v4l2r crate"
 repository = "https://github.com/Gnurou/v4l2r"
 categories = ["os"]
