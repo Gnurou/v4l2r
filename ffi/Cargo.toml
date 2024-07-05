@@ -21,7 +21,7 @@ android = ["android_logger"]
 path = "../lib"
 
 [dependencies]
-nix = "0.27"
+nix = "0.28"
 anyhow = "1.0"
 log = "0.4.14"
 env_logger = { version = "0.10", optional = true }

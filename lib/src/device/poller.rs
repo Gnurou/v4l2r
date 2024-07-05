@@ -7,8 +7,8 @@
 
 use std::{
     collections::BTreeMap,
-    fs::File,
-    io::{self, Read, Write},
+    convert::TryFrom,
+    io,
     os::fd::{AsFd, BorrowedFd},
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -18,9 +18,13 @@ use std::{
 };
 
 use log::{error, warn};
-use nix::sys::{
-    epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags},
-    eventfd::{eventfd, EfdFlags},
+use nix::{
+    errno::Errno,
+    poll::PollTimeout,
+    sys::{
+        epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags},
+        eventfd::{EfdFlags, EventFd},
+    },
 };
 use thiserror::Error;
 
@@ -105,35 +109,32 @@ impl Iterator for PollEvents {
 }
 
 pub struct Waker {
-    fd: File,
+    fd: EventFd,
 }
 
 impl Waker {
     fn new() -> io::Result<Self> {
-        let fd = eventfd(0, EfdFlags::EFD_CLOEXEC | EfdFlags::EFD_NONBLOCK)?;
-
-        Ok(Waker { fd: File::from(fd) })
+        Ok(Waker {
+            fd: EventFd::from_value_and_flags(0, EfdFlags::EFD_CLOEXEC | EfdFlags::EFD_NONBLOCK)?,
+        })
     }
 
     /// Users will want to use the `wake()` method on an `Arc<Waker>`.
-    fn wake_direct(&self) -> io::Result<()> {
-        let buf = 1u64.to_ne_bytes();
+    fn wake_direct(&self) -> nix::Result<()> {
         // Files support concurrent access at the OS level. The implementation
         // of Write for &File lets us call the write mutable method even on a
         // non-mutable File instance.
-        (&self.fd).write(&buf).map(|_| ())
+        self.fd.write(1).map(|_| ())
     }
 
     /// Perform a read on this waker in order to reset its counter to 0. This
     /// means it will make subsequent calls to `poll()` block until `wake()` is
     /// called again.
-    fn reset(&self) -> io::Result<()> {
-        let mut buf = 0u64.to_ne_bytes();
-        match (&self.fd).read(&mut buf).map(|_| ()) {
-            Ok(_) => Ok(()),
+    fn reset(&self) -> nix::Result<()> {
+        match self.fd.read() {
             // If the counter was already zero, it is already reset so this is
             // not an error.
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(()),
+            Ok(_) | Err(Errno::EAGAIN) => Ok(()),
             Err(e) => Err(e),
         }
     }
@@ -169,10 +170,12 @@ const DEVICE_ID: u64 = 1 << 32;
 
 #[derive(Debug, Error)]
 pub enum PollError {
+    #[error("timeout value too large for epoll")]
+    TimeoutTryFromError,
     #[error("error during call to epoll_wait: {0}")]
     EPollWait(nix::Error),
     #[error("error while resetting the waker: {0}")]
-    WakerReset(io::Error),
+    WakerReset(nix::Error),
     #[error("V4L2 device returned EPOLLERR")]
     V4L2Device,
 }
@@ -194,7 +197,7 @@ impl Poller {
         // This call should return an EPOLLERR event immediately. But it will
         // also ensure that the CAPTURE and OUTPUT poll handlers are registered
         // in the kernel for our device.
-        epoll.wait(&mut [EpollEvent::empty()], 10)?;
+        epoll.wait(&mut [EpollEvent::empty()], 10u8)?;
         // Now reset our device events. We must keep it registered for the
         // workaround's effect to persist.
         epoll.modify(
@@ -311,9 +314,9 @@ impl Poller {
 
     pub fn poll(&mut self, duration: Option<std::time::Duration>) -> Result<PollEvents, PollError> {
         let mut events = PollEvents::new();
-        let duration: isize = match duration {
-            None => -1,
-            Some(d) => d.as_millis() as isize,
+        let duration: PollTimeout = match duration {
+            None => PollTimeout::NONE,
+            Some(d) => PollTimeout::try_from(d).map_err(|_| PollError::TimeoutTryFromError)?,
         };
 
         events.nb_events = self
@@ -359,6 +362,7 @@ mod tests {
 
     use super::{DeviceEvent::*, PollEvent, PollEvents, Waker};
     use super::{DEVICE_ID, FIRST_WAKER_ID};
+    use nix::poll::PollTimeout;
     use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
 
     #[test]
@@ -375,12 +379,12 @@ mod tests {
             .unwrap();
 
         // Waker should initially not be signaled.
-        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        let nb_events = epoll.wait(&mut event, PollTimeout::ZERO).unwrap();
         assert_eq!(nb_events, 0);
 
         // Waking up should signal.
         waker.wake_direct().unwrap();
-        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        let nb_events = epoll.wait(&mut event, PollTimeout::ZERO).unwrap();
         assert_eq!(nb_events, 1);
         assert_eq!(
             event[0],
@@ -389,7 +393,7 @@ mod tests {
 
         // Waking up twice should still signal.
         waker.wake_direct().unwrap();
-        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        let nb_events = epoll.wait(&mut event, PollTimeout::ZERO).unwrap();
         assert_eq!(nb_events, 1);
         assert_eq!(
             event[0],
@@ -398,12 +402,12 @@ mod tests {
 
         // Calling reset should stop signaling.
         waker.reset().unwrap();
-        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        let nb_events = epoll.wait(&mut event, PollTimeout::ZERO).unwrap();
         assert_eq!(nb_events, 0);
 
         // Calling reset while at rest should be a no-op.
         waker.reset().unwrap();
-        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        let nb_events = epoll.wait(&mut event, PollTimeout::ZERO).unwrap();
         assert_eq!(nb_events, 0);
     }
 

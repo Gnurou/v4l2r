@@ -1,5 +1,6 @@
 use nix::libc::c_int;
-use nix::poll::{poll, PollFd};
+use nix::poll::{PollFd, PollTimeout};
+use std::convert::TryFrom;
 use std::fs::File;
 use std::os::unix::io::{AsFd, AsRawFd, RawFd};
 use std::os::unix::prelude::FromRawFd;
@@ -21,6 +22,8 @@ pub enum RequestError {
     IoctlError(nix::Error),
     #[error("Unknown poll flag returned")]
     UnknownPollFlagReturned,
+    #[error("Duration is too large")]
+    InvalidDuration,
 }
 
 #[derive(Debug)]
@@ -68,10 +71,10 @@ impl Request {
         events: PollFlags,
         timeout: Option<u32>,
     ) -> Result<PollFlags, RequestError> {
-        let mut poll_fd = [PollFd::new(video_fd, events)];
-        let timeout = timeout.map_or(-1, |v| v as i32);
+        let mut poll_fd = [PollFd::new(video_fd.as_fd(), events)];
+        let timeout = timeout.map_or(PollTimeout::NONE, |d| PollTimeout::try_from(d).unwrap());
 
-        match poll(&mut poll_fd, timeout) {
+        match nix::poll::poll(&mut poll_fd, timeout) {
             Ok(0) => Ok(PollFlags::empty()),
             Ok(_) => {
                 if let Some(poll_flags) = poll_fd[0].revents() {

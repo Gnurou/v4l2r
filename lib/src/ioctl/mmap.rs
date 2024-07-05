@@ -2,16 +2,13 @@ use core::num::NonZeroUsize;
 use std::{
     cmp::{max, min},
     ops::Deref,
+    ptr::NonNull,
     slice,
 };
 use std::{ops::DerefMut, os::unix::io::AsFd};
 
 use log::error;
-use nix::{
-    errno::Errno,
-    libc::{c_void, off_t},
-    sys::mman,
-};
+use nix::{errno::Errno, libc::off_t, sys::mman};
 use thiserror::Error;
 
 pub struct PlaneMapping {
@@ -66,10 +63,15 @@ impl Drop for PlaneMapping {
     fn drop(&mut self) {
         // Safe because the pointer and length were constructed in mmap() and
         // are always valid.
-        unsafe { mman::munmap(self.data.as_mut_ptr() as *mut c_void, self.data.len()) }
-            .unwrap_or_else(|e| {
-                error!("Error while unmapping plane: {}", e);
-            });
+        unsafe {
+            mman::munmap(
+                NonNull::new_unchecked(self.data.as_mut_ptr().cast()),
+                self.data.len(),
+            )
+        }
+        .unwrap_or_else(|e| {
+            error!("Error while unmapping plane: {}", e);
+        });
     }
 }
 
@@ -100,7 +102,7 @@ pub fn mmap(fd: &impl AsFd, mem_offset: u32, length: u32) -> Result<PlaneMapping
             non_zero_length,
             mman::ProtFlags::PROT_READ | mman::ProtFlags::PROT_WRITE,
             mman::MapFlags::MAP_SHARED,
-            Some(fd),
+            fd,
             mem_offset as off_t,
         )
     }?;
@@ -108,7 +110,7 @@ pub fn mmap(fd: &impl AsFd, mem_offset: u32, length: u32) -> Result<PlaneMapping
     Ok(PlaneMapping {
         // Safe because we know the pointer is valid and has enough data mapped
         // to cover the length.
-        data: unsafe { slice::from_raw_parts_mut(data as *mut u8, length as usize) },
+        data: unsafe { slice::from_raw_parts_mut(data.as_ptr().cast(), length as usize) },
         start: 0,
         end: length as usize,
     })

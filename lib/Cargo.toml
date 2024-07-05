@@ -10,7 +10,7 @@ keywords = ["v4l2", "video", "linux"]
 license = "MIT"
 
 [dependencies]
-nix = { version = "0.27", features = ["ioctl", "mman", "poll", "fs", "event"] }
+nix = { version = "0.28", features = ["ioctl", "mman", "poll", "fs", "event"] }
 bitflags = "2.4"
 thiserror = "1.0"
 anyhow = "1.0"
