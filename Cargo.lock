@@ -725,17 +725,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
-name = "utils"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "log",
- "nix",
- "thiserror",
- "v4l2r",
-]
-
-[[package]]
 name = "v4l2r"
 version = "0.0.2"
 dependencies = [
@@ -748,7 +737,7 @@ dependencies = [
  "log",
  "nix",
  "thiserror",
- "utils",
+ "v4l2r-utils",
 ]
 
 [[package]]
@@ -761,6 +750,17 @@ dependencies = [
  "env_logger",
  "log",
  "nix",
+ "v4l2r",
+]
+
+[[package]]
+name = "v4l2r-utils"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "log",
+ "nix",
+ "thiserror",
  "v4l2r",
 ]
 

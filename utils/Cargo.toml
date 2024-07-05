@@ -1,5 +1,5 @@
 [package]
-name = "utils"
+name = "v4l2r-utils"
 version = "0.0.1"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2021"

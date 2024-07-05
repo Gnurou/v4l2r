@@ -3,7 +3,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use utils::framegen::FrameGenerator;
+use v4l2r_utils::framegen::FrameGenerator;
 
 use qbuf::{get_free::GetFreeCaptureBuffer, get_indexed::GetOutputBufferByIndex};
 use v4l2r::{device::queue::qbuf::OutputQueueable, memory::MemoryType, Format};

@@ -22,7 +22,7 @@ enumn = "0.1.6"
 ctrlc = "3.1.4"
 clap = "3.2"
 env_logger = "0.10"
-utils = { path = "../utils" }
+v4l2r-utils = { path = "../utils" }
 
 # For convenience we are building the bindings manually and integrating them
 # with the crate. In order to generate them, run the following inside the

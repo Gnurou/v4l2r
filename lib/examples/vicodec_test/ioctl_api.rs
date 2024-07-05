@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use utils::framegen::FrameGenerator;
+use v4l2r_utils::framegen::FrameGenerator;
 
 use v4l2r::memory::{MemoryType, MmapHandle};
 use v4l2r::{ioctl::*, memory::UserPtrHandle};

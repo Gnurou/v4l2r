@@ -1,5 +1,3 @@
-use utils::framegen::FrameGenerator;
-
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
@@ -22,6 +20,7 @@ use v4l2r::{
     memory::{MmapHandle, UserPtrHandle},
     Format,
 };
+use v4l2r_utils::framegen::FrameGenerator;
 
 use anyhow::ensure;
 use clap::{App, Arg};
@@ -179,7 +178,7 @@ fn main() {
     let dmabufs: Option<VecDeque<_>> = match output_mem {
         GenericSupportedMemoryType::Mmap | GenericSupportedMemoryType::UserPtr => None,
         GenericSupportedMemoryType::DmaBuf => Some(
-            utils::dmabuf_exporter::export_dmabufs(&output_format, NUM_BUFFERS)
+            v4l2r_utils::dmabuf_exporter::export_dmabufs(&output_format, NUM_BUFFERS)
                 .unwrap()
                 .into_iter()
                 .collect(),
