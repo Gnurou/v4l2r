@@ -355,9 +355,57 @@ impl AsFd for Poller {
 
 #[cfg(test)]
 mod tests {
+    use std::os::fd::AsFd;
+
     use super::{DeviceEvent::*, PollEvent, PollEvents, Waker};
     use super::{DEVICE_ID, FIRST_WAKER_ID};
-    use nix::sys::epoll::{EpollEvent, EpollFlags};
+    use nix::sys::epoll::{Epoll, EpollCreateFlags, EpollEvent, EpollFlags};
+
+    #[test]
+    fn test_waker() {
+        let waker = Waker::new().unwrap();
+        let epoll = Epoll::new(EpollCreateFlags::empty()).unwrap();
+        let mut event = [EpollEvent::empty()];
+
+        epoll
+            .add(
+                waker.fd.as_fd(),
+                EpollEvent::new(EpollFlags::EPOLLIN, FIRST_WAKER_ID),
+            )
+            .unwrap();
+
+        // Waker should initially not be signaled.
+        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        assert_eq!(nb_events, 0);
+
+        // Waking up should signal.
+        waker.wake_direct().unwrap();
+        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        assert_eq!(nb_events, 1);
+        assert_eq!(
+            event[0],
+            EpollEvent::new(EpollFlags::EPOLLIN, FIRST_WAKER_ID)
+        );
+
+        // Waking up twice should still signal.
+        waker.wake_direct().unwrap();
+        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        assert_eq!(nb_events, 1);
+        assert_eq!(
+            event[0],
+            EpollEvent::new(EpollFlags::EPOLLIN, FIRST_WAKER_ID)
+        );
+
+        // Calling reset should stop signaling.
+        waker.reset().unwrap();
+        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        assert_eq!(nb_events, 0);
+
+        // Calling reset while at rest should be a no-op.
+        waker.reset().unwrap();
+        let nb_events = epoll.wait(&mut event, 0).unwrap();
+        assert_eq!(nb_events, 0);
+    }
 
     #[test]
     fn test_pollevents_iterator() {
