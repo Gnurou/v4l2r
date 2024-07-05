@@ -355,7 +355,7 @@ impl AsFd for Poller {
 
 #[cfg(test)]
 mod tests {
-    use super::{DeviceEvent::*, PollEvent::*, PollEvents};
+    use super::{DeviceEvent::*, PollEvent, PollEvents, Waker};
     use super::{DEVICE_ID, FIRST_WAKER_ID};
     use nix::sys::epoll::{EpollEvent, EpollFlags};
 
@@ -368,19 +368,19 @@ mod tests {
         let mut poll_events = PollEvents::new();
         poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLIN, DEVICE_ID);
         poll_events.nb_events = 1;
-        assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(CaptureReady)));
         assert_eq!(poll_events.next(), None);
 
         let mut poll_events = PollEvents::new();
         poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLOUT, DEVICE_ID);
         poll_events.nb_events = 1;
-        assert_eq!(poll_events.next(), Some(Device(OutputReady)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(OutputReady)));
         assert_eq!(poll_events.next(), None);
 
         let mut poll_events = PollEvents::new();
         poll_events.events[0] = EpollEvent::new(EpollFlags::EPOLLPRI, DEVICE_ID);
         poll_events.nb_events = 1;
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(V4L2Event)));
         assert_eq!(poll_events.next(), None);
 
         // Multiple device events in one event
@@ -388,8 +388,8 @@ mod tests {
         poll_events.events[0] =
             EpollEvent::new(EpollFlags::EPOLLPRI | EpollFlags::EPOLLOUT, DEVICE_ID);
         poll_events.nb_events = 1;
-        assert_eq!(poll_events.next(), Some(Device(OutputReady)));
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(OutputReady)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(V4L2Event)));
         assert_eq!(poll_events.next(), None);
 
         // Separated device events
@@ -398,16 +398,16 @@ mod tests {
         poll_events.events[1] =
             EpollEvent::new(EpollFlags::EPOLLPRI | EpollFlags::EPOLLOUT, DEVICE_ID);
         poll_events.nb_events = 2;
-        assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
-        assert_eq!(poll_events.next(), Some(Device(OutputReady)));
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(CaptureReady)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(OutputReady)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(V4L2Event)));
         assert_eq!(poll_events.next(), None);
 
         // Single waker event
         let mut poll_events = PollEvents::new();
         poll_events.events[0] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID);
         poll_events.nb_events = 1;
-        assert_eq!(poll_events.next(), Some(Waker(0)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(0)));
         assert_eq!(poll_events.next(), None);
 
         // Multiple waker events
@@ -416,9 +416,9 @@ mod tests {
         poll_events.events[1] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID + 42);
         poll_events.events[2] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID);
         poll_events.nb_events = 3;
-        assert_eq!(poll_events.next(), Some(Waker(20)));
-        assert_eq!(poll_events.next(), Some(Waker(42)));
-        assert_eq!(poll_events.next(), Some(Waker(0)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(20)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(42)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(0)));
         assert_eq!(poll_events.next(), None);
 
         // Wakers and device events
@@ -429,11 +429,11 @@ mod tests {
             EpollEvent::new(EpollFlags::EPOLLPRI | EpollFlags::EPOLLIN, DEVICE_ID);
         poll_events.events[3] = EpollEvent::new(EpollFlags::empty(), FIRST_WAKER_ID);
         poll_events.nb_events = 4;
-        assert_eq!(poll_events.next(), Some(Waker(20)));
-        assert_eq!(poll_events.next(), Some(Waker(42)));
-        assert_eq!(poll_events.next(), Some(Device(CaptureReady)));
-        assert_eq!(poll_events.next(), Some(Device(V4L2Event)));
-        assert_eq!(poll_events.next(), Some(Waker(0)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(20)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(42)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(CaptureReady)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Device(V4L2Event)));
+        assert_eq!(poll_events.next(), Some(PollEvent::Waker(0)));
         assert_eq!(poll_events.next(), None);
     }
 }
