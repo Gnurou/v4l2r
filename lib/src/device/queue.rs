@@ -436,7 +436,7 @@ impl<'a, D: Direction, P: BufferHandles + 'a> AllocatedQueue<'a, D>
 
     fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
         let type_ = self.inner.type_;
-        ioctl::reqbufs(&self.inner, type_, self.state.memory_type.into(), 0)?;
+        ioctl::reqbufs::<()>(&self.inner, type_, self.state.memory_type.into(), 0)?;
 
         debug!("Freed all buffers on {} queue", type_);
 
