@@ -8,9 +8,10 @@ use nix::{
 };
 use v4l2r::{memory::DmaBufHandle, Format};
 
-use anyhow::Result;
-
-pub fn export_dmabufs(format: &Format, nb_buffers: usize) -> Result<Vec<Vec<DmaBufHandle<File>>>> {
+pub fn export_dmabufs(
+    format: &Format,
+    nb_buffers: usize,
+) -> nix::Result<Vec<Vec<DmaBufHandle<File>>>> {
     let fds: Vec<Vec<DmaBufHandle<File>>> = (0..nb_buffers)
         .map(|_| {
             format
@@ -20,11 +21,10 @@ pub fn export_dmabufs(format: &Format, nb_buffers: usize) -> Result<Vec<Vec<DmaB
                     memfd_create(c"memfd buffer", MemFdCreateFlag::MFD_ALLOW_SEALING)
                         .and_then(|fd| ftruncate(&fd, plane.sizeimage as off_t).map(|_| fd))
                         .map(|fd| DmaBufHandle::from(File::from(fd)))
-                        .unwrap()
                 })
-                .collect()
+                .collect::<Result<Vec<_>, _>>()
         })
-        .collect();
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(fds)
 }
