@@ -1,5 +1,7 @@
 use std::fs::File;
 
+use nix::libc::off_t;
+
 use nix::{
     sys::memfd::{memfd_create, MemFdCreateFlag},
     unistd::ftruncate,
@@ -16,7 +18,7 @@ pub fn export_dmabufs(format: &Format, nb_buffers: usize) -> Result<Vec<Vec<DmaB
                 .iter()
                 .map(|plane| {
                     memfd_create(c"memfd buffer", MemFdCreateFlag::MFD_ALLOW_SEALING)
-                        .and_then(|fd| ftruncate(&fd, i64::from(plane.sizeimage)).map(|_| fd))
+                        .and_then(|fd| ftruncate(&fd, plane.sizeimage as off_t).map(|_| fd))
                         .map(|fd| DmaBufHandle::from(File::from(fd)))
                         .unwrap()
                 })
