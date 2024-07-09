@@ -37,7 +37,7 @@ use thiserror::Error;
 /// Base values of a queue, that are always value no matter the state the queue
 /// is in. This base object remains alive as long as the queue is borrowed from
 /// the `Device`.
-pub struct QueueBase {
+struct QueueBase {
     // Reference to the device, so we can perform operations on its `fd` and to let us mark the
     // queue as free again upon destruction.
     device: Arc<Device>,
@@ -116,8 +116,8 @@ where
     }
 
     /// Returns an iterator over all the formats currently supported by this queue.
-    pub fn format_iter(&self) -> ioctl::FormatIterator<QueueBase> {
-        ioctl::FormatIterator::new(&self.inner, self.inner.type_)
+    pub fn format_iter(&self) -> ioctl::FormatIterator<Device> {
+        ioctl::FormatIterator::new(self.inner.device.as_ref(), self.inner.type_)
     }
 
     pub fn get_selection(&self, target: SelectionTarget) -> Result<Rect, ioctl::GSelectionError> {
