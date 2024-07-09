@@ -72,7 +72,12 @@ pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles
     _p: std::marker::PhantomData<P>,
 }
 
-impl<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> QBuffer<'a, D, P, Q> {
+impl<'a, D, P, Q> QBuffer<'a, D, P, Q>
+where
+    D: Direction,
+    P: PrimitiveBufferHandles,
+    Q: BufferHandles + From<P>,
+{
     pub(super) fn new(
         queue: &'a Queue<D, BuffersAllocated<Q>>,
         buffer_info: &Arc<BufferInfo<Q>>,
@@ -199,8 +204,10 @@ pub trait OutputQueueableProvider<'a, Q: BufferHandles> {
 }
 
 /// Any CAPTURE QBuffer implements CaptureQueueable.
-impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
-    for QBuffer<'_, Capture, P, Q>
+impl<P, Q> CaptureQueueable<Q> for QBuffer<'_, Capture, P, Q>
+where
+    P: PrimitiveBufferHandles,
+    Q: BufferHandles + From<P>,
 {
     fn queue_with_handles(self, handles: Q) -> QueueResult<(), Q> {
         if handles.len() != self.num_expected_planes() {
@@ -227,8 +234,10 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> CaptureQueueable<Q>
 }
 
 /// Any OUTPUT QBuffer implements OutputQueueable.
-impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
-    for QBuffer<'_, Output, P, Q>
+impl<P, Q> OutputQueueable<Q> for QBuffer<'_, Output, P, Q>
+where
+    P: PrimitiveBufferHandles,
+    Q: BufferHandles + From<P>,
 {
     fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q> {
         if handles.len() != self.num_expected_planes() {
@@ -272,9 +281,11 @@ impl<P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> OutputQueueable<Q>
 /// empty handles.
 /// Since we don't receive plane handles, we also don't need to return any, so
 /// the returned error can be simplified.
-impl<P: PrimitiveBufferHandles + Default, Q: BufferHandles + From<P>> QBuffer<'_, Capture, P, Q>
+impl<P, Q> QBuffer<'_, Capture, P, Q>
 where
+    P: PrimitiveBufferHandles + Default,
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
+    Q: BufferHandles + From<P>,
 {
     pub fn queue(self) -> QBufResult<(), Infallible> {
         let planes: Vec<_> = (0..self.num_expected_planes())
@@ -290,9 +301,11 @@ where
 /// empty handles.
 /// Since we don't receive plane handles, we also don't need to return any, so
 /// the returned error can be simplified.
-impl<P: PrimitiveBufferHandles + Default, Q: BufferHandles + From<P>> QBuffer<'_, Output, P, Q>
+impl<P, Q> QBuffer<'_, Output, P, Q>
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
+    P: PrimitiveBufferHandles + Default,
+    Q: BufferHandles + From<P>,
 {
     pub fn queue(self, bytes_used: &[usize]) -> QBufResult<(), Infallible> {
         // TODO make specific error for bytes_used?
