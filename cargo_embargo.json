@@ -2,14 +2,7 @@
   "module_blocklist": ["runbindgen", "runbindgen_test_src_main"],
   "package": {
     "v4l2r": {
-      "host_supported": false,
       "dep_blocklist": ["libctrlc", "libclap"]
-    },
-    "v4l2r-ffi": {
-      "host_supported": false
-    },
-    "v4l2r-utils": {
-      "host_supported": false
     }
   },
   "run_cargo": false,

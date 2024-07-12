@@ -6,6 +6,7 @@
 // DO NOT SUBMIT: Add license before submitting.
 rust_library {
     name: "libv4l2r_ffi",
+    host_supported: true,
     crate_name: "v4l2r_ffi",
     cargo_env_compat: true,
     cargo_pkg_version: "0.0.1",
@@ -33,6 +34,7 @@ rust_library {
 
 rust_ffi_static {
     name: "libv4l2r_ffi_static",
+    host_supported: true,
     crate_name: "v4l2r_ffi",
     cargo_env_compat: true,
     cargo_pkg_version: "0.0.1",
@@ -60,12 +62,16 @@ rust_ffi_static {
 
 rust_test {
     name: "v4l2r-ffi_test_src_lib",
+    host_supported: true,
     crate_name: "v4l2r_ffi",
     cargo_env_compat: true,
     cargo_pkg_version: "0.0.1",
     crate_root: "src/lib.rs",
     test_suites: ["general-tests"],
     auto_gen_config: true,
+    test_options: {
+        unit_test: true,
+    },
     edition: "2021",
     features: [
         "default",
