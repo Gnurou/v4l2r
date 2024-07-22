@@ -9,6 +9,8 @@ categories = ["os"]
 keywords = ["v4l2", "video", "linux", "ffi"]
 license = "MIT"
 
+readme.workspace = true
+
 [lib]
 crate-type = ["lib", "staticlib"]
 

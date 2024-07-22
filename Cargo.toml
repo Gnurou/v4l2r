@@ -5,3 +5,6 @@ members = [
     "ffi",
     "lib/src/bindings/runbindgen",
 ]
+
+[workspace.package]
+readme = "README.md"
