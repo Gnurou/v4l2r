@@ -9,6 +9,8 @@ categories = ["os"]
 keywords = ["v4l2", "video", "linux"]
 license = "MIT"
 
+readme.workspace = true
+
 [dependencies]
 nix = { version = "0.28", features = ["ioctl", "mman", "poll", "fs", "event"] }
 bitflags = "2.4"
