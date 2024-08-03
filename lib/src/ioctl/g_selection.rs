@@ -9,14 +9,14 @@ use crate::bindings;
 use crate::bindings::v4l2_rect;
 use crate::bindings::v4l2_selection;
 
-#[derive(Debug, N)]
+#[derive(Debug, N, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum SelectionType {
     Capture = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_CAPTURE,
     Output = bindings::v4l2_buf_type_V4L2_BUF_TYPE_VIDEO_OUTPUT,
 }
 
-#[derive(Debug, N)]
+#[derive(Debug, N, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum SelectionTarget {
     Crop = bindings::V4L2_SEL_TGT_CROP,
