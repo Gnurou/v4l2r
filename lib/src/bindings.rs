@@ -5,8 +5,4 @@
 #![allow(deref_nullptr)]
 #![allow(clippy::all)]
 
-#[cfg(target_pointer_width = "64")]
-include!("bindings/videodev2_64.rs");
-
-#[cfg(target_pointer_width = "32")]
-include!("bindings/videodev2_32.rs");
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));

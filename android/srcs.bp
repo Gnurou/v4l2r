@@ -1,0 +1,2 @@
+// Bindgen-generated bindings of our local videodev2.h.
+srcs: [":libv4l2r_bindgen"]

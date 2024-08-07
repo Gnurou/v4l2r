@@ -1,0 +1,8 @@
+license {
+    name: "external_rust_crates_v4l2r_license",
+    visibility: [":__subpackages__"],
+    license_kinds: ["SPDX-license-identifier-MIT"],
+    license_text: ["LICENSE"],
+}
+
+

@@ -1,0 +1,28 @@
+package {
+    default_applicable_licenses: ["external_rust_crates_v4l2r_license"],
+}
+
+rust_binary_host {
+    name: "v4l2r_bindgen_build",
+    srcs: ["build.rs"],
+        rustlibs: [
+            "libbindgen",
+            "libbindgen_cmd",
+        ],
+    lints: "android",
+    clippy_lints: "android",
+    product_available: true,
+    vendor_available: true,
+}
+
+rust_bindgen {
+    name: "libv4l2r_bindgen",
+    crate_name: "v4l2r_bindgen",
+    custom_bindgen: "v4l2r_bindgen_build",
+    wrapper_src: "android_wrapper.h",
+    source_stem: "bindings",
+    cflags: ["-I external/rust/crates/v4l2r/lib"],
+    product_available: true,
+    vendor_available: true,
+    visibility: ["//external/rust/crates/v4l2r/lib"],
+}

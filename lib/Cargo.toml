@@ -19,16 +19,12 @@ anyhow = "1.0"
 log = "0.4.14"
 enumn = "0.1.6"
 
+[build-dependencies]
+bindgen = "0.69"
+
 # For example programs
 [dev-dependencies]
 ctrlc = "3.1.4"
 clap = "3.2"
 env_logger = "0.10"
 v4l2r-utils = { path = "../utils" }
-
-# For convenience we are building the bindings manually and integrating them
-# with the crate. In order to generate them, run the following inside the
-# src/bindings/runbindgen directory:
-#
-# cargo run -- -o ../videodev2_64.rs  -I /path/to/kerneldir/usr/include/
-# cargo run -- -o ../videodev2_32.rs  -I /path/to/kerneldir/usr/include/ -s /usr/i686-linux-gnu/ -t i686-linux-gnu

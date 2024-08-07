@@ -1,10 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "lib",
-    "ffi",
-    "lib/src/bindings/runbindgen",
-]
+members = ["lib", "ffi"]
 
 [workspace.package]
 readme = "README.md"

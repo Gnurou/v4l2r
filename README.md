@@ -1,4 +1,5 @@
 # Rust bindings for V4L2
+
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://github.com/Gnurou/v4l2r/actions/workflows/rust.yml/badge.svg)](https://github.com/Gnurou/v4l2r/actions)
 [![Crates.io](https://img.shields.io/crates/v/v4l2r.svg)](https://crates.io/crates/v4l2r)
@@ -92,3 +93,9 @@ to use the C FFI to decode a FWHT stream. See the `Makefile` in that directory
 for build and use instructions. The program is purely for demonstration
 purposes of the C FII: it is hardcoded to decode the `sample.fwht` file in the
 same directory and doesn't support any other output.
+
+## Using in Android
+
+`Android.bp` files are provided that should work on AOSP >= 15. Just check this
+repository into `external/rust/crates/v4l2r` and the `libv4l2r` library target
+will be available.
