@@ -9,7 +9,7 @@ rust_library {
     name: "libv4l2r",
     crate_name: "v4l2r",
     cargo_env_compat: true,
-    cargo_pkg_version: "0.0.3",
+    cargo_pkg_version: "0.0.4",
     crate_root: "src/lib.rs",
     edition: "2021",
     rustlibs: [
@@ -35,7 +35,7 @@ rust_test {
     name: "v4l2r_test_src_lib",
     crate_name: "v4l2r",
     cargo_env_compat: true,
-    cargo_pkg_version: "0.0.3",
+    cargo_pkg_version: "0.0.4",
     crate_root: "src/lib.rs",
     test_suites: ["general-tests"],
     auto_gen_config: true,

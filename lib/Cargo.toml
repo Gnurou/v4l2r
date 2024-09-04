@@ -1,6 +1,6 @@
 [package]
 name = "v4l2r"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Alexandre Courbot <gnurou@gmail.com>"]
 edition = "2021"
 description = "Safe and flexible abstraction over V4L2"
