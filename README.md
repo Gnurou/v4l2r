@@ -49,6 +49,14 @@ e.g. video decoding and encoding.
 library other projects can link against. A `v4l2r.h` header file with the public
 API is generated upon build.
 
+## Build options
+
+`cargo build` will attempt to generate the V4L2 bindings from
+`/usr/include/linux/videodev2.h` by default. The `V4L2R_VIDEODEV2_H_PATH`
+environment variable can be set to a different location that contains a
+`videodev2.h` file if you need to generate the bindings from a different
+location.
+
 ## How to use
 
 Check `lib/examples/vicodec_test/device_api.rs` for a short example of how to
