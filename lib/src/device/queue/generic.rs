@@ -1,11 +1,7 @@
 use crate::{
     device::queue::{
         direction::{Capture, Direction, Output},
-        qbuf::{
-            CaptureQueueable, CaptureQueueableProvider, OutputQueueable, OutputQueueableProvider,
-            QBuffer, QueueResult,
-        },
-        BuffersAllocated, Queue,
+        qbuf::{CaptureQueueable, OutputQueueable, QBuffer, QueueResult},
     },
     memory::DmaBufHandle,
 };
@@ -141,16 +137,4 @@ impl OutputQueueable<GenericBufferHandles> for GenericQBuffer<'_, Output> {
             GenericQBuffer::DmaBuf(d) => d.queue_with_handles(handles, bytes_used),
         }
     }
-}
-
-impl<'a> CaptureQueueableProvider<'a, GenericBufferHandles>
-    for Queue<Capture, BuffersAllocated<GenericBufferHandles>>
-{
-    type Queueable = GenericQBuffer<'a, Capture>;
-}
-
-impl<'a> OutputQueueableProvider<'a, GenericBufferHandles>
-    for Queue<Output, BuffersAllocated<GenericBufferHandles>>
-{
-    type Queueable = GenericQBuffer<'a, Output>;
 }
