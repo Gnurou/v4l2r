@@ -9,11 +9,10 @@ use crate::{
             handles_provider::HandlesProvider,
             qbuf::{
                 get_free::{GetFreeBufferError, GetFreeCaptureBuffer, GetFreeOutputBuffer},
-                get_indexed::GetCaptureBufferByIndex,
                 OutputQueueableProvider,
             },
-            BuffersAllocated, CreateQueueError, FormatBuilder, Queue, QueueInit,
-            RequestBuffersError,
+            BuffersAllocated, CreateQueueError, FormatBuilder, GetCaptureBufferByIndex, Queue,
+            QueueInit, RequestBuffersError,
         },
         AllocatedQueue, Device, DeviceConfig, DeviceOpenError, Stream, TryDequeue,
     },

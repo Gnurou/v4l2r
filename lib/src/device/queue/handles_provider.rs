@@ -7,6 +7,7 @@ use std::{
 
 use log::error;
 
+use crate::device::queue::{GetCaptureBufferByIndex, TryGetBufferError};
 use crate::{
     bindings,
     device::poller::Waker,
@@ -18,7 +19,6 @@ use thiserror::Error;
 
 use super::qbuf::{
     get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
-    get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
     CaptureQueueableProvider,
 };
 

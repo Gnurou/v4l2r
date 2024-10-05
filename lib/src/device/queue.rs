@@ -5,7 +5,7 @@ pub mod generic;
 pub mod handles_provider;
 pub mod qbuf;
 
-use self::qbuf::{get_free::GetFreeOutputBuffer, get_indexed::GetOutputBufferByIndex};
+use self::qbuf::get_free::GetFreeOutputBuffer;
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::ioctl::{DqBufResult, QueryBufError, V4l2BufferFromError};
@@ -25,7 +25,6 @@ use generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType};
 use log::debug;
 use qbuf::{
     get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
-    get_indexed::{GetCaptureBufferByIndex, TryGetBufferError},
     *,
 };
 
@@ -604,15 +603,39 @@ where
     type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
 }
 
-impl<'a, P: BufferHandles, R> GetOutputBufferByIndex<'a, P> for Queue<Output, BuffersAllocated<P>>
+#[derive(Debug, Error)]
+pub enum TryGetBufferError {
+    #[error("buffer with provided index {0} does not exist")]
+    InvalidIndex(usize),
+    #[error("buffer is already in use")]
+    AlreadyUsed,
+}
+
+pub trait GetOutputBufferByIndex<'a, B, ErrorType = TryGetBufferError>
 where
-    Self: private::GetBufferByIndex<'a, Queueable = R>,
-    Self: OutputQueueableProvider<'a, P, Queueable = R>,
+    B: BufferHandles,
+    Self: private::GetBufferByIndex<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<B>,
+{
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, ErrorType>;
+}
+
+impl<'a, B: BufferHandles> GetOutputBufferByIndex<'a, B> for Queue<Output, BuffersAllocated<B>>
+where
+    Self: private::GetBufferByIndex<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<B>,
 {
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
         <Self as private::GetBufferByIndex<'a>>::try_get_buffer(self, index)
     }
+}
+
+pub trait GetCaptureBufferByIndex<'a, P: BufferHandles, ErrorType = TryGetBufferError>
+where
+    Self: CaptureQueueableProvider<'a, P>,
+{
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, ErrorType>;
 }
 
 impl<'a, P: BufferHandles, R> GetCaptureBufferByIndex<'a, P> for Queue<Capture, BuffersAllocated<P>>

@@ -14,7 +14,6 @@ use nix::sys::time::{TimeVal, TimeValLike};
 use thiserror::Error;
 
 pub mod get_free;
-pub mod get_indexed;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
 /// returns the plane handles back to the user.
