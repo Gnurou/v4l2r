@@ -41,8 +41,8 @@ use crate::{
     ioctl::{PlaneMapping, QueryBufPlane},
 };
 use enumn::N;
-use std::fmt::Debug;
 use std::os::unix::io::AsFd;
+use std::{fmt::Debug, ops::Deref};
 
 /// All the supported V4L2 memory types.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, N)]
@@ -142,17 +142,22 @@ pub trait BufferHandles: Send + Debug + 'static {
     }
 }
 
-/// Implementation of `BufferHandles` for all vectors of `PlaneHandle`. This is
-/// The simplest way to use primitive handles.
-impl<P: PlaneHandle> BufferHandles for Vec<P> {
+/// Implementation of `BufferHandles` for all indexables of `PlaneHandle` (e.g. [`std::vec::Vec`]).
+///
+/// This is The simplest way to use primitive handles.
+impl<P, Q> BufferHandles for Q
+where
+    P: PlaneHandle,
+    Q: Send + Debug + 'static + Deref<Target = [P]>,
+{
     type SupportedMemoryType = MemoryType;
 
     fn len(&self) -> usize {
-        self.len()
+        self.deref().len()
     }
 
     fn fill_v4l2_plane(&self, index: usize, plane: &mut bindings::v4l2_plane) {
-        self[index].fill_v4l2_plane(plane);
+        self.deref()[index].fill_v4l2_plane(plane);
     }
 }
 
@@ -163,8 +168,13 @@ pub trait PrimitiveBufferHandles: BufferHandles {
     const MEMORY_TYPE: Self::SupportedMemoryType;
 }
 
-/// Implementation of `PrimitiveBufferHandles` for all vectors of `PlaneHandle`.
-impl<P: PlaneHandle> PrimitiveBufferHandles for Vec<P> {
+/// Implementation of `PrimitiveBufferHandles` for all indexables of `PlaneHandle` (e.g.
+/// [`std::vec::Vec`]).
+impl<P, Q> PrimitiveBufferHandles for Q
+where
+    P: PlaneHandle,
+    Q: Send + Debug + 'static + Deref<Target = [P]>,
+{
     type HandleType = P;
     const MEMORY_TYPE: Self::SupportedMemoryType = P::Memory::MEMORY_TYPE;
 }
