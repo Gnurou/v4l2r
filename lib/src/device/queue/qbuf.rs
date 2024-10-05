@@ -20,19 +20,19 @@ pub mod get_indexed;
 /// returns the plane handles back to the user.
 #[derive(Error)]
 #[error("{}", self.error)]
-pub struct QueueError<P: BufferHandles> {
+pub struct QueueError<B: BufferHandles> {
     pub error: ioctl::QBufError<Infallible>,
-    pub plane_handles: P,
+    pub plane_handles: B,
 }
 
-impl<P: BufferHandles> Debug for QueueError<P> {
+impl<B: BufferHandles> Debug for QueueError<B> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         Debug::fmt(&self.error, f)
     }
 }
 
 #[allow(type_alias_bounds)]
-pub type QueueResult<R, P: BufferHandles> = std::result::Result<R, QueueError<P>>;
+pub type QueueResult<R, B: BufferHandles> = std::result::Result<R, QueueError<B>>;
 
 /// A free buffer that has just been obtained from `Queue::get_buffer()` and
 /// which is being prepared to the queued.
@@ -62,25 +62,25 @@ pub type QueueResult<R, P: BufferHandles> = std::result::Result<R, QueueError<P>
 /// queue or device cannot be changed while it is being used. Contrary to
 /// DQBuffer which can be freely duplicated and passed around, instances of this
 /// struct are supposed to be short-lived.
-pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, Q: BufferHandles + From<P>> {
-    queue: &'a Queue<D, BuffersAllocated<Q>>,
+pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, B: BufferHandles + From<P>> {
+    queue: &'a Queue<D, BuffersAllocated<B>>,
     index: usize,
     num_planes: usize,
     timestamp: TimeVal,
     request: Option<RawFd>,
-    fuse: BufferStateFuse<Q>,
+    fuse: BufferStateFuse<B>,
     _p: std::marker::PhantomData<P>,
 }
 
-impl<'a, D, P, Q> QBuffer<'a, D, P, Q>
+impl<'a, D, P, B> QBuffer<'a, D, P, B>
 where
     D: Direction,
     P: PrimitiveBufferHandles,
-    Q: BufferHandles + From<P>,
+    B: BufferHandles + From<P>,
 {
     pub(super) fn new(
-        queue: &'a Queue<D, BuffersAllocated<Q>>,
-        buffer_info: &Arc<BufferInfo<Q>>,
+        queue: &'a Queue<D, BuffersAllocated<B>>,
+        buffer_info: &Arc<BufferInfo<B>>,
     ) -> Self {
         let buffer = &buffer_info.features;
         let fuse = BufferStateFuse::new(Arc::downgrade(buffer_info));
@@ -121,7 +121,7 @@ where
     // Caller is responsible for making sure that the number of planes and
     // plane_handles is the same as the number of expected planes for this
     // buffer.
-    fn queue_bound_planes<R: BufferHandles + Into<Q>>(
+    fn queue_bound_planes<R: BufferHandles + Into<B>>(
         mut self,
         planes: Vec<ioctl::QBufPlane>,
         plane_handles: R,
@@ -160,11 +160,11 @@ where
     }
 }
 
-impl<'a, P, Q> QBuffer<'a, Output, P, Q>
+impl<'a, P, B> QBuffer<'a, Output, P, B>
 where
     P: PrimitiveBufferHandles,
     P::HandleType: Mappable,
-    Q: BufferHandles + From<P>,
+    B: BufferHandles + From<P>,
 {
     pub fn get_plane_mapping(&self, plane: usize) -> Option<ioctl::PlaneMapping> {
         let buffer_info = self.queue.state.buffer_info.get(self.index)?;
@@ -175,41 +175,41 @@ where
 
 /// Trait for queueable CAPTURE buffers. These buffers only require handles to
 /// be queued.
-pub trait CaptureQueueable<Q: BufferHandles> {
+pub trait CaptureQueueable<B: BufferHandles> {
     /// Queue the buffer after binding `handles`, consuming the object.
     /// The number of handles must match the buffer's expected number of planes.
-    fn queue_with_handles(self, handles: Q) -> QueueResult<(), Q>;
+    fn queue_with_handles(self, handles: B) -> QueueResult<(), B>;
 }
 
 /// Trait for queueable OUTPUT buffers. The number of bytes used must be
 /// specified for each plane.
-pub trait OutputQueueable<Q: BufferHandles> {
+pub trait OutputQueueable<B: BufferHandles> {
     /// Queue the buffer after binding `handles`, consuming the object.
     /// The number of handles must match the buffer's expected number of planes.
     /// `bytes_used` must be a slice with as many slices as there are handles,
     /// describing the amount of useful data in each of them.
-    fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q>;
+    fn queue_with_handles(self, handles: B, bytes_used: &[usize]) -> QueueResult<(), B>;
 }
 
 /// Trait for all objects that are capable of providing objects that can be
 /// queued to the CAPTURE queue.
-pub trait CaptureQueueableProvider<'a, Q: BufferHandles> {
-    type Queueable: 'a + CaptureQueueable<Q>;
+pub trait CaptureQueueableProvider<'a, B: BufferHandles> {
+    type Queueable: 'a + CaptureQueueable<B>;
 }
 
 /// Trait for all objects that are capable of providing objects that can be
 /// queued to the CAPTURE queue.
-pub trait OutputQueueableProvider<'a, Q: BufferHandles> {
-    type Queueable: 'a + OutputQueueable<Q>;
+pub trait OutputQueueableProvider<'a, B: BufferHandles> {
+    type Queueable: 'a + OutputQueueable<B>;
 }
 
 /// Any CAPTURE QBuffer implements CaptureQueueable.
-impl<P, Q> CaptureQueueable<Q> for QBuffer<'_, Capture, P, Q>
+impl<P, B> CaptureQueueable<B> for QBuffer<'_, Capture, P, B>
 where
     P: PrimitiveBufferHandles,
-    Q: BufferHandles + From<P>,
+    B: BufferHandles + From<P>,
 {
-    fn queue_with_handles(self, handles: Q) -> QueueResult<(), Q> {
+    fn queue_with_handles(self, handles: B) -> QueueResult<(), B> {
         if handles.len() != self.num_expected_planes() {
             return Err(QueueError {
                 error: QBufIoctlError::NumPlanesMismatch(handles.len(), self.num_expected_planes())
@@ -218,8 +218,8 @@ where
             });
         }
 
-        // TODO BufferHandles should have a method returning the actual MEMORY_TYPE implemented? So we can check
-        // that it matches with P.
+        // TODO: BufferHandles should have a method returning the actual MEMORY_TYPE implemented?
+        // So we can check that it matches with P.
 
         let planes: Vec<_> = (0..self.num_expected_planes())
             .map(|i| {
@@ -234,12 +234,12 @@ where
 }
 
 /// Any OUTPUT QBuffer implements OutputQueueable.
-impl<P, Q> OutputQueueable<Q> for QBuffer<'_, Output, P, Q>
+impl<P, B> OutputQueueable<B> for QBuffer<'_, Output, P, B>
 where
     P: PrimitiveBufferHandles,
-    Q: BufferHandles + From<P>,
+    B: BufferHandles + From<P>,
 {
-    fn queue_with_handles(self, handles: Q, bytes_used: &[usize]) -> QueueResult<(), Q> {
+    fn queue_with_handles(self, handles: B, bytes_used: &[usize]) -> QueueResult<(), B> {
         if handles.len() != self.num_expected_planes() {
             return Err(QueueError {
                 error: QBufIoctlError::NumPlanesMismatch(handles.len(), self.num_expected_planes())
@@ -260,8 +260,8 @@ where
             });
         }
 
-        // TODO BufferHandles should have a method returning the actual MEMORY_TYPE implemented? So we can check
-        // that it matches with P.
+        // TODO: BufferHandles should have a method returning the actual MEMORY_TYPE implemented?
+        // So we can check that it matches with P.
 
         let planes: Vec<_> = bytes_used
             .iter()
@@ -281,11 +281,11 @@ where
 /// empty handles.
 /// Since we don't receive plane handles, we also don't need to return any, so
 /// the returned error can be simplified.
-impl<P, Q> QBuffer<'_, Capture, P, Q>
+impl<P, B> QBuffer<'_, Capture, P, B>
 where
     P: PrimitiveBufferHandles + Default,
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
-    Q: BufferHandles + From<P>,
+    B: BufferHandles + From<P>,
 {
     pub fn queue(self) -> QBufResult<(), Infallible> {
         let planes: Vec<_> = (0..self.num_expected_planes())
@@ -301,11 +301,11 @@ where
 /// empty handles.
 /// Since we don't receive plane handles, we also don't need to return any, so
 /// the returned error can be simplified.
-impl<P, Q> QBuffer<'_, Output, P, Q>
+impl<P, B> QBuffer<'_, Output, P, B>
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
     P: PrimitiveBufferHandles + Default,
-    Q: BufferHandles + From<P>,
+    B: BufferHandles + From<P>,
 {
     pub fn queue(self, bytes_used: &[usize]) -> QBufResult<(), Infallible> {
         // TODO make specific error for bytes_used?
