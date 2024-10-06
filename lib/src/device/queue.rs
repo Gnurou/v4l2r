@@ -516,6 +516,8 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
 }
 
 mod private {
+    use std::ops::Deref;
+
     use super::*;
 
     /// Private trait for providing a Queuable regardless of the queue's direction.
@@ -567,11 +569,71 @@ mod private {
         }
     }
 
+    /// Allows to obtain a [`QBuffer`] with a `'static` lifetime from e.g. an `Arc<Queue>`.
+    ///
+    /// [`QBuffer`]s obtained directly from a [`Queue`] maintain consistency by holding a reference
+    /// to the [`Queue`], which can be inconvenient if we need to keep the [`QBuffer`] aside for
+    /// some time. This implementation allows [`QBuffer`]s to be created with a static lifetime
+    /// from a queue behind a cloneable and dereferencable type (typically [`std::rc::Rc`] or
+    /// [`std::sync::Arc`]).
+    ///
+    /// This added flexibility comes with the counterpart that the user must unwrap the [`Queue`]
+    /// from its container reference before applying mutable operations to it like
+    /// [`Queue::request_buffers`]. Doing so requires calling methods like
+    /// [`std::sync::Arc::into_inner`], which only succeed if there is no other reference to the
+    /// queue, preserving consistency explicitly at runtime instead of implicitly at compile-time.
+    impl<'a, D, P, Q> GetBufferByIndex<'a> for Q
+    where
+        D: Direction,
+        P: PrimitiveBufferHandles,
+        Q: Deref<Target = Queue<D, BuffersAllocated<P>>> + Clone,
+    {
+        type Queueable = QBuffer<D, P, P, Q>;
+
+        fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+            Ok(QBuffer::new(self.clone(), self.try_obtain_buffer(index)?))
+        }
+    }
+
     impl<'a, D, P> GetFreeBuffer<'a> for Queue<D, BuffersAllocated<P>>
     where
         D: Direction,
         P: BufferHandles,
         Self: GetBufferByIndex<'a>,
+    {
+        fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
+            let res = self
+                .state
+                .buffer_info
+                .iter()
+                .enumerate()
+                .find(|(_, s)| s.do_with_state(|s| matches!(s, BufferState::Free)));
+
+            match res {
+                None => Err(GetFreeBufferError::NoFreeBuffer),
+                Some((i, _)) => Ok(self.try_get_buffer(i).unwrap()),
+            }
+        }
+    }
+
+    /// Allows to obtain a [`QBuffer`] with a `'static` lifetime from e.g. an `Arc<Queue>`.
+    ///
+    /// [`QBuffer`]s obtained directly from a [`Queue`] maintain consistency by holding a reference
+    /// to the [`Queue`], which can be inconvenient if we need to keep the [`QBuffer`] aside for
+    /// some time. This implementation allows [`QBuffer`]s to be created with a static lifetime
+    /// from a queue behind a cloneable and dereferencable type (typically [`std::rc::Rc`] or
+    /// [`std::sync::Arc`]).
+    ///
+    /// This added flexibility comes with the counterpart that the user must unwrap the [`Queue`]
+    /// from its container reference before applying mutable operations to it like
+    /// [`Queue::request_buffers`]. Doing so requires calling methods like
+    /// [`std::sync::Arc::into_inner`], which only succeed if there is no other reference to the
+    /// queue, preserving consistency explicitly at runtime instead of implicitly at compile-time.
+    impl<'a, D, P, Q> GetFreeBuffer<'a> for Q
+    where
+        D: Direction,
+        P: PrimitiveBufferHandles,
+        Q: Deref<Target = Queue<D, BuffersAllocated<P>>> + Clone,
     {
         fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
             let res = self
@@ -653,7 +715,7 @@ where
     }
 }
 
-impl<'a, P: BufferHandles, R> GetFreeOutputBuffer<'a, P> for Queue<Output, BuffersAllocated<P>>
+impl<'a, P: BufferHandles, R, Q> GetFreeOutputBuffer<'a, P> for Q
 where
     Self: private::GetFreeBuffer<'a, Queueable = R>,
     Self: OutputQueueableProvider<'a, P, Queueable = R>,
@@ -663,7 +725,7 @@ where
     }
 }
 
-impl<'a, P: BufferHandles, R> GetFreeCaptureBuffer<'a, P> for Queue<Capture, BuffersAllocated<P>>
+impl<'a, P: BufferHandles, R, Q> GetFreeCaptureBuffer<'a, P> for Q
 where
     Self: private::GetFreeBuffer<'a, Queueable = R>,
     Self: CaptureQueueableProvider<'a, P, Queueable = R>,
