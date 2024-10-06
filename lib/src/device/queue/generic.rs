@@ -2,6 +2,7 @@ use crate::{
     device::queue::{
         direction::{Capture, Direction, Output},
         qbuf::{CaptureQueueable, OutputQueueable, QBuffer, QueueResult},
+        BuffersAllocated, Queue,
     },
     memory::DmaBufHandle,
 };
@@ -9,7 +10,7 @@ use crate::{
     memory::MmapHandle,
     memory::{BufferHandles, MemoryType, UserPtrHandle},
 };
-use std::{fmt::Debug, fs::File};
+use std::{fmt::Debug, fs::File, ops::Deref};
 
 /// Supported memory types for `GenericBufferHandles`.
 /// TODO: This should be renamed to "DynamicBufferHandles", and be constructed
@@ -80,38 +81,52 @@ impl BufferHandles for GenericBufferHandles {
 
 /// A QBuffer that holds either MMAP or UserPtr handles, depending on which
 /// memory type has been selected for the queue at runtime.
-pub enum GenericQBuffer<'a, D: Direction> {
-    Mmap(QBuffer<'a, D, Vec<MmapHandle>, GenericBufferHandles>),
-    User(QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles>),
-    DmaBuf(QBuffer<'a, D, Vec<DmaBufHandle<File>>, GenericBufferHandles>),
+pub enum GenericQBuffer<
+    D: Direction,
+    Q: Deref<Target = Queue<D, BuffersAllocated<GenericBufferHandles>>>,
+> {
+    Mmap(QBuffer<D, Vec<MmapHandle>, GenericBufferHandles, Q>),
+    User(QBuffer<D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles, Q>),
+    DmaBuf(QBuffer<D, Vec<DmaBufHandle<File>>, GenericBufferHandles, Q>),
 }
 
-impl<'a, D: Direction> From<QBuffer<'a, D, Vec<MmapHandle>, GenericBufferHandles>>
-    for GenericQBuffer<'a, D>
+impl<D, Q> From<QBuffer<D, Vec<MmapHandle>, GenericBufferHandles, Q>> for GenericQBuffer<D, Q>
+where
+    D: Direction,
+    Q: Deref<Target = Queue<D, BuffersAllocated<GenericBufferHandles>>>,
 {
-    fn from(qb: QBuffer<'a, D, Vec<MmapHandle>, GenericBufferHandles>) -> Self {
+    fn from(qb: QBuffer<D, Vec<MmapHandle>, GenericBufferHandles, Q>) -> Self {
         GenericQBuffer::Mmap(qb)
     }
 }
 
-impl<'a, D: Direction> From<QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles>>
-    for GenericQBuffer<'a, D>
+impl<D, Q> From<QBuffer<D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles, Q>>
+    for GenericQBuffer<D, Q>
+where
+    D: Direction,
+    Q: Deref<Target = Queue<D, BuffersAllocated<GenericBufferHandles>>>,
 {
-    fn from(qb: QBuffer<'a, D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles>) -> Self {
+    fn from(qb: QBuffer<D, Vec<UserPtrHandle<Vec<u8>>>, GenericBufferHandles, Q>) -> Self {
         GenericQBuffer::User(qb)
     }
 }
 
-impl<'a, D: Direction> From<QBuffer<'a, D, Vec<DmaBufHandle<File>>, GenericBufferHandles>>
-    for GenericQBuffer<'a, D>
+impl<D, Q> From<QBuffer<D, Vec<DmaBufHandle<File>>, GenericBufferHandles, Q>>
+    for GenericQBuffer<D, Q>
+where
+    D: Direction,
+    Q: Deref<Target = Queue<D, BuffersAllocated<GenericBufferHandles>>>,
 {
-    fn from(qb: QBuffer<'a, D, Vec<DmaBufHandle<File>>, GenericBufferHandles>) -> Self {
+    fn from(qb: QBuffer<D, Vec<DmaBufHandle<File>>, GenericBufferHandles, Q>) -> Self {
         GenericQBuffer::DmaBuf(qb)
     }
 }
 
 /// Any CAPTURE GenericQBuffer implements CaptureQueueable.
-impl CaptureQueueable<GenericBufferHandles> for GenericQBuffer<'_, Capture> {
+impl<Q> CaptureQueueable<GenericBufferHandles> for GenericQBuffer<Capture, Q>
+where
+    Q: Deref<Target = Queue<Capture, BuffersAllocated<GenericBufferHandles>>>,
+{
     fn queue_with_handles(
         self,
         handles: GenericBufferHandles,
@@ -125,7 +140,10 @@ impl CaptureQueueable<GenericBufferHandles> for GenericQBuffer<'_, Capture> {
 }
 
 /// Any OUTPUT GenericQBuffer implements OutputQueueable.
-impl OutputQueueable<GenericBufferHandles> for GenericQBuffer<'_, Output> {
+impl<Q> OutputQueueable<GenericBufferHandles> for GenericQBuffer<Output, Q>
+where
+    Q: Deref<Target = Queue<Output, BuffersAllocated<GenericBufferHandles>>>,
+{
     fn queue_with_handles(
         self,
         handles: GenericBufferHandles,

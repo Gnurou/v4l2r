@@ -4,6 +4,7 @@ use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
 use crate::ioctl::{self, QBufIoctlError, QBufResult};
 use crate::memory::*;
 use std::convert::Infallible;
+use std::ops::Deref;
 use std::{
     fmt::{self, Debug},
     os::fd::RawFd,
@@ -61,8 +62,13 @@ pub type QueueResult<R, B: BufferHandles> = std::result::Result<R, QueueError<B>
 /// queue or device cannot be changed while it is being used. Contrary to
 /// DQBuffer which can be freely duplicated and passed around, instances of this
 /// struct are supposed to be short-lived.
-pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, B: BufferHandles + From<P>> {
-    queue: &'a Queue<D, BuffersAllocated<B>>,
+pub struct QBuffer<
+    D: Direction,
+    P: PrimitiveBufferHandles,
+    B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<D, BuffersAllocated<B>>>,
+> {
+    queue: Q,
     index: usize,
     num_planes: usize,
     timestamp: TimeVal,
@@ -71,16 +77,14 @@ pub struct QBuffer<'a, D: Direction, P: PrimitiveBufferHandles, B: BufferHandles
     _p: std::marker::PhantomData<P>,
 }
 
-impl<'a, D, P, B> QBuffer<'a, D, P, B>
+impl<D, P, B, Q> QBuffer<D, P, B, Q>
 where
     D: Direction,
     P: PrimitiveBufferHandles,
     B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<D, BuffersAllocated<B>>>,
 {
-    pub(super) fn new(
-        queue: &'a Queue<D, BuffersAllocated<B>>,
-        buffer_info: &Arc<BufferInfo<B>>,
-    ) -> Self {
+    pub(super) fn new(queue: Q, buffer_info: &Arc<BufferInfo<B>>) -> Self {
         let buffer = &buffer_info.features;
         let fuse = BufferStateFuse::new(Arc::downgrade(buffer_info));
 
@@ -159,11 +163,12 @@ where
     }
 }
 
-impl<'a, P, B> QBuffer<'a, Output, P, B>
+impl<P, B, Q> QBuffer<Output, P, B, Q>
 where
     P: PrimitiveBufferHandles,
     P::HandleType: Mappable,
     B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<Output, BuffersAllocated<B>>>,
 {
     pub fn get_plane_mapping(&self, plane: usize) -> Option<ioctl::PlaneMapping> {
         let buffer_info = self.queue.state.buffer_info.get(self.index)?;
@@ -203,10 +208,11 @@ pub trait OutputQueueableProvider<'a, B: BufferHandles> {
 }
 
 /// Any CAPTURE QBuffer implements CaptureQueueable.
-impl<P, B> CaptureQueueable<B> for QBuffer<'_, Capture, P, B>
+impl<P, B, Q> CaptureQueueable<B> for QBuffer<Capture, P, B, Q>
 where
     P: PrimitiveBufferHandles,
     B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<Capture, BuffersAllocated<B>>>,
 {
     fn queue_with_handles(self, handles: B) -> QueueResult<(), B> {
         if handles.len() != self.num_expected_planes() {
@@ -233,10 +239,11 @@ where
 }
 
 /// Any OUTPUT QBuffer implements OutputQueueable.
-impl<P, B> OutputQueueable<B> for QBuffer<'_, Output, P, B>
+impl<P, B, Q> OutputQueueable<B> for QBuffer<Output, P, B, Q>
 where
     P: PrimitiveBufferHandles,
     B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<Output, BuffersAllocated<B>>>,
 {
     fn queue_with_handles(self, handles: B, bytes_used: &[usize]) -> QueueResult<(), B> {
         if handles.len() != self.num_expected_planes() {
@@ -280,11 +287,12 @@ where
 /// empty handles.
 /// Since we don't receive plane handles, we also don't need to return any, so
 /// the returned error can be simplified.
-impl<P, B> QBuffer<'_, Capture, P, B>
+impl<P, B, Q> QBuffer<Capture, P, B, Q>
 where
     P: PrimitiveBufferHandles + Default,
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
     B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<Capture, BuffersAllocated<B>>>,
 {
     pub fn queue(self) -> QBufResult<(), Infallible> {
         let planes: Vec<_> = (0..self.num_expected_planes())
@@ -300,11 +308,12 @@ where
 /// empty handles.
 /// Since we don't receive plane handles, we also don't need to return any, so
 /// the returned error can be simplified.
-impl<P, B> QBuffer<'_, Output, P, B>
+impl<P, B, Q> QBuffer<Output, P, B, Q>
 where
     <P::HandleType as PlaneHandle>::Memory: SelfBacked,
     P: PrimitiveBufferHandles + Default,
     B: BufferHandles + From<P>,
+    Q: Deref<Target = Queue<Output, BuffersAllocated<B>>>,
 {
     pub fn queue(self, bytes_used: &[usize]) -> QBufResult<(), Infallible> {
         // TODO make specific error for bytes_used?

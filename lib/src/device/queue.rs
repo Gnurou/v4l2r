@@ -539,7 +539,7 @@ mod private {
     impl<'a, D: Direction, P: PrimitiveBufferHandles> GetBufferByIndex<'a>
         for Queue<D, BuffersAllocated<P>>
     {
-        type Queueable = QBuffer<'a, D, P, P>;
+        type Queueable = QBuffer<D, P, P, &'a Queue<D, BuffersAllocated<P>>>;
 
         // Take buffer `id` in order to prepare it for queueing, provided it is available.
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
@@ -548,7 +548,7 @@ mod private {
     }
 
     impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
-        type Queueable = GenericQBuffer<'a, D>;
+        type Queueable = GenericQBuffer<D, &'a Self>;
 
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
             let buffer_info = self.try_obtain_buffer(index)?;
