@@ -184,11 +184,7 @@ impl<OP: BufferHandles> Encoder<AwaitingCaptureBuffers<OP>> {
         memory_type: <P::HandleType as BufferHandles>::SupportedMemoryType,
         num_capture: usize,
         capture_memory_provider: P,
-    ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError>
-    where
-        for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
-            GetFreeCaptureBuffer<'a, P::HandleType>,
-    {
+    ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError> {
         Ok(Encoder {
             device: self.device,
             state: ReadyToEncode {
@@ -210,8 +206,6 @@ impl<OP: BufferHandles> Encoder<AwaitingCaptureBuffers<OP>> {
     ) -> Result<Encoder<ReadyToEncode<OP, P>>, RequestBuffersError>
     where
         P::HandleType: PrimitiveBufferHandles,
-        for<'a> Queue<Capture, BuffersAllocated<P::HandleType>>:
-            GetFreeCaptureBuffer<'a, P::HandleType>,
     {
         self.allocate_capture_buffers_generic(
             P::HandleType::MEMORY_TYPE,
