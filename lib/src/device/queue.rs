@@ -518,11 +518,15 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
 mod private {
     use super::*;
 
-    /// Private trait for providing a Queuable regardless of the queue's
-    /// direction. Avoids duplicating the same code in
-    /// Capture/OutputQueueableProvider's implementations.
+    /// Private trait for providing a Queuable regardless of the queue's direction.
+    ///
+    /// This avoids duplicating the same code in Capture/OutputQueueableProvider's implementations.
+    ///
+    /// The lifetime `'a` is here to allow implementations to attach the lifetime of their return
+    /// value to `self`. This is useful when we want the buffer to hold a reference to the queue
+    /// that prevents the latter from mutating as long as the buffer is not consumed.
     pub trait GetBufferByIndex<'a> {
-        type Queueable: 'a;
+        type Queueable;
 
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
     }

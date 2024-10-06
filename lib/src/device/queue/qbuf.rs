@@ -193,13 +193,13 @@ pub trait OutputQueueable<B: BufferHandles> {
 /// Trait for all objects that are capable of providing objects that can be
 /// queued to the CAPTURE queue.
 pub trait CaptureQueueableProvider<'a, B: BufferHandles> {
-    type Queueable: 'a + CaptureQueueable<B>;
+    type Queueable: CaptureQueueable<B>;
 }
 
 /// Trait for all objects that are capable of providing objects that can be
 /// queued to the CAPTURE queue.
 pub trait OutputQueueableProvider<'a, B: BufferHandles> {
-    type Queueable: 'a + OutputQueueable<B>;
+    type Queueable: OutputQueueable<B>;
 }
 
 /// Any CAPTURE QBuffer implements CaptureQueueable.
