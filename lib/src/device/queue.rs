@@ -711,8 +711,7 @@ where
 pub trait GetOutputBufferByIndex<'a, B, ErrorType = TryGetBufferError>
 where
     B: BufferHandles,
-    Self: private::GetBufferByIndex<'a>,
-    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<B>,
+    Self: OutputQueueableProvider<'a, B>,
 {
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, ErrorType>;
 }
