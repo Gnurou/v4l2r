@@ -510,6 +510,20 @@ impl<D: Direction, P: BufferHandles> TryDequeue for Queue<D, BuffersAllocated<P>
     }
 }
 
+#[derive(Debug, Error)]
+pub enum TryGetBufferError {
+    #[error("buffer with provided index {0} does not exist")]
+    InvalidIndex(usize),
+    #[error("buffer is already in use")]
+    AlreadyUsed,
+}
+
+#[derive(Debug, Error)]
+pub enum GetFreeBufferError {
+    #[error("all buffers are currently being used")]
+    NoFreeBuffer,
+}
+
 mod private {
     use std::ops::Deref;
 
@@ -694,14 +708,6 @@ where
     type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
 }
 
-#[derive(Debug, Error)]
-pub enum TryGetBufferError {
-    #[error("buffer with provided index {0} does not exist")]
-    InvalidIndex(usize),
-    #[error("buffer is already in use")]
-    AlreadyUsed,
-}
-
 pub trait GetOutputBufferByIndex<'a, B, ErrorType = TryGetBufferError>
 where
     B: BufferHandles,
@@ -738,12 +744,6 @@ where
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
         <Self as private::GetBufferByIndex<'a>>::try_get_buffer(self, index)
     }
-}
-
-#[derive(Debug, Error)]
-pub enum GetFreeBufferError {
-    #[error("all buffers are currently being used")]
-    NoFreeBuffer,
 }
 
 pub trait GetFreeOutputBuffer<'a, P: BufferHandles, ErrorType = GetFreeBufferError>
