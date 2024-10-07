@@ -734,10 +734,10 @@ where
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, ErrorType>;
 }
 
-impl<'a, P: BufferHandles, R> GetCaptureBufferByIndex<'a, P> for Queue<Capture, BuffersAllocated<P>>
+impl<'a, P: BufferHandles> GetCaptureBufferByIndex<'a, P> for Queue<Capture, BuffersAllocated<P>>
 where
-    Self: private::GetBufferByIndex<'a, Queueable = R>,
-    Self: CaptureQueueableProvider<'a, P, Queueable = R>,
+    Self: private::GetBufferByIndex<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<P>,
 {
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
@@ -752,10 +752,10 @@ where
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
 }
 
-impl<'a, P: BufferHandles, R, Q> GetFreeOutputBuffer<'a, P> for Q
+impl<'a, P: BufferHandles, Q> GetFreeOutputBuffer<'a, P> for Q
 where
-    Self: private::GetFreeBuffer<'a, Queueable = R>,
-    Self: OutputQueueableProvider<'a, P, Queueable = R>,
+    Self: private::GetFreeBuffer<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<P>,
 {
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
         <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
@@ -769,10 +769,10 @@ where
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
 }
 
-impl<'a, P: BufferHandles, R, Q> GetFreeCaptureBuffer<'a, P> for Q
+impl<'a, P: BufferHandles, Q> GetFreeCaptureBuffer<'a, P> for Q
 where
-    Self: private::GetFreeBuffer<'a, Queueable = R>,
-    Self: CaptureQueueableProvider<'a, P, Queueable = R>,
+    Self: private::GetFreeBuffer<'a>,
+    <Self as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<P>,
 {
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
         <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
