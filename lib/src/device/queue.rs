@@ -19,7 +19,6 @@ use crate::{Format, PixelFormat, QueueType};
 use buffer::*;
 use direction::*;
 use dqbuf::*;
-use generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType};
 use log::debug;
 use qbuf::*;
 
@@ -560,28 +559,6 @@ mod private {
         // Take buffer `id` in order to prepare it for queueing, provided it is available.
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
             Ok(QBuffer::new(self, self.try_obtain_buffer(index)?))
-        }
-    }
-
-    impl<'a, D: Direction> QueueableProvider<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
-        type Queueable = GenericQBuffer<D, &'a Self>;
-    }
-
-    impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
-        fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
-            let buffer_info = self.try_obtain_buffer(index)?;
-
-            Ok(match self.state.memory_type {
-                GenericSupportedMemoryType::Mmap => {
-                    GenericQBuffer::Mmap(QBuffer::new(self, buffer_info))
-                }
-                GenericSupportedMemoryType::UserPtr => {
-                    GenericQBuffer::User(QBuffer::new(self, buffer_info))
-                }
-                GenericSupportedMemoryType::DmaBuf => {
-                    GenericQBuffer::DmaBuf(QBuffer::new(self, buffer_info))
-                }
-            })
         }
     }
 

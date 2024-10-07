@@ -1,8 +1,9 @@
 use crate::{
     device::queue::{
         direction::{Capture, Direction, Output},
+        private,
         qbuf::{QBuffer, QueueResult},
-        BuffersAllocated, CaptureQueueable, OutputQueueable, Queue,
+        BuffersAllocated, CaptureQueueable, OutputQueueable, Queue, TryGetBufferError,
     },
     memory::DmaBufHandle,
 };
@@ -119,6 +120,32 @@ where
 {
     fn from(qb: QBuffer<D, Vec<DmaBufHandle<File>>, GenericBufferHandles, Q>) -> Self {
         GenericQBuffer::DmaBuf(qb)
+    }
+}
+
+impl<'a, D: Direction> private::QueueableProvider<'a>
+    for Queue<D, BuffersAllocated<GenericBufferHandles>>
+{
+    type Queueable = GenericQBuffer<D, &'a Self>;
+}
+
+impl<'a, D: Direction> private::GetBufferByIndex<'a>
+    for Queue<D, BuffersAllocated<GenericBufferHandles>>
+{
+    fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
+        let buffer_info = self.try_obtain_buffer(index)?;
+
+        Ok(match self.state.memory_type {
+            GenericSupportedMemoryType::Mmap => {
+                GenericQBuffer::Mmap(QBuffer::new(self, buffer_info))
+            }
+            GenericSupportedMemoryType::UserPtr => {
+                GenericQBuffer::User(QBuffer::new(self, buffer_info))
+            }
+            GenericSupportedMemoryType::DmaBuf => {
+                GenericQBuffer::DmaBuf(QBuffer::new(self, buffer_info))
+            }
+        })
     }
 }
 
