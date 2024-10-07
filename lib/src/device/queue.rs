@@ -529,16 +529,17 @@ mod private {
 
     use super::*;
 
-    /// Private trait for providing a Queuable regardless of the queue's direction.
-    ///
-    /// This avoids duplicating the same code in Capture/OutputQueueableProvider's implementations.
-    ///
     /// The lifetime `'a` is here to allow implementations to attach the lifetime of their return
     /// value to `self`. This is useful when we want the buffer to hold a reference to the queue
     /// that prevents the latter from mutating as long as the buffer is not consumed.
-    pub trait GetBufferByIndex<'a> {
+    pub trait QueueableProvider<'a> {
         type Queueable;
+    }
 
+    /// Private trait for providing a Queuable regardless of the queue's direction.
+    ///
+    /// This avoids duplicating the same code in Capture/OutputQueueableProvider's implementations.
+    pub trait GetBufferByIndex<'a>: QueueableProvider<'a> {
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError>;
     }
 
@@ -547,20 +548,26 @@ mod private {
         fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
     }
 
-    impl<'a, D: Direction, P: PrimitiveBufferHandles> GetBufferByIndex<'a>
+    impl<'a, D: Direction, P: PrimitiveBufferHandles> QueueableProvider<'a>
         for Queue<D, BuffersAllocated<P>>
     {
         type Queueable = QBuffer<D, P, P, &'a Queue<D, BuffersAllocated<P>>>;
+    }
 
+    impl<'a, D: Direction, P: PrimitiveBufferHandles> GetBufferByIndex<'a>
+        for Queue<D, BuffersAllocated<P>>
+    {
         // Take buffer `id` in order to prepare it for queueing, provided it is available.
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
             Ok(QBuffer::new(self, self.try_obtain_buffer(index)?))
         }
     }
 
-    impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
+    impl<'a, D: Direction> QueueableProvider<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
         type Queueable = GenericQBuffer<D, &'a Self>;
+    }
 
+    impl<'a, D: Direction> GetBufferByIndex<'a> for Queue<D, BuffersAllocated<GenericBufferHandles>> {
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
             let buffer_info = self.try_obtain_buffer(index)?;
 
@@ -576,6 +583,15 @@ mod private {
                 }
             })
         }
+    }
+
+    impl<'a, D, P, Q> QueueableProvider<'a> for Q
+    where
+        D: Direction,
+        P: PrimitiveBufferHandles,
+        Q: Deref<Target = Queue<D, BuffersAllocated<P>>> + Clone,
+    {
+        type Queueable = QBuffer<D, P, P, Q>;
     }
 
     /// Allows to obtain a [`QBuffer`] with a `'static` lifetime from e.g. an `Arc<Queue>`.
@@ -597,8 +613,6 @@ mod private {
         P: PrimitiveBufferHandles,
         Q: Deref<Target = Queue<D, BuffersAllocated<P>>> + Clone,
     {
-        type Queueable = QBuffer<D, P, P, Q>;
-
         fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
             Ok(QBuffer::new(self.clone(), self.try_obtain_buffer(index)?))
         }
@@ -690,7 +704,7 @@ where
     Q: private::GetBufferByIndex<'a>,
     Q::Queueable: CaptureQueueable<B>,
 {
-    type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
+    type Queueable = <Self as private::QueueableProvider<'a>>::Queueable;
 }
 
 /// Trait for all objects that are capable of providing objects that can be
@@ -705,7 +719,7 @@ where
     Q: private::GetBufferByIndex<'a>,
     Q::Queueable: OutputQueueable<B>,
 {
-    type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
+    type Queueable = <Self as private::QueueableProvider<'a>>::Queueable;
 }
 
 pub trait GetOutputBufferByIndex<'a, B, ErrorType = TryGetBufferError>
@@ -719,7 +733,7 @@ where
 impl<'a, B: BufferHandles> GetOutputBufferByIndex<'a, B> for Queue<Output, BuffersAllocated<B>>
 where
     Self: private::GetBufferByIndex<'a>,
-    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<B>,
+    <Self as private::QueueableProvider<'a>>::Queueable: OutputQueueable<B>,
 {
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
@@ -737,7 +751,7 @@ where
 impl<'a, P: BufferHandles> GetCaptureBufferByIndex<'a, P> for Queue<Capture, BuffersAllocated<P>>
 where
     Self: private::GetBufferByIndex<'a>,
-    <Self as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<P>,
+    <Self as private::QueueableProvider<'a>>::Queueable: CaptureQueueable<P>,
 {
     // Take buffer `id` in order to prepare it for queueing, provided it is available.
     fn try_get_buffer(&'a self, index: usize) -> Result<Self::Queueable, TryGetBufferError> {
@@ -755,7 +769,7 @@ where
 impl<'a, P: BufferHandles, Q> GetFreeOutputBuffer<'a, P> for Q
 where
     Self: private::GetFreeBuffer<'a>,
-    <Self as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<P>,
+    <Self as private::QueueableProvider<'a>>::Queueable: OutputQueueable<P>,
 {
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
         <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
@@ -772,7 +786,7 @@ where
 impl<'a, P: BufferHandles, Q> GetFreeCaptureBuffer<'a, P> for Q
 where
     Self: private::GetFreeBuffer<'a>,
-    <Self as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<P>,
+    <Self as private::QueueableProvider<'a>>::Queueable: CaptureQueueable<P>,
 {
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
         <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
