@@ -5,8 +5,6 @@ pub mod generic;
 pub mod handles_provider;
 pub mod qbuf;
 
-use self::qbuf::get_free::GetFreeOutputBuffer;
-
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
 use crate::ioctl::{DqBufResult, QueryBufError, V4l2BufferFromError};
 use crate::{bindings, memory::*};
@@ -23,10 +21,7 @@ use direction::*;
 use dqbuf::*;
 use generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType};
 use log::debug;
-use qbuf::{
-    get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
-    *,
-};
+use qbuf::*;
 
 use std::convert::{Infallible, TryFrom};
 use std::os::unix::io::{AsRawFd, RawFd};
@@ -651,6 +646,30 @@ mod private {
     }
 }
 
+/// Trait for queueable CAPTURE buffers. These buffers only require handles to
+/// be queued.
+pub trait CaptureQueueable<B: BufferHandles> {
+    /// Queue the buffer after binding `handles`, consuming the object.
+    /// The number of handles must match the buffer's expected number of planes.
+    fn queue_with_handles(self, handles: B) -> QueueResult<(), B>;
+}
+
+/// Trait for queueable OUTPUT buffers. The number of bytes used must be
+/// specified for each plane.
+pub trait OutputQueueable<B: BufferHandles> {
+    /// Queue the buffer after binding `handles`, consuming the object.
+    /// The number of handles must match the buffer's expected number of planes.
+    /// `bytes_used` must be a slice with as many slices as there are handles,
+    /// describing the amount of useful data in each of them.
+    fn queue_with_handles(self, handles: B, bytes_used: &[usize]) -> QueueResult<(), B>;
+}
+
+/// Trait for all objects that are capable of providing objects that can be
+/// queued to the CAPTURE queue.
+pub trait CaptureQueueableProvider<'a, B: BufferHandles> {
+    type Queueable: CaptureQueueable<B>;
+}
+
 impl<'a, B, Q> CaptureQueueableProvider<'a, B> for Q
 where
     B: BufferHandles,
@@ -658,6 +677,12 @@ where
     <Q as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<B>,
 {
     type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
+}
+
+/// Trait for all objects that are capable of providing objects that can be
+/// queued to the CAPTURE queue.
+pub trait OutputQueueableProvider<'a, B: BufferHandles> {
+    type Queueable: OutputQueueable<B>;
 }
 
 impl<'a, B, Q> OutputQueueableProvider<'a, B> for Q
@@ -715,6 +740,19 @@ where
     }
 }
 
+#[derive(Debug, Error)]
+pub enum GetFreeBufferError {
+    #[error("all buffers are currently being used")]
+    NoFreeBuffer,
+}
+
+pub trait GetFreeOutputBuffer<'a, P: BufferHandles, ErrorType = GetFreeBufferError>
+where
+    Self: OutputQueueableProvider<'a, P>,
+{
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
+}
+
 impl<'a, P: BufferHandles, R, Q> GetFreeOutputBuffer<'a, P> for Q
 where
     Self: private::GetFreeBuffer<'a, Queueable = R>,
@@ -723,6 +761,13 @@ where
     fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
         <Self as private::GetFreeBuffer<'a>>::try_get_free_buffer(self)
     }
+}
+
+pub trait GetFreeCaptureBuffer<'a, P: BufferHandles, ErrorType = GetFreeBufferError>
+where
+    Self: CaptureQueueableProvider<'a, P>,
+{
+    fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
 }
 
 impl<'a, P: BufferHandles, R, Q> GetFreeCaptureBuffer<'a, P> for Q

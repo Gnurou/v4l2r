@@ -17,8 +17,7 @@ use v4l2r::{
         poller::Waker,
         queue::{
             handles_provider::{GetSuitableBufferError, HandlesProvider},
-            qbuf::{get_free::GetFreeCaptureBuffer, CaptureQueueableProvider},
-            GetCaptureBufferByIndex,
+            CaptureQueueableProvider, GetCaptureBufferByIndex, GetFreeCaptureBuffer,
         },
     },
     memory::{BufferHandles, DmaBufHandle, DmaBufSource, MemoryType, PrimitiveBufferHandles},

@@ -28,7 +28,7 @@ use v4l2r::{
         CompletedInputBuffer, DecoderEvent, DecoderEventCallback, FormatChangedCallback,
         FormatChangedReply, InputDoneCallback,
     },
-    device::queue::{direction::Capture, dqbuf::DqBuffer, qbuf::OutputQueueable, FormatBuilder},
+    device::queue::{direction::Capture, dqbuf::DqBuffer, FormatBuilder, OutputQueueable},
     memory::DmaBufHandle,
     PixelFormat, PlaneLayout, Rect,
 };

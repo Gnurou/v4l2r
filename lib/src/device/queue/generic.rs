@@ -1,8 +1,8 @@
 use crate::{
     device::queue::{
         direction::{Capture, Direction, Output},
-        qbuf::{CaptureQueueable, OutputQueueable, QBuffer, QueueResult},
-        BuffersAllocated, Queue,
+        qbuf::{QBuffer, QueueResult},
+        BuffersAllocated, CaptureQueueable, OutputQueueable, Queue,
     },
     memory::DmaBufHandle,
 };

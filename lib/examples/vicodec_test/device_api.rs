@@ -5,8 +5,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use v4l2r_utils::framegen::FrameGenerator;
 
-use qbuf::get_free::GetFreeCaptureBuffer;
-use v4l2r::{device::queue::qbuf::OutputQueueable, memory::MemoryType, Format};
+use v4l2r::{device::queue::OutputQueueable, memory::MemoryType, Format};
 use v4l2r::{device::queue::*, memory::MmapHandle};
 use v4l2r::{
     device::{

@@ -13,7 +13,7 @@ use v4l2r::{
             dqbuf::DqBuffer,
             generic::{GenericBufferHandles, GenericQBuffer, GenericSupportedMemoryType},
             handles_provider::MmapProvider,
-            qbuf::OutputQueueable,
+            OutputQueueable,
         },
     },
     encoder::*,

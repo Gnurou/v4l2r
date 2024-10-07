@@ -7,7 +7,10 @@ use std::{
 
 use log::error;
 
-use crate::device::queue::{GetCaptureBufferByIndex, TryGetBufferError};
+use crate::device::queue::{
+    CaptureQueueableProvider, GetCaptureBufferByIndex, GetFreeBufferError, GetFreeCaptureBuffer,
+    TryGetBufferError,
+};
 use crate::{
     bindings,
     device::poller::Waker,
@@ -16,11 +19,6 @@ use crate::{
 };
 
 use thiserror::Error;
-
-use super::qbuf::{
-    get_free::{GetFreeBufferError, GetFreeCaptureBuffer},
-    CaptureQueueableProvider,
-};
 
 #[derive(Debug, Error)]
 pub enum GetSuitableBufferError {

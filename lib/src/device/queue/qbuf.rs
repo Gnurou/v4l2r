@@ -1,6 +1,8 @@
 //! Provides types related to queuing buffers on a `Queue` object.
-use super::{buffer::BufferInfo, Capture, Direction, Output};
-use super::{BufferState, BufferStateFuse, BuffersAllocated, Queue};
+use crate::device::queue::{
+    buffer::BufferInfo, BufferState, BufferStateFuse, BuffersAllocated, Capture, CaptureQueueable,
+    Direction, Output, OutputQueueable, Queue,
+};
 use crate::ioctl::{self, QBufIoctlError, QBufResult};
 use crate::memory::*;
 use std::convert::Infallible;
@@ -13,8 +15,6 @@ use std::{
 
 use nix::sys::time::{TimeVal, TimeValLike};
 use thiserror::Error;
-
-pub mod get_free;
 
 /// Error that can occur when queuing a buffer. It wraps a regular error and also
 /// returns the plane handles back to the user.
@@ -175,36 +175,6 @@ where
         let plane_info = buffer_info.features.planes.get(plane)?;
         P::HandleType::map(self.queue.inner.device.as_ref(), plane_info)
     }
-}
-
-/// Trait for queueable CAPTURE buffers. These buffers only require handles to
-/// be queued.
-pub trait CaptureQueueable<B: BufferHandles> {
-    /// Queue the buffer after binding `handles`, consuming the object.
-    /// The number of handles must match the buffer's expected number of planes.
-    fn queue_with_handles(self, handles: B) -> QueueResult<(), B>;
-}
-
-/// Trait for queueable OUTPUT buffers. The number of bytes used must be
-/// specified for each plane.
-pub trait OutputQueueable<B: BufferHandles> {
-    /// Queue the buffer after binding `handles`, consuming the object.
-    /// The number of handles must match the buffer's expected number of planes.
-    /// `bytes_used` must be a slice with as many slices as there are handles,
-    /// describing the amount of useful data in each of them.
-    fn queue_with_handles(self, handles: B, bytes_used: &[usize]) -> QueueResult<(), B>;
-}
-
-/// Trait for all objects that are capable of providing objects that can be
-/// queued to the CAPTURE queue.
-pub trait CaptureQueueableProvider<'a, B: BufferHandles> {
-    type Queueable: CaptureQueueable<B>;
-}
-
-/// Trait for all objects that are capable of providing objects that can be
-/// queued to the CAPTURE queue.
-pub trait OutputQueueableProvider<'a, B: BufferHandles> {
-    type Queueable: OutputQueueable<B>;
 }
 
 /// Any CAPTURE QBuffer implements CaptureQueueable.
