@@ -544,8 +544,8 @@ mod private {
     }
 
     /// Same as `GetBufferByIndex` but for providing any free buffer.
-    pub trait GetFreeBuffer<'a, ErrorType = GetFreeBufferError>: GetBufferByIndex<'a> {
-        fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, ErrorType>;
+    pub trait GetFreeBuffer<'a>: GetBufferByIndex<'a> {
+        fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError>;
     }
 
     impl<'a, D: Direction, P: PrimitiveBufferHandles> QueueableProvider<'a>
