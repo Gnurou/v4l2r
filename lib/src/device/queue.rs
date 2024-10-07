@@ -688,7 +688,7 @@ impl<'a, B, Q> CaptureQueueableProvider<'a, B> for Q
 where
     B: BufferHandles,
     Q: private::GetBufferByIndex<'a>,
-    <Q as private::GetBufferByIndex<'a>>::Queueable: CaptureQueueable<B>,
+    Q::Queueable: CaptureQueueable<B>,
 {
     type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
 }
@@ -703,7 +703,7 @@ impl<'a, B, Q> OutputQueueableProvider<'a, B> for Q
 where
     B: BufferHandles,
     Q: private::GetBufferByIndex<'a>,
-    <Q as private::GetBufferByIndex<'a>>::Queueable: OutputQueueable<B>,
+    Q::Queueable: OutputQueueable<B>,
 {
     type Queueable = <Self as private::GetBufferByIndex<'a>>::Queueable;
 }

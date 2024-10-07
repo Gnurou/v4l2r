@@ -17,7 +17,7 @@ use v4l2r::{
         poller::Waker,
         queue::{
             handles_provider::{GetSuitableBufferError, HandlesProvider},
-            CaptureQueueableProvider, GetCaptureBufferByIndex, GetFreeCaptureBuffer,
+            GetCaptureBufferByIndex, GetFreeCaptureBuffer,
         },
     },
     memory::{BufferHandles, DmaBufHandle, DmaBufSource, MemoryType, PrimitiveBufferHandles},
@@ -161,10 +161,7 @@ impl HandlesProvider for v4l2r_video_frame_provider {
         &self,
         handles: &Self::HandleType,
         queue: &'a Q,
-    ) -> Result<
-        <Q as CaptureQueueableProvider<'a, Self::HandleType>>::Queueable,
-        GetSuitableBufferError,
-    >
+    ) -> Result<Q::Queueable, GetSuitableBufferError>
     where
         Q: GetCaptureBufferByIndex<'a, Self::HandleType>
             + GetFreeCaptureBuffer<'a, Self::HandleType>,
