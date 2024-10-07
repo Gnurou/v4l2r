@@ -625,17 +625,15 @@ mod private {
         Self: GetBufferByIndex<'a>,
     {
         fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
-            let res = self
-                .state
+            self.state
                 .buffer_info
                 .iter()
                 .enumerate()
-                .find(|(_, s)| s.do_with_state(|s| matches!(s, BufferState::Free)));
-
-            match res {
-                None => Err(GetFreeBufferError::NoFreeBuffer),
-                Some((i, _)) => Ok(self.try_get_buffer(i).unwrap()),
-            }
+                .find(|(_, s)| s.do_with_state(|s| matches!(s, BufferState::Free)))
+                .ok_or(GetFreeBufferError::NoFreeBuffer)
+                // We found a buffer with a `Free` state, so calling `try_get_buffer` on it is
+                // guaranteed to succeed.
+                .map(|(i, _)| self.try_get_buffer(i).unwrap())
         }
     }
 
@@ -659,17 +657,15 @@ mod private {
         Q: Deref<Target = Queue<D, BuffersAllocated<P>>> + Clone,
     {
         fn try_get_free_buffer(&'a self) -> Result<Self::Queueable, GetFreeBufferError> {
-            let res = self
-                .state
+            self.state
                 .buffer_info
                 .iter()
                 .enumerate()
-                .find(|(_, s)| s.do_with_state(|s| matches!(s, BufferState::Free)));
-
-            match res {
-                None => Err(GetFreeBufferError::NoFreeBuffer),
-                Some((i, _)) => Ok(self.try_get_buffer(i).unwrap()),
-            }
+                .find(|(_, s)| s.do_with_state(|s| matches!(s, BufferState::Free)))
+                .ok_or(GetFreeBufferError::NoFreeBuffer)
+                // We found a buffer with a `Free` state, so calling `try_get_buffer` on it is
+                // guaranteed to succeed.
+                .map(|(i, _)| self.try_get_buffer(i).unwrap())
         }
     }
 }
