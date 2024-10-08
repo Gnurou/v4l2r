@@ -916,6 +916,12 @@ pub enum V4l2BufferFromError {
     UnknownQueueType(u32),
     #[error("unknown memory type {0}")]
     UnknownMemoryType(u32),
+    #[error("invalid number of planes {0}")]
+    InvalidNumberOfPlanes(u32),
+    #[error("plane {0} has bytesused field larger than its length ({1} > {2})")]
+    PlaneSizeOverflow(usize, u32, u32),
+    #[error("plane {0} has data_offset field larger or equal to its bytesused ({1} >= {2})")]
+    InvalidDataOffset(usize, u32, u32),
 }
 
 impl TryFrom<UncheckedV4l2Buffer> for V4l2Buffer {
@@ -925,15 +931,53 @@ impl TryFrom<UncheckedV4l2Buffer> for V4l2Buffer {
     /// fail.
     fn try_from(buffer: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
         let v4l2_buf = buffer.0;
-        let v4l2_planes = buffer.1;
-        QueueType::n(v4l2_buf.type_)
+        let queue = QueueType::n(v4l2_buf.type_)
             .ok_or(V4l2BufferFromError::UnknownQueueType(v4l2_buf.type_))?;
         MemoryType::n(v4l2_buf.memory)
             .ok_or(V4l2BufferFromError::UnknownMemoryType(v4l2_buf.memory))?;
 
+        let v4l2_planes = buffer.1.unwrap_or_default();
+
+        // Validate plane information
+        if queue.is_multiplanar() {
+            if v4l2_buf.length >= bindings::VIDEO_MAX_PLANES {
+                return Err(V4l2BufferFromError::InvalidNumberOfPlanes(v4l2_buf.length));
+            }
+
+            for (i, plane) in v4l2_planes[0..v4l2_buf.length as usize].iter().enumerate() {
+                if plane.bytesused > plane.length {
+                    return Err(V4l2BufferFromError::PlaneSizeOverflow(
+                        i,
+                        plane.bytesused,
+                        plane.length,
+                    ));
+                }
+
+                let bytesused = if plane.bytesused != 0 {
+                    plane.bytesused
+                } else {
+                    plane.length
+                };
+
+                if plane.data_offset != 0 && plane.data_offset >= bytesused {
+                    return Err(V4l2BufferFromError::InvalidDataOffset(
+                        i,
+                        plane.data_offset,
+                        bytesused,
+                    ));
+                }
+            }
+        } else if v4l2_buf.bytesused > v4l2_buf.length {
+            return Err(V4l2BufferFromError::PlaneSizeOverflow(
+                0,
+                v4l2_buf.bytesused,
+                v4l2_buf.length,
+            ));
+        }
+
         Ok(Self {
             buffer: v4l2_buf,
-            planes: v4l2_planes.unwrap_or_default(),
+            planes: v4l2_planes,
         })
     }
 }
