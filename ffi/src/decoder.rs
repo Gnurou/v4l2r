@@ -139,13 +139,10 @@ fn set_capture_format_cb(
     desired_pixel_format: Option<PixelFormat>,
     visible_rect: Rect,
     min_num_buffers: usize,
-    decoder: *mut v4l2r_decoder,
+    decoder: &mut v4l2r_decoder,
     event_cb: v4l2r_decoder_event_cb,
     cb_data: *mut c_void,
 ) -> anyhow::Result<FormatChangedReply<Arc<v4l2r_video_frame_provider>>> {
-    // Safe unless the C part did something funny with the decoder returned by
-    // `v4l2r_decoder_new`.
-    let decoder = unsafe { decoder.as_mut().unwrap() };
     let mut v4l2_format: bindings::v4l2_format = match desired_pixel_format {
         Some(format) => f.set_pixelformat(format).apply()?,
         None => f.apply()?,
@@ -367,12 +364,14 @@ fn v4l2r_decoder_new_safe(
                 let decoder_ptr = decoder_ptr;
                 let cb_data = cb_data;
 
+                let decoder = unsafe { decoder_ptr.0.as_mut().unwrap() };
+
                 set_capture_format_cb(
                     f,
                     output_format,
                     visible_rect,
                     min_num_buffers,
-                    decoder_ptr.0,
+                    decoder,
                     event_cb,
                     cb_data.0,
                 )
