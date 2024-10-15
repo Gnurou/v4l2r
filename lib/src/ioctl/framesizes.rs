@@ -15,11 +15,11 @@ pub enum FrmSizeTypes<'a> {
 
 impl v4l2_frmsizeenum {
     /// Safely access the size member of the struct based on the
-    /// returned index.
+    /// returned type.
     pub fn size(&self) -> Option<FrmSizeTypes> {
-        match self.index {
+        match self.type_ {
             // SAFETY: the member of the union that gets used by the driver
-            // is determined by the index
+            // is determined by the type
             bindings::v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_DISCRETE => {
                 Some(FrmSizeTypes::Discrete(unsafe {
                     &self.__bindgen_anon_1.discrete
@@ -27,7 +27,7 @@ impl v4l2_frmsizeenum {
             }
 
             // SAFETY: the member of the union that gets used by the driver
-            // is determined by the index
+            // is determined by the type
             bindings::v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_CONTINUOUS
             | bindings::v4l2_frmsizetypes_V4L2_FRMSIZE_TYPE_STEPWISE => {
                 Some(FrmSizeTypes::StepWise(unsafe {
