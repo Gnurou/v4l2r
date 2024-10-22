@@ -11,6 +11,12 @@ license = "MIT"
 
 readme.workspace = true
 
+[features]
+# Generate the bindings for 64-bit even if the host is 32-bit.
+arch64 = []
+# Generate the bindings for 32-bit even if the host is 64-bit.
+arch32 = []
+
 [dependencies]
 nix = { version = "0.28", features = ["ioctl", "mman", "poll", "fs", "event"] }
 bitflags = "2.4"

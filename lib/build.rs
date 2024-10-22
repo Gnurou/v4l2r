@@ -30,9 +30,17 @@ fn main() {
     println!("cargo::rerun-if-changed={}", videodev2_h.display());
     println!("cargo::rerun-if-changed={}", WRAPPER_H);
 
+    let clang_args = [
+        format!("-I{}", videodev2_h_path),
+        #[cfg(all(feature = "arch64", not(feature = "arch32")))]
+        "--target=x86_64-linux-gnu".into(),
+        #[cfg(all(feature = "arch32", not(feature = "arch64")))]
+        "--target=i686-linux-gnu".into(),
+    ];
+
     let bindings = v4l2r_bindgen_builder(bindgen::Builder::default())
         .header(WRAPPER_H)
-        .clang_args([format!("-I{}", videodev2_h_path)])
+        .clang_args(clang_args)
         .generate()
         .expect("unable to generate bindings");
 
