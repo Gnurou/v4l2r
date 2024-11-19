@@ -13,6 +13,9 @@ const DEFAULT_VIDEODEV2_H_PATH: &str = "/usr/include/linux";
 /// Wrapper file to use as input of bindgen.
 const WRAPPER_H: &str = "v4l2r_wrapper.h";
 
+// Fix for https://github.com/rust-lang/rust-bindgen/issues/753
+const FIX753_H: &str = "fix753.h";
+
 fn main() {
     let videodev2_h_path = env::var(V4L2R_VIDEODEV_ENV)
         .or_else(|e| {
@@ -28,6 +31,7 @@ fn main() {
 
     println!("cargo::rerun-if-env-changed={}", V4L2R_VIDEODEV_ENV);
     println!("cargo::rerun-if-changed={}", videodev2_h.display());
+    println!("cargo::rerun-if-changed={}", FIX753_H);
     println!("cargo::rerun-if-changed={}", WRAPPER_H);
 
     let clang_args = [
