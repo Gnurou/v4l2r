@@ -25,6 +25,7 @@ use log::{debug, error, info, trace};
 use std::{
     convert::TryFrom,
     io,
+    os::fd::{AsRawFd, RawFd},
     path::Path,
     sync::{atomic::AtomicUsize, mpsc, Arc},
     task::Wake,
@@ -534,6 +535,15 @@ where
 {
     type Queueable =
         <Queue<Output, BuffersAllocated<OP>> as OutputQueueableProvider<'a, OP>>::Queueable;
+}
+
+impl<S> AsRawFd for Decoder<S>
+where
+    S: DecoderState,
+{
+    fn as_raw_fd(&self) -> RawFd {
+        self.device.as_raw_fd()
+    }
 }
 
 #[derive(Debug, Error)]
