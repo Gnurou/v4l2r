@@ -438,6 +438,10 @@ impl V4l2Buffer {
         self.flags().contains(BufferFlags::LAST)
     }
 
+    pub fn has_error(&self) -> bool {
+        self.flags().contains(BufferFlags::ERROR)
+    }
+
     pub fn timestamp(&self) -> bindings::timeval {
         self.buffer.timestamp
     }
