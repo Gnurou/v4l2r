@@ -91,7 +91,7 @@ where
         let device = self.device.upgrade()?;
 
         let start = *plane_data.data_offset.unwrap_or(&0) as usize;
-        let end = start + *plane_data.bytesused as usize;
+        let end = *plane_data.bytesused as usize;
 
         Some(P::HandleType::map(device.as_ref(), plane)?.restrict(start, end))
     }
