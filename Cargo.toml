@@ -4,3 +4,4 @@ members = ["lib", "ffi"]
 
 [workspace.package]
 readme = "README.md"
+license-file = "LICENSE"

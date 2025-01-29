@@ -9,6 +9,7 @@ categories = ["os"]
 keywords = ["v4l2", "video", "linux"]
 license = "MIT"
 
+license-file.workspace = true
 readme.workspace = true
 
 [features]
