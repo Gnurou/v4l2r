@@ -72,6 +72,7 @@ use crate::bindings::v4l2_ctrl_h264_scaling_matrix;
 use crate::bindings::v4l2_ctrl_h264_slice_params;
 use crate::bindings::v4l2_ctrl_h264_sps;
 use crate::bindings::v4l2_ctrl_vp8_frame;
+use crate::bindings::v4l2_ctrl_vp9_frame;
 use crate::bindings::v4l2_ext_control;
 use crate::bindings::v4l2_ext_control__bindgen_ty_1;
 use crate::controls::codec::FwhtFlags;
@@ -502,6 +503,40 @@ where
     }
 }
 
+impl<T> From<v4l2_ctrl_vp9_frame> for SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_vp9_frame>,
+{
+    fn from(params: v4l2_ctrl_vp9_frame) -> Self {
+        let payload = Box::new(params);
+
+        Self(
+            v4l2_ext_control {
+                id: T::ID,
+                size: std::mem::size_of::<T::PAYLOAD>() as u32,
+                __bindgen_anon_1: v4l2_ext_control__bindgen_ty_1 {
+                    p_vp9_frame: Box::into_raw(payload),
+                },
+                ..Default::default()
+            },
+            PhantomData,
+        )
+    }
+}
+
+impl<T> SafeExtControl<T>
+where
+    T: ExtControlTrait<PAYLOAD = v4l2_ctrl_vp9_frame>,
+{
+    pub fn vp9_frame(&self) -> &v4l2_ctrl_vp9_frame {
+        unsafe { self.0.__bindgen_anon_1.p_vp9_frame.as_ref().unwrap() }
+    }
+
+    pub fn vp9_frame_mut(&mut self) -> &mut v4l2_ctrl_vp9_frame {
+        unsafe { self.0.__bindgen_anon_1.p_vp9_frame.as_mut().unwrap() }
+    }
+}
+
 // Due to a limitation of the type system we cannot conditionally implement the `Drop` trait on
 // e.g. `where T: ControlTrait<PAYLOAD = v4l2_ctrl_fwht_params>`, so we need this global implementation.
 impl<T: ExtControlTrait> Drop for SafeExtControl<T> {
@@ -516,6 +551,9 @@ impl<T: ExtControlTrait> Drop for SafeExtControl<T> {
                     }
                     bindings::V4L2_CID_STATELESS_VP8_FRAME => {
                         let _ = Box::from_raw(self.0.__bindgen_anon_1.p_vp8_frame);
+                    }
+                    bindings::V4L2_CID_STATELESS_VP9_FRAME => {
+                        let _ = Box::from_raw(self.0.__bindgen_anon_1.p_vp9_frame);
                     }
                     _ => (),
                 }
