@@ -544,6 +544,8 @@ impl<T: ExtControlTrait> Drop for SafeExtControl<T> {
         // If we have allocated some payload for this control, re-wrap it into its original
         // container that we immediately drop to free it.
         if self.0.size > 0 {
+            // SAFETY: all pointers have been obtained using `Box::into_raw` and haven't been freed
+            // since.
             unsafe {
                 match self.0.id {
                     bindings::V4L2_CID_STATELESS_FWHT_PARAMS => {
