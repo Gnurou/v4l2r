@@ -65,6 +65,10 @@ use paste::paste;
 use std::marker::PhantomData;
 
 use crate::bindings;
+use crate::bindings::v4l2_ctrl_av1_film_grain;
+use crate::bindings::v4l2_ctrl_av1_frame;
+use crate::bindings::v4l2_ctrl_av1_sequence;
+use crate::bindings::v4l2_ctrl_av1_tile_group_entry;
 use crate::bindings::v4l2_ctrl_fwht_params;
 use crate::bindings::v4l2_ctrl_h264_decode_params;
 use crate::bindings::v4l2_ctrl_h264_pps;
@@ -275,6 +279,10 @@ macro_rules! wrap_both {
 }
 
 wrap_both!(
+    av1_film_grain,
+    av1_frame,
+    av1_sequence,
+    av1_tile_group_entry,
     fwht_params,
     h264_decode_params,
     h264_pred_weights,
