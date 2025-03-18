@@ -76,6 +76,11 @@ use crate::bindings::v4l2_ctrl_h264_pred_weights;
 use crate::bindings::v4l2_ctrl_h264_scaling_matrix;
 use crate::bindings::v4l2_ctrl_h264_slice_params;
 use crate::bindings::v4l2_ctrl_h264_sps;
+use crate::bindings::v4l2_ctrl_hevc_decode_params;
+use crate::bindings::v4l2_ctrl_hevc_pps;
+use crate::bindings::v4l2_ctrl_hevc_scaling_matrix;
+use crate::bindings::v4l2_ctrl_hevc_slice_params;
+use crate::bindings::v4l2_ctrl_hevc_sps;
 use crate::bindings::v4l2_ctrl_vp8_frame;
 use crate::bindings::v4l2_ctrl_vp9_frame;
 use crate::bindings::v4l2_ext_control;
@@ -290,6 +295,11 @@ wrap_both!(
     h264_scaling_matrix,
     h264_slice_params,
     h264_sps,
+    hevc_decode_params,
+    hevc_pps,
+    hevc_scaling_matrix,
+    hevc_slice_params,
+    hevc_sps,
     vp8_frame,
     vp9_frame
 );
