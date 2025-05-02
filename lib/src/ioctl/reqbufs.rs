@@ -20,7 +20,17 @@ bitflags! {
         const SUPPORTS_DMABUF = bindings::V4L2_BUF_CAP_SUPPORTS_DMABUF;
         const SUPPORTS_REQUESTS = bindings::V4L2_BUF_CAP_SUPPORTS_REQUESTS;
         const SUPPORTS_ORPHANED_BUFS = bindings::V4L2_BUF_CAP_SUPPORTS_ORPHANED_BUFS;
-        //const SUPPORTS_M2M_HOLD_CAPTURE_BUF = bindings::V4L2_BUF_CAP_SUPPORTS_M2M_HOLD_CAPTURE_BUF;
+        const SUPPORTS_M2M_HOLD_CAPTURE_BUF = bindings::V4L2_BUF_CAP_SUPPORTS_M2M_HOLD_CAPTURE_BUF;
+        const SUPPORTS_MMAP_CACHE_HINTS = bindings::V4L2_BUF_CAP_SUPPORTS_MMAP_CACHE_HINTS;
+    }
+}
+
+bitflags! {
+    /// Memory Consistency Flags passed to the `VIDIOC_REQBUFS` ioctl in the `flags`
+    /// field of `struct v4l2_requestbuffers`.
+    #[derive(Clone, Copy, Debug)]
+    pub struct MemoryConsistency: u8 {
+        const MEMORY_FLAG_NON_COHERENT = bindings::V4L2_MEMORY_FLAG_NON_COHERENT as u8;
     }
 }
 
@@ -47,6 +57,7 @@ impl From<v4l2_requestbuffers> for BufferCapabilities {
 pub struct RequestBuffers {
     pub count: u32,
     pub capabilities: BufferCapabilities,
+    pub flags: MemoryConsistency,
 }
 
 impl From<v4l2_requestbuffers> for RequestBuffers {
@@ -54,6 +65,7 @@ impl From<v4l2_requestbuffers> for RequestBuffers {
         RequestBuffers {
             count: reqbufs.count,
             capabilities: BufferCapabilities::from_bits_truncate(reqbufs.capabilities),
+            flags: MemoryConsistency::from_bits_truncate(reqbufs.flags),
         }
     }
 }
@@ -90,11 +102,13 @@ pub fn reqbufs<O: From<v4l2_requestbuffers>>(
     queue: QueueType,
     memory: MemoryType,
     count: u32,
+    flags: MemoryConsistency,
 ) -> Result<O, ReqbufsError> {
     let mut reqbufs = v4l2_requestbuffers {
         count,
         type_: queue as u32,
         memory: memory as u32,
+        flags: flags.bits(),
         ..Default::default()
     };
 
