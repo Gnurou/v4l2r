@@ -6,7 +6,7 @@ pub mod handles_provider;
 pub mod qbuf;
 
 use super::{AllocatedQueue, Device, FreeBuffersResult, Stream, TryDequeue};
-use crate::ioctl::{DqBufResult, QueryBufError, V4l2BufferFromError};
+use crate::ioctl::{DqBufResult, MemoryConsistency, QueryBufError, V4l2BufferFromError};
 use crate::{bindings, memory::*};
 use crate::{
     ioctl::{
@@ -222,15 +222,24 @@ impl<D: Direction> Queue<D, QueueInit> {
 
         // Check that the queue is valid for this device by doing a dummy REQBUFS.
         // Obtain its capacities while we are at it.
-        let capabilities: ioctl::BufferCapabilities =
-            ioctl::reqbufs(&*device, queue_type, MemoryType::Mmap, 0)
-                // In the unlikely case that MMAP buffers are not supported, try DMABUF.
-                .or_else(|e| match e {
-                    ReqbufsError::InvalidBufferType(_, _) => {
-                        ioctl::reqbufs(&*device, queue_type, MemoryType::DmaBuf, 0)
-                    }
-                    _ => Err(e),
-                })?;
+        let capabilities: ioctl::BufferCapabilities = ioctl::reqbufs(
+            &*device,
+            queue_type,
+            MemoryType::Mmap,
+            0,
+            MemoryConsistency::empty(),
+        )
+        // In the unlikely case that MMAP buffers are not supported, try DMABUF.
+        .or_else(|e| match e {
+            ReqbufsError::InvalidBufferType(_, _) => ioctl::reqbufs(
+                &*device,
+                queue_type,
+                MemoryType::DmaBuf,
+                0,
+                MemoryConsistency::empty(),
+            ),
+            _ => Err(e),
+        })?;
 
         used_queues.insert(queue_type);
 
@@ -247,13 +256,16 @@ impl<D: Direction> Queue<D, QueueInit> {
         })
     }
 
-    pub fn request_buffers_generic<P: BufferHandles>(
+    pub fn request_buffers_generic_with_flags<P: BufferHandles>(
         self,
         memory_type: P::SupportedMemoryType,
         count: u32,
+        flags: MemoryConsistency,
     ) -> Result<Queue<D, BuffersAllocated<P>>, RequestBuffersError> {
         let type_ = self.inner.type_;
-        let num_buffers: usize = ioctl::reqbufs(&self.inner, type_, memory_type.into(), count)?;
+
+        let num_buffers: usize =
+            ioctl::reqbufs(&self.inner, type_, memory_type.into(), count, flags)?;
 
         debug!(
             "Requested {} buffers on {} queue, obtained {}",
@@ -288,13 +300,21 @@ impl<D: Direction> Queue<D, QueueInit> {
         })
     }
 
+    pub fn request_buffers_generic<P: BufferHandles>(
+        self,
+        memory_type: P::SupportedMemoryType,
+        count: u32,
+    ) -> Result<Queue<D, BuffersAllocated<P>>, RequestBuffersError> {
+        self.request_buffers_generic_with_flags(memory_type, count, MemoryConsistency::empty())
+    }
+
     /// Allocate `count` buffers for this queue and make it transition to the
     /// `BuffersAllocated` state.
     pub fn request_buffers<P: PrimitiveBufferHandles>(
         self,
         count: u32,
     ) -> Result<Queue<D, BuffersAllocated<P>>, RequestBuffersError> {
-        self.request_buffers_generic(P::MEMORY_TYPE, count)
+        self.request_buffers_generic_with_flags(P::MEMORY_TYPE, count, MemoryConsistency::empty())
     }
 }
 
@@ -429,7 +449,13 @@ impl<'a, D: Direction, P: BufferHandles + 'a> AllocatedQueue<'a, D>
 
     fn free_buffers(self) -> Result<FreeBuffersResult<D, Self>, ioctl::ReqbufsError> {
         let type_ = self.inner.type_;
-        ioctl::reqbufs::<()>(&self.inner, type_, self.state.memory_type.into(), 0)?;
+        ioctl::reqbufs::<()>(
+            &self.inner,
+            type_,
+            self.state.memory_type.into(),
+            0,
+            MemoryConsistency::empty(),
+        )?;
 
         debug!("Freed all buffers on {} queue", type_);
 

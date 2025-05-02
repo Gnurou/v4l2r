@@ -48,14 +48,29 @@ pub fn run<F: FnMut(&[u8])>(
     // Check whether the driver uses the single or multi-planar API by
     // requesting 0 MMAP buffers on the OUTPUT queue. The working queue will
     // return a success.
-    let (output_queue_type, _capture_queue_type, use_multi_planar) =
-        if reqbufs::<()>(&fd, VideoOutput, MemoryType::Mmap, 0).is_ok() {
-            (VideoOutput, VideoCapture, false)
-        } else if reqbufs::<()>(&fd, VideoOutputMplane, MemoryType::Mmap, 0).is_ok() {
-            (VideoOutputMplane, VideoCaptureMplane, true)
-        } else {
-            panic!("Both single-planar and multi-planar queues are unusable.");
-        };
+    let (output_queue_type, _capture_queue_type, use_multi_planar) = if reqbufs::<()>(
+        &fd,
+        VideoOutput,
+        MemoryType::Mmap,
+        0,
+        MemoryConsistency::empty(),
+    )
+    .is_ok()
+    {
+        (VideoOutput, VideoCapture, false)
+    } else if reqbufs::<()>(
+        &fd,
+        VideoOutputMplane,
+        MemoryType::Mmap,
+        0,
+        MemoryConsistency::empty(),
+    )
+    .is_ok()
+    {
+        (VideoOutputMplane, VideoCaptureMplane, true)
+    } else {
+        panic!("Both single-planar and multi-planar queues are unusable.");
+    };
     println!(
         "Multi-planar: {}",
         if use_multi_planar { "yes" } else { "no" }
@@ -132,9 +147,16 @@ pub fn run<F: FnMut(&[u8])>(
     // two for the sake of it.
     // For simplicity the OUTPUT buffers will use user memory.
     let num_output_buffers: usize =
-        reqbufs(&fd, output_queue, output_mem, 2).expect("Failed to allocate output buffers");
-    let num_capture_buffers: usize =
-        reqbufs(&fd, capture_queue, capture_mem, 2).expect("Failed to allocate capture buffers");
+        reqbufs(&fd, output_queue, output_mem, 2, MemoryConsistency::empty())
+            .expect("Failed to allocate output buffers");
+    let num_capture_buffers: usize = reqbufs(
+        &fd,
+        capture_queue,
+        capture_mem,
+        2,
+        MemoryConsistency::empty(),
+    )
+    .expect("Failed to allocate capture buffers");
     println!(
         "Using {} output and {} capture buffers.",
         num_output_buffers, num_capture_buffers
@@ -273,10 +295,22 @@ pub fn run<F: FnMut(&[u8])>(
     drop(capture_mappings);
 
     // Free the buffers.
-    reqbufs::<()>(&fd, capture_queue, MemoryType::Mmap, 0)
-        .expect("Failed to release capture buffers");
-    reqbufs::<()>(&fd, output_queue, MemoryType::UserPtr, 0)
-        .expect("Failed to release output buffers");
+    reqbufs::<()>(
+        &fd,
+        capture_queue,
+        MemoryType::Mmap,
+        0,
+        MemoryConsistency::empty(),
+    )
+    .expect("Failed to release capture buffers");
+    reqbufs::<()>(
+        &fd,
+        output_queue,
+        MemoryType::UserPtr,
+        0,
+        MemoryConsistency::empty(),
+    )
+    .expect("Failed to release output buffers");
 
     // The fd will be closed as the File instance gets out of scope.
 }
