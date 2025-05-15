@@ -7,7 +7,6 @@ description = "FFI bindings for the v4l2r crate"
 repository = "https://github.com/Gnurou/v4l2r"
 categories = ["os"]
 keywords = ["v4l2", "video", "linux", "ffi"]
-license = "MIT"
 
 license-file.workspace = true
 readme.workspace = true
