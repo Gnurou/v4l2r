@@ -3,7 +3,8 @@
   "package": {
     "v4l2r": {
       "dep_blocklist": ["libctrlc", "libclap"],
-      "add_module_block": "android/srcs.bp"
+      "add_toplevel_block": "android/v4l2r_sources_filegroup.bp.fragment",
+      "extra_srcs": [":libv4l2r_bindgen"]
     }
   },
   "run_cargo": false,
