@@ -1,0 +1,4 @@
+filegroup {
+    name: "libv4l2r_sources",
+    srcs: ["*.rs"],
+}
