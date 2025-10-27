@@ -2,13 +2,15 @@
 // bindings.
 //
 // It is meant to be included from `lib/build.rs` and `android/build.rs`.
+use bindgen::callbacks::ItemInfo;
 
 #[derive(Debug)]
 /// Workaround for https://github.com/rust-lang/rust-bindgen/issues/753.
 pub struct Fix753;
 
 impl bindgen::callbacks::ParseCallbacks for Fix753 {
-    fn item_name(&self, original_item_name: &str) -> Option<String> {
+    fn item_name(&self, item_info: ItemInfo<'_>) -> Option<String> {
+        let original_item_name = item_info.name;
         Some(original_item_name.trim_start_matches("Fix753_").to_owned())
     }
 }

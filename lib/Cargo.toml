@@ -27,7 +27,7 @@ enumn = "0.1.6"
 paste = "1.0"
 
 [build-dependencies]
-bindgen = "0.70.1"
+bindgen = "0.72.1"
 
 # For example programs
 [dev-dependencies]
