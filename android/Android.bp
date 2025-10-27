@@ -13,6 +13,8 @@ rust_binary_host {
     clippy_lints: "android",
     product_available: true,
     vendor_available: true,
+    host_cross_supported: false,
+    compile_multilib: "first",
 }
 
 rust_bindgen {
@@ -22,7 +24,18 @@ rust_bindgen {
     wrapper_src: "android_wrapper.h",
     source_stem: "bindings",
     cflags: ["-I external/rust/crates/v4l2r/lib"],
+    host_supported: true,
+    apex_available: [
+        "//apex_available:anyapex",
+        "//apex_available:platform",
+    ],
     product_available: true,
     vendor_available: true,
+    min_sdk_version: "apex_inherit",
     visibility: ["//external/rust/crates/v4l2r/lib"],
+    target: {
+        linux_glibc: {
+            header_libs: ["libc_uapi_headers"],
+        },
+    },
 }

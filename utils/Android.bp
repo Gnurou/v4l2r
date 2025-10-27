@@ -3,10 +3,12 @@
 
 package {
     default_applicable_licenses: ["external_rust_crates_v4l2r_license"],
+    default_team: "trendy_team_android_rust",
 }
 
 rust_library {
     name: "libv4l2r_utils",
+    host_supported: true,
     crate_name: "v4l2r_utils",
     cargo_env_compat: true,
     cargo_pkg_version: "0.0.1",
@@ -25,16 +27,21 @@ rust_library {
     ],
     product_available: true,
     vendor_available: true,
+    min_sdk_version: "apex_inherit",
 }
 
 rust_test {
     name: "v4l2r-utils_test_src_lib",
+    host_supported: true,
     crate_name: "v4l2r_utils",
     cargo_env_compat: true,
     cargo_pkg_version: "0.0.1",
     crate_root: "src/lib.rs",
     test_suites: ["general-tests"],
     auto_gen_config: true,
+    test_options: {
+        unit_test: true,
+    },
     edition: "2021",
     rustlibs: [
         "libanyhow",
