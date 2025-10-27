@@ -3,16 +3,10 @@
   "package": {
     "v4l2r": {
       "dep_blocklist": ["libctrlc", "libclap"],
-      "host_supported": false,
       "add_module_block": "android/srcs.bp"
-    },
-    "v4l2r-ffi": {
-      "host_supported": false
-    },
-    "v4l2r-utils": {
-      "host_supported": false
     }
   },
   "run_cargo": false,
-  "tests": true
+  "tests": true,
+  "min_sdk_version": "apex_inherit"
 }
