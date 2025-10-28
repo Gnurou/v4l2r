@@ -16,7 +16,7 @@ pub enum FrmSizeTypes<'a> {
 impl v4l2_frmsizeenum {
     /// Safely access the size member of the struct based on the
     /// returned type.
-    pub fn size(&self) -> Option<FrmSizeTypes> {
+    pub fn size(&self) -> Option<FrmSizeTypes<'_>> {
         match self.type_ {
             // SAFETY: the member of the union that gets used by the driver
             // is determined by the type

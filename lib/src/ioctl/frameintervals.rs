@@ -16,7 +16,7 @@ pub enum FrmIvalTypes<'a> {
 impl v4l2_frmivalenum {
     /// Safely access the intervals member of the struct based on the
     /// returned type.
-    pub fn intervals(&self) -> Option<FrmIvalTypes> {
+    pub fn intervals(&self) -> Option<FrmIvalTypes<'_>> {
         match self.type_ {
             // SAFETY: the member of the union that gets used by the driver
             // is determined by the type
