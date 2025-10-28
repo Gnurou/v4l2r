@@ -99,7 +99,7 @@ impl Device {
 }
 
 impl AsFd for Device {
-    fn as_fd(&self) -> BorrowedFd {
+    fn as_fd(&self) -> BorrowedFd<'_> {
         self.fd.as_fd()
     }
 }

@@ -492,13 +492,13 @@ impl V4l2Buffer {
 
     /// Returns the first plane of the buffer. This method is guaranteed to
     /// succeed because every buffer has at least one plane.
-    pub fn get_first_plane(&self) -> V4l2PlaneAccessor {
+    pub fn get_first_plane(&self) -> V4l2PlaneAccessor<'_> {
         self.planes_iter().next().unwrap()
     }
 
     /// Returns the first plane of the buffer. This method is guaranteed to
     /// succeed because every buffer has at least one plane.
-    pub fn get_first_plane_mut(&mut self) -> V4l2PlaneMutAccessor {
+    pub fn get_first_plane_mut(&mut self) -> V4l2PlaneMutAccessor<'_> {
         self.planes_iter_mut().next().unwrap()
     }
 
@@ -557,7 +557,7 @@ impl V4l2Buffer {
 
     /// Returns planar information in a way that is consistent between single-planar and
     /// multi-planar buffers.
-    pub fn planes_iter(&self) -> impl Iterator<Item = V4l2PlaneAccessor> {
+    pub fn planes_iter(&self) -> impl Iterator<Item = V4l2PlaneAccessor<'_>> {
         let multiplanar = self.queue().is_multiplanar();
         let planes_iter = self.as_v4l2_planes().iter();
 
@@ -572,7 +572,7 @@ impl V4l2Buffer {
 
     /// Returns planar information in a way that is consistent between single-planar and
     /// multi-planar buffers.
-    pub fn planes_iter_mut(&mut self) -> impl Iterator<Item = V4l2PlaneMutAccessor> {
+    pub fn planes_iter_mut(&mut self) -> impl Iterator<Item = V4l2PlaneMutAccessor<'_>> {
         let multiplanar = self.queue().is_multiplanar();
         let planes_upper = if multiplanar {
             self.buffer.length as usize
@@ -597,7 +597,7 @@ impl V4l2Buffer {
     /// The caller must be sure that the buffer's memory type is indeed `M`.
     unsafe fn planes_iter_with_backing<M: Memory>(
         &self,
-    ) -> impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<M>> {
+    ) -> impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<'_, M>> {
         let is_multiplanar = self.queue().is_multiplanar();
         let planes_length = if is_multiplanar {
             self.buffer.length as usize
@@ -623,9 +623,10 @@ impl V4l2Buffer {
     pub fn planes_with_backing_iter(
         &self,
     ) -> V4l2PlanesWithBacking<
-        impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<Mmap>>,
-        impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<UserPtr>>,
-        impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<DmaBuf>>,
+        '_,
+        impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<'_, Mmap>>,
+        impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<'_, UserPtr>>,
+        impl Iterator<Item = V4l2PlaneAccessorWithRawBacking<'_, DmaBuf>>,
     > {
         match self.memory() {
             MemoryType::Mmap => {
@@ -648,7 +649,7 @@ impl V4l2Buffer {
     /// The caller must be sure that the buffer's memory type is indeed `M`.
     unsafe fn planes_iter_with_backing_mut<M: Memory>(
         &mut self,
-    ) -> impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<M>> {
+    ) -> impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<'_, M>> {
         let is_multiplanar = self.queue().is_multiplanar();
         let planes_length = if is_multiplanar {
             self.buffer.length as usize
@@ -675,9 +676,10 @@ impl V4l2Buffer {
     pub fn planes_with_backing_iter_mut(
         &mut self,
     ) -> V4l2PlanesWithBackingMut<
-        impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<Mmap>>,
-        impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<UserPtr>>,
-        impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<DmaBuf>>,
+        '_,
+        impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<'_, Mmap>>,
+        impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<'_, UserPtr>>,
+        impl Iterator<Item = V4l2PlaneMutAccessorWithRawBacking<'_, DmaBuf>>,
     > {
         match self.memory() {
             MemoryType::Mmap => {

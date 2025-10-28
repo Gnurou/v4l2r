@@ -104,12 +104,12 @@ where
     /// Returns a `FormatBuilder` which is set to the currently active format
     /// and can be modified and eventually applied. The `FormatBuilder` holds
     /// a mutable reference to this `Queue`.
-    pub fn change_format(&mut self) -> Result<FormatBuilder, GFmtError> {
+    pub fn change_format(&mut self) -> Result<FormatBuilder<'_>, GFmtError> {
         FormatBuilder::new(&mut self.inner)
     }
 
     /// Returns an iterator over all the formats currently supported by this queue.
-    pub fn format_iter(&self) -> ioctl::FormatIterator<Device> {
+    pub fn format_iter(&self) -> ioctl::FormatIterator<'_, Device> {
         ioctl::FormatIterator::new(self.inner.device.as_ref(), self.inner.type_)
     }
 

@@ -47,7 +47,7 @@ impl DmaBufFd {
 }
 
 impl AsFd for DmaBufFd {
-    fn as_fd(&self) -> BorrowedFd {
+    fn as_fd(&self) -> BorrowedFd<'_> {
         unsafe { BorrowedFd::borrow_raw(self.fd) }
     }
 }

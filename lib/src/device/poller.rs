@@ -351,7 +351,7 @@ impl Poller {
 }
 
 impl AsFd for Poller {
-    fn as_fd(&self) -> BorrowedFd {
+    fn as_fd(&self) -> BorrowedFd<'_> {
         self.epoll.0.as_fd()
     }
 }
