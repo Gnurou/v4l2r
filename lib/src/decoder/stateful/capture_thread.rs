@@ -117,16 +117,6 @@ enum UpdateCaptureError {
 const CAPTURE_READY: u32 = 1;
 const COMMAND_WAITING: u32 = 2;
 
-#[derive(Debug, Error)]
-enum ProcessEventsError {
-    #[error("error while dequeueing event")]
-    DqEvent(#[from] ioctl::DqEventError),
-    #[error("error while requesting buffers")]
-    RequestBuffers(#[from] queue::RequestBuffersError),
-    #[error("error while updating CAPTURE format")]
-    UpdateCapture(#[from] UpdateCaptureError),
-}
-
 impl<P, DecoderEventCb, FormatChangedCb> CaptureThread<P, DecoderEventCb, FormatChangedCb>
 where
     P: HandlesProvider,
