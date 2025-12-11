@@ -135,6 +135,7 @@ impl<H: PlaneHandle> From<QBuffer<H>> for UncheckedV4l2Buffer {
             v4l2_buf.0.__bindgen_anon_1.request_fd = *request;
         }
         if let Some(planes) = &mut v4l2_buf.1 {
+            v4l2_buf.0.length = qbuf.planes.len() as u32;
             for (dst_plane, src_plane) in planes.iter_mut().zip(qbuf.planes.into_iter()) {
                 *dst_plane = src_plane.0;
             }
