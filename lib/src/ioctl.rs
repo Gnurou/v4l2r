@@ -293,8 +293,8 @@ bitflags! {
         const BFRAME = bindings::V4L2_BUF_FLAG_BFRAME;
         const TIMECODE = bindings::V4L2_BUF_FLAG_TIMECODE;
         const PREPARED = bindings::V4L2_BUF_FLAG_PREPARED;
-        const NO_CACHE_INVALIDATE = bindings::V4L2_BUF_FLAG_NO_CACHE_CLEAN;
-        const NO_CACHE_CLEAN = bindings::V4L2_BUF_FLAG_NO_CACHE_INVALIDATE;
+        const NO_CACHE_INVALIDATE = bindings::V4L2_BUF_FLAG_NO_CACHE_INVALIDATE;
+        const NO_CACHE_CLEAN = bindings::V4L2_BUF_FLAG_NO_CACHE_CLEAN;
         const LAST = bindings::V4L2_BUF_FLAG_LAST;
         const TIMESTAMP_MONOTONIC = bindings::V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
         const TIMESTAMP_COPY = bindings::V4L2_BUF_FLAG_TIMESTAMP_COPY;
