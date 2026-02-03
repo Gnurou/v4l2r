@@ -297,6 +297,28 @@ bitflags! {
         const TSTAMP_SRC_SOE = bindings::V4L2_BUF_FLAG_TSTAMP_SRC_SOE;
         const REQUEST_FD = bindings::V4L2_BUF_FLAG_REQUEST_FD;
     }
+
+    /// Subset of [`BufferFlags`] that can be set by the user when queueing a buffer.
+    #[derive(Clone, Copy, Debug, Default)]
+    pub struct QBufferFlags: u32 {
+        const KEYFRAME = bindings::V4L2_BUF_FLAG_KEYFRAME;
+        const PFRAME = bindings::V4L2_BUF_FLAG_PFRAME;
+        const BFRAME = bindings::V4L2_BUF_FLAG_BFRAME;
+        const TIMECODE = bindings::V4L2_BUF_FLAG_TIMECODE;
+        const NO_CACHE_INVALIDATE = bindings::V4L2_BUF_FLAG_NO_CACHE_INVALIDATE;
+        const NO_CACHE_CLEAN = bindings::V4L2_BUF_FLAG_NO_CACHE_CLEAN;
+        const TIMESTAMP_MONOTONIC = bindings::V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+        const TIMESTAMP_COPY = bindings::V4L2_BUF_FLAG_TIMESTAMP_COPY;
+        const TSTAMP_SRC_EOF = bindings::V4L2_BUF_FLAG_TSTAMP_SRC_EOF;
+        const TSTAMP_SRC_SOE = bindings::V4L2_BUF_FLAG_TSTAMP_SRC_SOE;
+    }
+
+}
+
+impl From<QBufferFlags> for BufferFlags {
+    fn from(value: QBufferFlags) -> Self {
+        Self::from_bits_retain(value.bits())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, N)]

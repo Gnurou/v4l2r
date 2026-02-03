@@ -3,7 +3,7 @@ use crate::device::queue::{
     buffer::BufferInfo, BufferState, BufferStateFuse, BuffersAllocated, Capture, CaptureQueueable,
     Direction, Output, OutputQueueable, Queue,
 };
-use crate::ioctl::{self, QBufIoctlError, QBufResult};
+use crate::ioctl::{self, BufferFlags, QBufIoctlError, QBufResult, QBufferFlags};
 use crate::memory::*;
 use std::convert::Infallible;
 use std::ops::Deref;
@@ -74,6 +74,7 @@ pub struct QBuffer<
     timestamp: TimeVal,
     request: Option<RawFd>,
     fuse: BufferStateFuse<B>,
+    flags: BufferFlags,
     _p: std::marker::PhantomData<P>,
 }
 
@@ -95,6 +96,7 @@ where
             timestamp: TimeVal::zero(),
             request: None,
             fuse,
+            flags: Default::default(),
             _p: std::marker::PhantomData,
         }
     }
@@ -112,6 +114,12 @@ where
 
     pub fn set_timestamp(mut self, timestamp: TimeVal) -> Self {
         self.timestamp = timestamp;
+        self
+    }
+
+    /// Add additional BufferFlags to this QBuffer.
+    pub fn with_flags(mut self, flags: QBufferFlags) -> Self {
+        self.flags = flags.into();
         self
     }
 
@@ -136,6 +144,7 @@ where
         }
         qbuffer.planes = planes;
         qbuffer.timestamp = self.timestamp;
+        qbuffer.flags |= self.flags;
 
         match ioctl::qbuf(&self.queue.inner, qbuffer) {
             Ok(()) => (),
