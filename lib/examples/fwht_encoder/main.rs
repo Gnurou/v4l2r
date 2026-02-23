@@ -168,9 +168,11 @@ fn main() {
     let free_buffers: Option<VecDeque<_>> = match output_mem {
         GenericSupportedMemoryType::Mmap | GenericSupportedMemoryType::DmaBuf => None,
         GenericSupportedMemoryType::UserPtr => Some(
-            std::iter::repeat(vec![0u8; output_format.plane_fmt[0].sizeimage as usize])
-                .take(NUM_BUFFERS)
-                .collect(),
+            std::iter::repeat_n(
+                vec![0u8; output_format.plane_fmt[0].sizeimage as usize],
+                NUM_BUFFERS,
+            )
+            .collect(),
         ),
     };
     let free_buffers = RefCell::new(free_buffers);

@@ -183,10 +183,11 @@ pub fn run<F: FnMut(&[u8])>(
     let output_image_size = output_format.plane_fmt[0].sizeimage as usize;
     let mut output_buffers: Vec<UserPtrHandle<Vec<u8>>> = match output_mem {
         MemoryType::Mmap => Default::default(),
-        MemoryType::UserPtr => std::iter::repeat(vec![0u8; output_image_size])
-            .take(num_output_buffers)
-            .map(UserPtrHandle::from)
-            .collect(),
+        MemoryType::UserPtr => {
+            std::iter::repeat_n(vec![0u8; output_image_size], num_output_buffers)
+                .map(UserPtrHandle::from)
+                .collect()
+        }
         _ => unreachable!(),
     };
 
