@@ -2,7 +2,6 @@
 
 use bitflags::bitflags;
 use nix::errno::Errno;
-use std::convert::Infallible;
 use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
@@ -170,12 +169,8 @@ impl TryFrom<v4l2_decoder_cmd> for DecoderCmd {
     }
 }
 
-impl TryFrom<v4l2_decoder_cmd> for () {
-    type Error = Infallible;
-
-    fn try_from(_: v4l2_decoder_cmd) -> Result<Self, Self::Error> {
-        Ok(())
-    }
+impl From<v4l2_decoder_cmd> for () {
+    fn from(_: v4l2_decoder_cmd) -> Self {}
 }
 
 #[derive(Debug, Error)]

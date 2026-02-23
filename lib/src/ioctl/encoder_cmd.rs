@@ -1,4 +1,4 @@
-use std::convert::{Infallible, TryFrom};
+use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;
@@ -101,12 +101,8 @@ impl From<&EncoderCommand> for v4l2_encoder_cmd {
     }
 }
 
-impl TryFrom<v4l2_encoder_cmd> for () {
-    type Error = Infallible;
-
-    fn try_from(_: v4l2_encoder_cmd) -> Result<Self, Self::Error> {
-        Ok(())
-    }
+impl From<v4l2_encoder_cmd> for () {
+    fn from(_: v4l2_encoder_cmd) -> Self {}
 }
 
 /// Safe wrapper around the `VIDIOC_ENCODER_CMD` ioctl.

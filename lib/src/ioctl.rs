@@ -93,7 +93,6 @@ pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
 
-use std::convert::Infallible;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::FromBytesWithNulError;
@@ -235,12 +234,8 @@ impl UncheckedV4l2Buffer {
 }
 
 /// For cases where we are not interested in the result of `qbuf`
-impl TryFrom<UncheckedV4l2Buffer> for () {
-    type Error = Infallible;
-
-    fn try_from(_: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
-        Ok(())
-    }
+impl From<UncheckedV4l2Buffer> for () {
+    fn from(_: UncheckedV4l2Buffer) -> Self {}
 }
 
 impl From<V4l2Buffer> for UncheckedV4l2Buffer {

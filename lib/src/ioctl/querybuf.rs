@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 
@@ -34,10 +33,8 @@ pub struct QueryBuffer {
     pub planes: Vec<QueryBufPlane>,
 }
 
-impl TryFrom<UncheckedV4l2Buffer> for QueryBuffer {
-    type Error = Infallible;
-
-    fn try_from(buffer: UncheckedV4l2Buffer) -> Result<Self, Self::Error> {
+impl From<UncheckedV4l2Buffer> for QueryBuffer {
+    fn from(buffer: UncheckedV4l2Buffer) -> Self {
         let v4l2_buf = buffer.0;
         let planes = match buffer.1 {
             None => vec![QueryBufPlane {
@@ -54,11 +51,11 @@ impl TryFrom<UncheckedV4l2Buffer> for QueryBuffer {
                 .collect(),
         };
 
-        Ok(QueryBuffer {
+        QueryBuffer {
             index: v4l2_buf.index as usize,
             flags: BufferFlags::from_bits_truncate(v4l2_buf.flags),
             planes,
-        })
+        }
     }
 }
 
