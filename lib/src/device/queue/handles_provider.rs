@@ -5,8 +5,6 @@ use std::{
     task::Wake,
 };
 
-use log::error;
-
 use crate::device::queue::{
     GetCaptureBufferByIndex, GetFreeBufferError, GetFreeCaptureBuffer, TryGetBufferError,
 };
