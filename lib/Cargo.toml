@@ -16,6 +16,11 @@ readme.workspace = true
 arch64 = []
 # Generate the bindings for 32-bit even if the host is 64-bit.
 arch32 = []
+# Always use the built-in UAPI headers shipped in lib/uapi/ instead of the
+# toolchain's kernel headers.  Without this feature the build script
+# auto-detects whether the target headers are too old and falls back to the
+# built-in copy when necessary.
+builtin-uapi-header = []
 
 [dependencies]
 nix = { version = "0.28", features = ["ioctl", "mman", "poll", "fs", "event"] }
