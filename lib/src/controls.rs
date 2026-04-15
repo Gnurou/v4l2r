@@ -61,7 +61,7 @@
 pub mod codec;
 pub mod user;
 
-use paste::paste;
+use pastey::paste;
 use std::marker::PhantomData;
 
 use crate::bindings;
