@@ -25,7 +25,7 @@ rust_library {
     ],
     proc_macros: [
         "libenumn",
-        "libpaste",
+        "libpastey",
     ],
     apex_available: [
         "//apex_available:platform",
@@ -61,7 +61,7 @@ rust_test {
     ],
     proc_macros: [
         "libenumn",
-        "libpaste",
+        "libpastey",
     ],
 }
 
