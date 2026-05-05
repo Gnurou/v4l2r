@@ -11,72 +11,68 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{fs::File, io::Write, sync::Arc};
 
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use v4l2r::memory::MemoryType;
 
 fn main() {
     env_logger::init();
 
-    let matches = App::new("vicodec example")
+    let matches = Command::new("vicodec example")
         .arg(
-            Arg::with_name("use_ioctl")
+            Arg::new("use_ioctl")
                 .long("use_ioctl")
+                .action(clap::ArgAction::SetTrue)
                 .help("Use the lower-level ioctl interface"),
         )
         .arg(
-            Arg::with_name("num_frames")
+            Arg::new("num_frames")
                 .long("stop_after")
-                .takes_value(true)
+                .value_parser(clap::value_parser!(usize))
                 .help("Stop after encoding this number of buffers"),
         )
         .arg(
-            Arg::with_name("device")
-                .required(true)
+            Arg::new("device")
+                .default_value("/dev/video0")
                 .help("Path to the vicodec device file"),
         )
         .arg(
-            Arg::with_name("output_file")
+            Arg::new("output_file")
                 .long("save")
                 .required(false)
-                .takes_value(true)
                 .help("Save the encoded stream to a file"),
         )
         .arg(
-            Arg::with_name("output_mem")
+            Arg::new("output_mem")
                 .long("output_mem")
                 .required(false)
-                .takes_value(true)
+                .value_parser(["mmap", "user"])
                 .default_value("user")
-                .help("Type of memory to use for the OUTPUT queue (mmap or user)"),
+                .help("Type of memory to use for the OUTPUT queue"),
         )
         .arg(
-            Arg::with_name("capture_mem")
+            Arg::new("capture_mem")
                 .long("capture_mem")
                 .required(false)
-                .takes_value(true)
+                .value_parser(["mmap"])
                 .default_value("mmap")
-                .help("Type of memory to use for the CAPTURE queue (mmap)"),
+                .help("Type of memory to use for the CAPTURE queue"),
         )
         .get_matches();
 
-    let device_path = matches.value_of("device").unwrap_or("/dev/video0");
-    let use_ioctl = matches.is_present("use_ioctl");
-    let stop_after = match clap::value_t!(matches.value_of("num_frames"), usize) {
-        Ok(v) => Some(v),
-        Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
-        Err(e) => panic!("Invalid value for stop_after: {}", e),
-    };
+    let device_path = matches.get_one::<String>("device").unwrap();
+    let use_ioctl = matches.get_flag("use_ioctl");
+    let stop_after: Option<usize> = matches.get_one("num_frames").map(|n| *n);
 
     let mut output_file = matches
-        .value_of("output_file")
+        .get_one::<String>("output_file")
         .map(|s| File::create(s).expect("Invalid output file specified."));
 
-    let output_mem = match matches.value_of("output_mem") {
+    let output_mem = match matches.get_one::<String>("output_mem").map(String::as_str) {
         Some("mmap") => MemoryType::Mmap,
         Some("user") => MemoryType::UserPtr,
         _ => panic!("Invalid value for output_mem"),
     };
-    let capture_mem = match matches.value_of("capture_mem") {
+    let capture_mem = match matches.get_one::<String>("capture_mem").map(String::as_str) {
         Some("mmap") => MemoryType::Mmap,
         _ => panic!("Invalid value for capture_mem"),
     };
