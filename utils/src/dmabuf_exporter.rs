@@ -3,7 +3,7 @@ use std::fs::File;
 use nix::libc::off_t;
 
 use nix::{
-    sys::memfd::{memfd_create, MemFdCreateFlag},
+    sys::memfd::{memfd_create, MFdFlags},
     unistd::ftruncate,
 };
 use v4l2r::{memory::DmaBufHandle, Format};
@@ -18,7 +18,7 @@ pub fn export_dmabufs(
                 .plane_fmt
                 .iter()
                 .map(|plane| {
-                    memfd_create(c"memfd buffer", MemFdCreateFlag::MFD_ALLOW_SEALING)
+                    memfd_create(c"memfd buffer", MFdFlags::MFD_ALLOW_SEALING)
                         .and_then(|fd| ftruncate(&fd, plane.sizeimage as off_t).map(|_| fd))
                         .map(|fd| DmaBufHandle::from(File::from(fd)))
                 })

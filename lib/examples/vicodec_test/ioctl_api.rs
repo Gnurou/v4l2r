@@ -3,7 +3,6 @@ use nix::sys::stat::Mode;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{self, Write};
-use std::os::unix::io::FromRawFd;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -24,12 +23,10 @@ pub fn run<F: FnMut(&[u8])>(
     stop_after: Option<usize>,
     mut save_output: F,
 ) {
-    let mut fd = unsafe {
-        File::from_raw_fd(
-            open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
-                .unwrap_or_else(|_| panic!("Cannot open {}", device_path.display())),
-        )
-    };
+    let mut fd = File::from(
+        open(device_path, OFlag::O_RDWR | OFlag::O_CLOEXEC, Mode::empty())
+            .unwrap_or_else(|_| panic!("Cannot open {}", device_path.display())),
+    );
 
     // Check that we are dealing with vicodec.
     let caps: Capability = querycap(&fd).expect("Failed to get device capacities");
