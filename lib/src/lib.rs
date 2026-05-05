@@ -29,7 +29,6 @@ pub mod memory;
 // This can be needed to match nix errors that we expose.
 pub use nix;
 
-use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display};
 
