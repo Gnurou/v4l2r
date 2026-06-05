@@ -497,9 +497,11 @@ impl V4l2Buffer {
             (1, false) => Ok(()),
             (_, false) => Err(V4l2BufferResizePlanesError::SinglePlanar),
             (num_planes, true) => {
-                // If we are sizing down, clear the planes we are removing.
-                for plane in &mut self.planes[num_planes..self.buffer.length as usize] {
-                    *plane = Default::default();
+                if num_planes < self.buffer.length as usize {
+                    // If we are sizing down, clear the planes we are removing.
+                    for plane in &mut self.planes[num_planes..self.buffer.length as usize] {
+                        *plane = Default::default();
+                    }
                 }
                 self.buffer.length = num_planes as u32;
                 Ok(())
