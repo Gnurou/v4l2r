@@ -671,7 +671,7 @@ checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
 name = "v4l2r"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
  "bindgen",
