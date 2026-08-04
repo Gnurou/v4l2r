@@ -93,7 +93,6 @@ pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
 
-use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::FromBytesWithNulError;
 use std::fmt::Debug;
