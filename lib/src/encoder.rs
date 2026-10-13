@@ -41,6 +41,12 @@ pub struct Encoder<S: EncoderState> {
     state: S,
 }
 
+impl<S: EncoderState> Encoder<S> {
+    pub fn as_device(&self) -> &Device {
+        &self.device
+    }
+}
+
 pub struct AwaitingCaptureFormat {
     output_queue: Queue<Output, QueueInit>,
     capture_queue: Queue<Capture, QueueInit>,
