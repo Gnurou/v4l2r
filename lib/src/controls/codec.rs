@@ -424,6 +424,22 @@ impl From<VideoPrependSpsPpsToIdr> for i32 {
     }
 }
 
+/// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER`]
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VideoRepeatSequenceHeader(pub bool);
+
+impl ExtControlTrait for VideoRepeatSequenceHeader {
+    const ID: u32 = bindings::V4L2_CID_MPEG_VIDEO_REPEAT_SEQ_HEADER;
+    type PAYLOAD = i32;
+}
+
+impl From<VideoRepeatSequenceHeader> for i32 {
+    fn from(value: VideoRepeatSequenceHeader) -> Self {
+        value.0 as i32
+    }
+}
+
 /// Safe wrapper over [`bindings::V4L2_CID_MPEG_VIDEO_HEVC_MIN_QP`]
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
