@@ -25,6 +25,7 @@ use log::warn;
 use std::{
     any::Any,
     io,
+    os::{fd::AsRawFd, unix::prelude::RawFd},
     path::Path,
     sync::{atomic::AtomicUsize, Arc},
     task::Wake,
@@ -462,6 +463,15 @@ where
         }
 
         self.try_get_free_buffer()
+    }
+}
+
+impl<S> AsRawFd for Encoder<S>
+where
+    S: EncoderState,
+{
+    fn as_raw_fd(&self) -> RawFd {
+        self.device.as_raw_fd()
     }
 }
 
