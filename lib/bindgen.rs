@@ -21,4 +21,5 @@ fn v4l2r_bindgen_builder(builder: bindgen::Builder) -> bindgen::Builder {
         .derive_partialeq(true)
         .derive_eq(true)
         .derive_default(true)
+        .allowlist_item("(v4l2|V4L2|VIDEO|Fix753)_.*")
 }

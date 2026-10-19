@@ -22,7 +22,7 @@ use dqbuf::*;
 use log::debug;
 use qbuf::*;
 
-use std::convert::{Infallible, TryFrom};
+use std::convert::Infallible;
 use std::os::unix::io::{AsRawFd, RawFd};
 use std::sync::{Arc, Weak};
 use thiserror::Error;

@@ -1,5 +1,4 @@
 use nix::errno::Errno;
-use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::io::RawFd;
 use thiserror::Error;

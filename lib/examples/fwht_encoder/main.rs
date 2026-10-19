@@ -23,76 +23,65 @@ use v4l2r::{
 use v4l2r_utils::framegen::FrameGenerator;
 
 use anyhow::ensure;
-use clap::{App, Arg};
+use clap::{builder::ValueParser, Arg, Command};
+
+fn parse_frame_size(s: &str) -> Result<(usize, usize), String> {
+    let (width, height) = s
+        .split_once('x')
+        .ok_or("missing 'x' separator between width and height")?;
+    let width = width.parse().map_err(|e| format!("{e}: {width:?}"))?;
+    let height = height.parse().map_err(|e| format!("{e}: {height:?}"))?;
+    Ok((width, height))
+}
 
 fn main() {
     env_logger::init();
 
-    let matches = App::new("V4L2 stateful encoder")
+    let matches = Command::new("V4L2 stateful encoder")
         .arg(
-            Arg::with_name("num_frames")
+            Arg::new("num_frames")
                 .long("stop_after")
-                .takes_value(true)
+                .value_parser(clap::value_parser!(usize))
                 .help("Stop after encoding a given number of buffers"),
         )
         .arg(
-            Arg::with_name("device")
-                .required(true)
+            Arg::new("device")
+                .default_value("/dev/video0")
                 .help("Path to the vicodec device file"),
         )
         .arg(
-            Arg::with_name("frame_size")
+            Arg::new("frame_size")
                 .long("frame_size")
                 .required(false)
-                .takes_value(true)
+                .value_parser(ValueParser::new(parse_frame_size))
                 .default_value("640x480")
-                .help("Size of the frames to encode (e.g. \"640x480\")"),
+                .help("Size of the frames to encode"),
         )
         .arg(
-            Arg::with_name("output_file")
+            Arg::new("output_file")
                 .long("save")
                 .required(false)
-                .takes_value(true)
                 .help("Save the encoded stream to a file"),
         )
         .arg(
-            Arg::with_name("output_mem")
+            Arg::new("output_mem")
                 .long("output_mem")
                 .required(false)
-                .takes_value(true)
+                .value_parser(["mmap", "user", "dmabuf"])
                 .default_value("mmap")
-                .help("Type of memory to use for the OUTPUT queue (mmap, user or dmabuf)"),
+                .help("Type of memory to use for the OUTPUT queue"),
         )
         .get_matches();
 
-    let device_path = matches.value_of("device").unwrap_or("/dev/video0");
-
-    let mut stop_after = match clap::value_t!(matches.value_of("num_frames"), usize) {
-        Ok(v) => Some(v),
-        Err(e) if e.kind == clap::ErrorKind::ArgumentNotFound => None,
-        Err(e) => panic!("Invalid value for stop_after: {}", e),
-    };
-
-    let frame_size = matches
-        .value_of("frame_size")
-        .map(|s| {
-            const ERROR_MSG: &str = "Invalid parameter for frame_size";
-            let split: Vec<&str> = s.split('x').collect();
-            if split.len() != 2 {
-                panic!("{}", ERROR_MSG);
-            }
-            let width: usize = split[0].parse().expect(ERROR_MSG);
-            let height: usize = split[1].parse().expect(ERROR_MSG);
-
-            (width, height)
-        })
-        .unwrap();
+    let device_path = matches.get_one::<String>("device").unwrap();
+    let mut stop_after: Option<usize> = matches.get_one("num_frames").map(|n| *n);
+    let frame_size: (usize, usize) = *matches.get_one("frame_size").unwrap();
 
     let mut output_file = matches
-        .value_of("output_file")
+        .get_one::<String>("output_file")
         .map(|s| File::create(s).expect("Invalid output file specified."));
 
-    let output_mem = match matches.value_of("output_mem") {
+    let output_mem = match matches.get_one::<String>("output_mem").map(String::as_str) {
         Some("mmap") => GenericSupportedMemoryType::Mmap,
         Some("user") => GenericSupportedMemoryType::UserPtr,
         Some("dmabuf") => GenericSupportedMemoryType::DmaBuf,

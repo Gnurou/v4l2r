@@ -33,63 +33,71 @@ use v4l2r::{
     Format, Rect,
 };
 
-use clap::{App, Arg};
+use clap::{builder::PossibleValue, Arg, Command};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Codec {
     Fwht,
     H264,
 }
 
+impl clap::ValueEnum for Codec {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Self::Fwht, Self::H264]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(PossibleValue::new(match self {
+            Codec::Fwht => "fwht",
+            Codec::H264 => "h264",
+        }))
+    }
+}
+
 fn main() {
     env_logger::init();
 
-    let matches = App::new("V4L2 stateful decoder")
+    let matches = Command::new("V4L2 stateful decoder")
         .arg(
-            Arg::with_name("stream")
+            Arg::new("stream")
                 .required(true)
                 .help("Path to the encoded stream to decode"),
         )
         .arg(
-            Arg::with_name("device")
+            Arg::new("device")
                 .required(true)
                 .help("Path to the vicodec device file"),
         )
         .arg(
-            Arg::with_name("input_format")
+            Arg::new("input_format")
                 .long("input_format")
                 .required(false)
-                .takes_value(true)
+                .value_parser(clap::value_parser!(Codec))
                 .default_value("fwht")
-                .help("Format of the encoded stream (fwht or h264)"),
+                .help("Format of the encoded stream"),
         )
         .arg(
-            Arg::with_name("output_file")
+            Arg::new("output_file")
                 .long("save")
                 .required(false)
-                .takes_value(true)
                 .help("Save the decoded RGB frames to a file"),
         )
         .get_matches();
 
     let stream_path = matches
-        .value_of("stream")
+        .get_one::<String>("stream")
         .expect("Stream argument not specified");
     let device_path = matches
-        .value_of("device")
+        .get_one::<String>("device")
         .expect("Device argument not specified");
-    let codec = match matches
-        .value_of("input_format")
-        .expect("Input format not specified")
-    {
-        "fwht" => Codec::Fwht,
-        "h264" => Codec::H264,
-        _ => panic!("Invalid input format specified"),
-    };
+    let codec = matches
+        .get_one("input_format")
+        .expect("Input format not specified");
 
     let stream = BufReader::new(File::open(stream_path).expect("Compressed stream not found"));
 
     let mut output_file: Option<File> = matches
-        .value_of("output_file")
+        .get_one::<String>("output_file")
         .map(|path| File::create(path).expect("Invalid output file specified."));
 
     let lets_quit = Arc::new(AtomicBool::new(false));
@@ -165,7 +173,7 @@ fn main() {
         })
     };
 
-    let mut decoder = Decoder::open(Path::new(device_path))
+    let mut decoder = Decoder::open(Path::new(&device_path))
         .expect("Failed to open device")
         .set_output_format(|f| {
             let pixel_format: PixelFormat = match codec {

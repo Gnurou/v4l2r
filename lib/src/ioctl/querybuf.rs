@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 
 use nix::errno::Errno;

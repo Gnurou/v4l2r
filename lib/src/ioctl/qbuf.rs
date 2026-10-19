@@ -2,7 +2,6 @@
 use nix::errno::Errno;
 use nix::libc::{suseconds_t, time_t};
 use nix::sys::time::{TimeVal, TimeValLike};
-use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::os::unix::io::AsRawFd;
 use std::os::unix::prelude::RawFd;

@@ -1,8 +1,6 @@
 //! Safe wrapper for the `VIDIOC_SUBSCRIBE_EVENT` and `VIDIOC_UNSUBSCRIBE_EVENT
 //! ioctls.
 
-use std::convert::TryFrom;
-use std::convert::TryInto;
 use std::os::unix::io::AsRawFd;
 
 use bitflags::bitflags;

@@ -2,7 +2,6 @@
 
 use bitflags::bitflags;
 use nix::errno::Errno;
-use std::convert::TryFrom;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
 
@@ -247,8 +246,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryFrom;
-
     use crate::{
         bindings,
         ioctl::{DecoderStartCmdFormat, PauseCmdFlags, StartCmdFlags, StopCmdFlags},

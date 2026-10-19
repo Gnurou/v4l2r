@@ -4,7 +4,6 @@ use crate::ioctl::IoctlConvertResult;
 use crate::ioctl::UncheckedV4l2Buffer;
 use crate::QueueType;
 
-use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::os::unix::io::AsRawFd;
 

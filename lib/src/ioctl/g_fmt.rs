@@ -1,6 +1,5 @@
 //! Safe wrapper for the `VIDIOC_(G|S|TRY)_FMT` ioctls.
 use nix::errno::Errno;
-use std::convert::{From, Into, TryFrom, TryInto};
 use std::default::Default;
 use std::os::unix::io::AsRawFd;
 use thiserror::Error;
@@ -218,7 +217,6 @@ pub fn try_fmt<I: TryInto<v4l2_format>, O: TryFrom<v4l2_format>>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::convert::TryInto;
 
     #[test]
     // Convert from Format to multi-planar v4l2_format and back.

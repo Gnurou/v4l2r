@@ -22,7 +22,7 @@ use super::ioctl::Capability;
 use super::QueueType;
 use std::collections::BTreeSet;
 use std::fs::File;
-use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, RawFd};
+use std::os::unix::io::{AsFd, AsRawFd, BorrowedFd, RawFd};
 use std::{path::Path, sync::Mutex};
 use thiserror::Error;
 
@@ -89,7 +89,7 @@ impl Device {
         let fd = open(path, flags, Mode::empty())?;
 
         // Safe because we are constructing a file from Fd we just opened.
-        Ok(Device::new(unsafe { File::from_raw_fd(fd) })?)
+        Ok(Device::new(File::from(fd))?)
     }
 
     /// Returns the capabilities of the device, i.e. the result of QUERYCAPS.

@@ -1,6 +1,5 @@
 use nix::libc::c_int;
 use nix::poll::{PollFd, PollTimeout};
-use std::convert::TryFrom;
 use std::fs::File;
 use std::os::unix::io::{AsFd, AsRawFd, RawFd};
 use std::os::unix::prelude::FromRawFd;
