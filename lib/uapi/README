@@ -1,0 +1,7 @@
+These kernel UAPI headers were copied from the host system by update-uapi-headers.sh.
+Source: /usr/include
+Date: 2026-04-10T10:37:54Z
+Kernel version: 6.12.69
+
+They are used when the cross-toolchain's built-in headers are too old to
+contain the V4L2 data structures needed by v4l2r.
