@@ -209,6 +209,8 @@ pub enum CtrlWhich {
     Current,
     Default,
     Request(RawFd),
+    MinVal,
+    MaxVal,
     Class(u32),
 }
 
@@ -226,6 +228,12 @@ impl CtrlWhich {
             CtrlWhich::Request(_) => v4l2_class_or_which {
                 which: bindings::V4L2_CTRL_WHICH_REQUEST_VAL,
             },
+            CtrlWhich::MinVal => v4l2_class_or_which {
+                which: bindings::V4L2_CTRL_WHICH_MIN_VAL,
+            },
+            CtrlWhich::MaxVal => v4l2_class_or_which {
+                which: bindings::V4L2_CTRL_WHICH_MAX_VAL,
+            },
             CtrlWhich::Class(class) => v4l2_class_or_which { ctrl_class: *class },
         }
     }
@@ -240,6 +248,8 @@ impl TryFrom<&v4l2_ext_controls> for CtrlWhich {
             bindings::V4L2_CTRL_WHICH_CUR_VAL => Ok(CtrlWhich::Current),
             bindings::V4L2_CTRL_WHICH_DEF_VAL => Ok(CtrlWhich::Default),
             bindings::V4L2_CTRL_WHICH_REQUEST_VAL => Ok(CtrlWhich::Request(ctrls.request_fd)),
+            bindings::V4L2_CTRL_WHICH_MIN_VAL => Ok(CtrlWhich::MinVal),
+            bindings::V4L2_CTRL_WHICH_MAX_VAL => Ok(CtrlWhich::MaxVal),
             bindings::V4L2_CTRL_CLASS_USER
             | bindings::V4L2_CTRL_CLASS_CODEC
             | bindings::V4L2_CTRL_CLASS_CAMERA
