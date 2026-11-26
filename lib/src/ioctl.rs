@@ -67,6 +67,7 @@ mod reqbufs;
 mod request;
 mod streamon;
 mod subscribe_event;
+mod uvc_ctrl_query;
 
 pub use decoder_cmd::*;
 pub use dqbuf::*;
@@ -92,6 +93,7 @@ pub use reqbufs::*;
 pub use request::*;
 pub use streamon::*;
 pub use subscribe_event::*;
+pub use uvc_ctrl_query::*;
 
 use std::convert::TryFrom;
 use std::ffi::CStr;
